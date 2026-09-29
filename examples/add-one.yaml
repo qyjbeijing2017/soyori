@@ -1,0 +1,16 @@
+# 和 add-one.json 使用同一份流程结构。
+schemaVersion: 1
+id: add-one
+name: 加一
+fields:
+  count:
+    initial: 0
+    input: true
+    output: true
+  increment:
+    initial: 1
+steps:
+  - type: add
+    left: count
+    right: increment
+    output: count

@@ -41,6 +41,8 @@ pnpm cli --help
 pnpm cli run examples/add-one.json --input examples/input.json --json
 pnpm cli run examples/parent.json --flows examples/add-one.json --input examples/input.json --json
 pnpm cli run examples/function.json --functions examples/functions.mjs --json
+pnpm cli run examples/add-one.yaml --input-json '{"count":2}' --json
+pnpm cli run examples/parent.yaml --flows examples/add-one.json --json
 pnpm cli run examples/add-one.json --input-json '{"count":2}' --json
 pnpm cli inspect examples/parent.json --json
 pnpm cli validate examples/parent.json --flows examples/add-one.json --json
@@ -50,6 +52,8 @@ pnpm cli run examples/parent.json --flows examples/add-one.json --trace trace.js
 前两个运行示例的 `result` 为 `{ "count": 3 }`，外部函数示例的 `result` 为 `{ "message": "Hello, Agent!" }`。JSON 输出统一为 `{ "version": 1, "ok": true, "result": ... }`，失败时为 `{ "version": 1, "ok": false, "error": ... }`。
 
 `--flows` 可重复指定多个子流程文件。`--functions` 指向默认导出函数注册表的本地 ESM 模块，宿主代码由 CLI 导入并执行。所有路径相对命令执行目录解析。
+
+流程支持 `.json`、`.yaml`、`.yml`，主流程和子流程可以混用，分发时保留原格式即可。CLI 解析后统一交给 core 校验；输入参数仍为 JSON，输出协议不变。YAML 写法见 [加一示例](examples/add-one.yaml)，格式细节见 [CLI 文档](agent-plan-cli/README.md)。
 
 默认输出使用 Node inspector，可查看 `undefined`、二进制和循环对象；`--json` 要求结果是 JSON 数据，否则报错。JSON 模式的错误也输出到 stdout；文本模式错误写到 stderr。宿主日志始终转到 stderr。普通失败退出码为 1，超时 124，中断 130。
 
