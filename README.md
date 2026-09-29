@@ -1,11 +1,11 @@
 # agent-plan
 
-本地 Agent 流程工具总仓库。采用 Git 子模块保留 core 独立仓库，通过 pnpm workspace 连接 core 和 CLI。
+本地 Agent 流程工具总仓库。core 和 CLI 都采用独立 Git 仓库，通过子模块固定版本，通过 pnpm workspace 联合开发。
 
 ```text
 agent-plan/
 ├─ agent-plan-core/       # Git 子模块：独立运行内核
-├─ agent-plan-cli/        # 总仓库管理的命令行工具
+├─ agent-plan-cli/        # Git 子模块：独立命令行工具
 ├─ examples/              # 可运行流程与外部函数示例
 ├─ .gitmodules
 ├─ pnpm-workspace.yaml
@@ -60,7 +60,7 @@ pnpm cli run examples/function.json --functions examples/functions.mjs --json
 
 ## 修改与提交子模块
 
-总仓库固定 core 的某个提交，不自动跟随其最新版本。正常拉取后，core 可能处于 detached HEAD；开始修改前按需要切换已有分支或创建开发分支。已有未提交改动时先处理好再切换。
+总仓库固定 core 和 CLI 各自的某个提交，不自动跟随其最新版本。正常拉取后，子模块可能处于 detached HEAD；开始修改前按需要切换已有分支或创建开发分支。已有未提交改动时先处理好再切换。
 
 core 改动完成后，先在子仓库提交并推送，再更新总仓库指针：
 
@@ -80,4 +80,6 @@ git pull
 git submodule update --init --recursive
 ```
 
-CLI 的修改直接在总仓库提交。若更改依赖，同时更新根 workspace 锁文件；core 独立依赖变动还需维护子仓库锁文件。不要将 `node_modules` 或 `dist` 提交。
+CLI 同样先在 [agent-plan-cli](https://github.com/qyjbeijing2017/agent-plan-cli) 子仓库提交并推送，再提交总仓库指针（将上述命令中的 `agent-plan-core` 替换为 `agent-plan-cli`）。CLI 当前依赖 `workspace:*`，单独克隆后不能直接安装运行，请使用总工作区开发，详见 [CLI 文档](agent-plan-cli/README.md)。
+
+若更改依赖，同时更新根 workspace 锁文件；core 独立依赖变动还需维护子仓库锁文件。不要将 `node_modules` 或 `dist` 提交。
