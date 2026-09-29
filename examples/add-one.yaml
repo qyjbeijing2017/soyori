@@ -1,6 +1,5 @@
 # 和 add-one.json 使用同一份流程结构。
 schemaVersion: 1
-id: add-one
 name: 加一
 description: 接收一个数字，加一后返回。
 fields:

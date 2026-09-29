@@ -1,6 +1,7 @@
 schemaVersion: 1
-id: parent
 name: 子流程示例
+imports:
+  add-one: ./add-one.yaml
 fields:
   count:
     initial: 0
@@ -10,7 +11,7 @@ steps:
   - type: call
     target:
       kind: flow
-      id: add-one
+      key: add-one
     inputs:
       count: count
     outputs:

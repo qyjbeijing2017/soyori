@@ -1,6 +1,5 @@
 {
   "schemaVersion": 1,
-  "id": "add-one",
   "name": "加一",
   "description": "接收一个数字，加一后返回。",
   "fields": {
@@ -10,7 +9,10 @@
       "input": true,
       "output": true
     },
-    "increment": { "description": "每次增加的数值。", "initial": 1 }
+    "increment": {
+      "description": "每次增加的数值。",
+      "initial": 1
+    }
   },
   "steps": [
     {

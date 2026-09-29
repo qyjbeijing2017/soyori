@@ -1,16 +1,25 @@
 {
   "schemaVersion": 1,
-  "id": "greeting",
   "name": "外部函数示例",
   "fields": {
-    "name": { "initial": "Agent", "input": true },
-    "message": { "output": true }
+    "name": {
+      "initial": "Agent",
+      "input": true
+    },
+    "message": {
+      "output": true
+    }
   },
   "steps": [
     {
       "type": "call",
-      "target": { "kind": "function", "id": "greet" },
-      "inputs": { "name": "name" },
+      "target": {
+        "kind": "function",
+        "id": "greet"
+      },
+      "inputs": {
+        "name": "name"
+      },
       "output": "message"
     }
   ]
