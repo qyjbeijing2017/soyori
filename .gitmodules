@@ -1,0 +1,3 @@
+[submodule "agent-plan-core"]
+	path = agent-plan-core
+	url = https://github.com/qyjbeijing2017/agent-plan-core.git

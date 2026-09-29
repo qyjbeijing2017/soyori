@@ -1,0 +1,25 @@
+{
+  "name": "agent-plan-cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Local command-line runner for agent-plan flows.",
+  "bin": {
+    "agent-plan": "./dist/index.js"
+  },
+  "files": ["dist"],
+  "engines": { "node": ">=24" },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "pnpm build && node --test tests/*.test.mjs",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "agent-plan-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.0",
+    "typescript": "7.0.2"
+  }
+}
