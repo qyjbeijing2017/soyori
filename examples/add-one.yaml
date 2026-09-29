@@ -2,15 +2,19 @@
 schemaVersion: 1
 id: add-one
 name: 加一
+description: 接收一个数字，加一后返回。
 fields:
   count:
+    description: 输入待处理数字，输出计算结果。
     initial: 0
     input: true
     output: true
   increment:
+    description: 每次增加的数值。
     initial: 1
 steps:
   - type: add
+    description: 将 count 增加 increment。
     left: count
     right: increment
     output: count
