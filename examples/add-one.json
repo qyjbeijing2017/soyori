@@ -6,7 +6,5 @@
     "count": { "initial": 0, "input": true, "output": true },
     "increment": { "initial": 1 }
   },
-  "steps": [
-    { "type": "add", "left": "count", "right": "increment", "output": "count" }
-  ]
+  "steps": [{ "type": "add", "left": "count", "right": "increment", "output": "count" }]
 }

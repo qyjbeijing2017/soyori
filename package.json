@@ -7,6 +7,13 @@
     "build": "pnpm -r --if-present build",
     "typecheck": "pnpm --filter agent-plan-core build && pnpm -r --if-present typecheck",
     "test": "pnpm -r --if-present test",
-    "cli": "node agent-plan-cli/dist/index.js"
+    "cli": "node agent-plan-cli/dist/index.js",
+    "lint": "biome lint .",
+    "format": "biome format . --write",
+    "check": "biome check .",
+    "verify": "pnpm check && pnpm typecheck && pnpm test"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.14"
   }
 }

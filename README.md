@@ -21,7 +21,7 @@ git clone --recurse-submodules https://github.com/qyjbeijing2017/agent-plan.git
 cd agent-plan
 pnpm install --frozen-lockfile
 pnpm build
-pnpm test
+pnpm verify
 ```
 
 如果克隆时没有初始化子模块：
@@ -41,15 +41,19 @@ pnpm cli --help
 pnpm cli run examples/add-one.json --input examples/input.json --json
 pnpm cli run examples/parent.json --flows examples/add-one.json --input examples/input.json --json
 pnpm cli run examples/function.json --functions examples/functions.mjs --json
+pnpm cli run examples/add-one.json --input-json '{"count":2}' --json
+pnpm cli inspect examples/parent.json --json
+pnpm cli validate examples/parent.json --flows examples/add-one.json --json
+pnpm cli run examples/parent.json --flows examples/add-one.json --trace trace.jsonl --timeout 30s --json
 ```
 
-前两个运行示例输出 `{ "count": 3 }`，外部函数示例输出 `{ "message": "Hello, Agent!" }`。
+前两个运行示例的 `result` 为 `{ "count": 3 }`，外部函数示例的 `result` 为 `{ "message": "Hello, Agent!" }`。JSON 输出统一为 `{ "version": 1, "ok": true, "result": ... }`，失败时为 `{ "version": 1, "ok": false, "error": ... }`。
 
 `--flows` 可重复指定多个子流程文件。`--functions` 指向默认导出函数注册表的本地 ESM 模块，宿主代码由 CLI 导入并执行。所有路径相对命令执行目录解析。
 
-默认输出使用 Node inspector，可查看 `undefined`、二进制和循环对象；`--json` 要求结果可以无损表示为 JSON，否则报错。错误写到 stderr，退出码为 1。
+默认输出使用 Node inspector，可查看 `undefined`、二进制和循环对象；`--json` 要求结果是 JSON 数据，否则报错。JSON 模式的错误也输出到 stdout；文本模式错误写到 stderr。宿主日志始终转到 stderr。普通失败退出码为 1，超时 124，中断 130。
 
-当前 CLI 实现 `run`，交互式 `debug` 后续设计。包声明了 `agent-plan` 命令入口；目前标记为 private，尚未发布或全局安装。
+CLI 已实现 `run`、`inspect`、`validate`、文件/内联 JSON/stdin 输入、trace 和进程隔离超时。完整协议与边界见 [CLI 文档](agent-plan-cli/README.md)。包声明了 `agent-plan` 命令入口；目前标记为 private，尚未发布或全局安装。
 
 ## 包职责
 
@@ -83,3 +87,9 @@ git submodule update --init --recursive
 CLI 同样先在 [agent-plan-cli](https://github.com/qyjbeijing2017/agent-plan-cli) 子仓库提交并推送，再提交总仓库指针（将上述命令中的 `agent-plan-core` 替换为 `agent-plan-cli`）。CLI 当前依赖 `workspace:*`，单独克隆后不能直接安装运行，请使用总工作区开发，详见 [CLI 文档](agent-plan-cli/README.md)。
 
 若更改依赖，同时更新根 workspace 锁文件；core 独立依赖变动还需维护子仓库锁文件。不要将 `node_modules` 或 `dist` 提交。
+
+## 工程检查
+
+`pnpm verify` 运行 Biome、类型检查及所有测试；`pnpm format` 统一格式。Biome 对流程协议的 `then` 属性和测试中的故意稀疏数组做例外配置，其他使用推荐检查。
+
+GitHub Actions 在 Windows 和 Linux 上验证总仓库固定的两个子模块提交。私有子仓库分别需要只读部署密钥，其私钥存储为总仓库 Actions secrets `CORE_READ_KEY` 和 `CLI_READ_KEY`；不需要个人访问令牌或子仓库写权限。来自不提供 secrets 的 fork PR 无法检出私有子模块。

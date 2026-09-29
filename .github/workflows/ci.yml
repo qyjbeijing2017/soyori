@@ -1,0 +1,47 @@
+name: Verify workspace
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Read pinned submodule commits
+        id: pins
+        shell: bash
+        run: |
+          echo "core=$(git rev-parse HEAD:agent-plan-core)" >> "$GITHUB_OUTPUT"
+          echo "cli=$(git rev-parse HEAD:agent-plan-cli)" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          repository: qyjbeijing2017/agent-plan-core
+          ref: ${{ steps.pins.outputs.core }}
+          path: agent-plan-core
+          ssh-key: ${{ secrets.CORE_READ_KEY }}
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: qyjbeijing2017/agent-plan-cli
+          ref: ${{ steps.pins.outputs.cli }}
+          path: agent-plan-cli
+          ssh-key: ${{ secrets.CLI_READ_KEY }}
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm verify
