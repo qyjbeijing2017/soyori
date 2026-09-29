@@ -15,7 +15,7 @@ jobs:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
       - name: Read pinned submodule commits
@@ -24,24 +24,25 @@ jobs:
         run: |
           echo "core=$(git rev-parse HEAD:agent-plan-core)" >> "$GITHUB_OUTPUT"
           echo "cli=$(git rev-parse HEAD:agent-plan-cli)" >> "$GITHUB_OUTPUT"
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
         with:
           repository: qyjbeijing2017/agent-plan-core
           ref: ${{ steps.pins.outputs.core }}
           path: agent-plan-core
           ssh-key: ${{ secrets.CORE_READ_KEY }}
           persist-credentials: false
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
         with:
           repository: qyjbeijing2017/agent-plan-cli
           ref: ${{ steps.pins.outputs.cli }}
           path: agent-plan-cli
           ssh-key: ${{ secrets.CLI_READ_KEY }}
           persist-credentials: false
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7.0.0
         with:
           node-version: 24
-          cache: pnpm
+      - uses: pnpm/action-setup@v6.1.0
+        with:
+          cache: true
       - run: pnpm install --frozen-lockfile
       - run: pnpm verify
