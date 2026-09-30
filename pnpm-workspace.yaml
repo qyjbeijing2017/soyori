@@ -1,3 +1,4 @@
 packages:
   - agent-plan-core
   - agent-plan-cli
+  - agent-plan-editor

@@ -1,0 +1,147 @@
+:root {
+  font-family: system-ui, sans-serif;
+  color: #182b39;
+  background: #f5f6f8;
+  font-synthesis: none;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+main {
+  max-width: 1280px;
+  margin: auto;
+  padding: 48px 24px;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.brand-logo {
+  display: block;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+.brand-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.brand-name {
+  color: #17685b;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+.eyebrow {
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  color: #466e69;
+  font-weight: 700;
+}
+h1 {
+  font-size: clamp(28px, 4vw, 42px);
+  margin: 16px 0;
+}
+h2 {
+  font-size: 19px;
+  margin: 0 0 12px;
+}
+p,
+footer {
+  color: #586b78;
+  line-height: 1.7;
+}
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 24px;
+  margin: 32px 0;
+}
+section {
+  min-width: 0;
+  background: white;
+  border: 1px solid #dbe2e7;
+  border-radius: 16px;
+  padding: 24px;
+}
+label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+textarea,
+pre {
+  font-family: ui-monospace, monospace;
+  font-size: 14px;
+  line-height: 1.7;
+  background: #f5f7f9;
+  border-radius: 8px;
+  padding: 16px;
+}
+textarea {
+  width: 100%;
+  min-height: 390px;
+  resize: vertical;
+  border: 1px solid #bdcbd4;
+  color: inherit;
+}
+pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  min-height: 160px;
+}
+.actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+button {
+  cursor: pointer;
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 1px solid #bdcbd4;
+  border-radius: 8px;
+  background: white;
+  color: inherit;
+  font: inherit;
+}
+button.primary {
+  background: #17685b;
+  color: white;
+  border-color: #17685b;
+}
+button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+:focus-visible {
+  outline: 3px solid #408cbb;
+  outline-offset: 3px;
+}
+.error {
+  color: #a52c32;
+  overflow-wrap: anywhere;
+}
+footer {
+  font-size: 13px;
+}
+@media (max-width: 760px) {
+  main {
+    padding: 28px 16px;
+  }
+  .workspace {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  section {
+    padding: 18px;
+  }
+  textarea {
+    font-size: 16px;
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "name": "我的第一个流程",
+  "fields": {
+    "message": { "initial": "你好，Agent Plan", "output": true },
+    "request": { "output": true }
+  },
+  "steps": [
+    { "type": "set", "field": "$request.temperature", "value": 0.7 },
+    {
+      "type": "append",
+      "field": "$request.messages",
+      "value": { "role": "user", "content": "$message" }
+    }
+  ]
+}
