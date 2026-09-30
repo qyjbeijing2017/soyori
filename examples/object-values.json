@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "name": "对象参数与消息追加",
+  "fields": {
+    "userInput": { "initial": "你好", "input": true },
+    "request": { "initial": 123, "output": true }
+  },
+  "steps": [
+    { "type": "set", "field": "$request.options.temperature", "value": 0.7 },
+    {
+      "type": "append",
+      "field": "$request.messages",
+      "value": { "role": "user", "content": "$userInput" }
+    },
+    { "type": "set", "field": "$request.tags[2]", "value": "demo" },
+    { "type": "set", "field": "$request.label", "value": "$$literal" }
+  ]
+}

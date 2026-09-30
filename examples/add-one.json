@@ -18,9 +18,9 @@
     {
       "type": "add",
       "description": "将 count 增加 increment。",
-      "left": "count",
-      "right": "increment",
-      "output": "count"
+      "left": "$count",
+      "right": "$increment",
+      "output": "$count"
     }
   ]
 }

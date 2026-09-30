@@ -13,6 +13,6 @@ steps:
       kind: flow
       key: add-one
     inputs:
-      count: count
+      count: $count
     outputs:
-      count: count
+      count: $count

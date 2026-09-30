@@ -2,6 +2,8 @@
 
 本地 Agent 流程工具总仓库。core 和 CLI 都采用独立 Git 仓库，通过子模块固定版本，通过 pnpm workspace 联合开发。
 
+项目目标是让用户和 AI 更方便地开发、运行和逐步调试 AI Agent，重点放在工具能力与联调，流程保持轻量。新加入的开发者或 AI 窗口先读 [项目目标与决策](docs/project-context.md)；自动协作入口见 [AGENTS.md](AGENTS.md)。文档明确区分已实现能力、用户确认方向和后续方案建议。
+
 ```text
 agent-plan/
 ├─ agent-plan-core/       # Git 子模块：独立运行内核
@@ -48,6 +50,7 @@ pnpm cli run examples/add-one.json --input-json '{"count":2}' --json
 pnpm cli inspect examples/parent.json --json
 pnpm cli validate examples/parent.json --json
 pnpm cli run examples/parent.json --trace trace.jsonl --timeout 30s --json
+pnpm cli run examples/object-values.json --json
 ```
 
 前两个运行示例的 `result` 为 `{ "count": 3 }`，外部函数示例的 `result` 为 `{ "message": "Hello, Agent!" }`。JSON 输出统一为 `{ "version": 1, "ok": true, "result": ... }`，失败时为 `{ "version": 1, "ok": false, "error": ... }`。
@@ -67,7 +70,7 @@ CLI 已实现 `run`、`inspect`、`validate`、文件/内联 JSON/stdin 输入�
 - **core**：流程结构、校验、字段与节点、runtime、调用栈、外部函数执行机制。不依赖 CLI。
 - **cli**：命令参数、文件加载、函数模块导入、输出与退出码。通过 `agent-plan-core: workspace:*` 使用本地子模块包，不复制 core 源码。
 
-运行器能力与示例见 [core 文档](agent-plan-core/README.md)。
+运行器能力与示例见 [core 文档](agent-plan-core/README.md)。步骤输入现在支持 `$` 变量路径、JSON 固定值和 `append` 数组追加；详细规则见 [变量、对象与数组方案](agent-plan-core/docs/operands.md)。本次直接调整未投入实际使用的格式，`schemaVersion` 保持 `1`，不自动兼容旧裸字段名。
 
 ## 修改与提交子模块
 

@@ -18,9 +18,9 @@
         "id": "greet"
       },
       "inputs": {
-        "name": "name"
+        "name": "$name"
       },
-      "output": "message"
+      "output": "$message"
     }
   ]
 }
