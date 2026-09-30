@@ -14,6 +14,9 @@ importers:
 
   agent-plan-cli:
     dependencies:
+      acorn:
+        specifier: ^8.18.0
+        version: 8.18.0
       agent-plan-core:
         specifier: workspace:*
         version: link:../agent-plan-core
@@ -219,6 +222,11 @@ packages:
     cpu: [x64]
     os: [win32]
 
+  acorn@8.18.0:
+    resolution: {integrity: sha512-lGq+9yr1/GuAWaVYIHRjvvySG5/4VfKIvC8EWxStPdcDh/Ka7FG3twP6v4d5BkravUilhIAsG4Qj83t02LWUPQ==}
+    engines: {node: '>=0.4.0'}
+    hasBin: true
+
   commander@15.0.0:
     resolution: {integrity: sha512-z67u4ZhzCL/Tydu1lJARtEZYWbWaN7oYLHbsuzocr6y4N6WZAagG3RQ4FW61V1/0+jImpj293XfrcYnd1qxtPg==}
     engines: {node: '>=22.12.0'}
@@ -336,6 +344,8 @@ snapshots:
 
   '@typescript/typescript-win32-x64@7.0.2':
     optional: true
+
+  acorn@8.18.0: {}
 
   commander@15.0.0: {}
 
