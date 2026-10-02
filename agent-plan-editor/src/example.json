@@ -1,16 +1,25 @@
 {
   "schemaVersion": 1,
-  "name": "我的第一个流程",
+  "name": "给自己写一句欢迎语",
+  "description": "输入你的名字，运行三步小流程。无需模型、密钥或网络。",
   "fields": {
-    "message": { "initial": "你好，Agent Plan", "output": true },
-    "request": { "output": true }
+    "name": { "initial": "朋友", "input": true, "description": "你的名字" },
+    "greeting": {},
+    "result": { "output": true, "description": "欢迎语" }
   },
   "steps": [
-    { "type": "set", "field": "$request.temperature", "value": 0.7 },
+    { "type": "set", "description": "准备问候", "field": "$greeting", "value": "你好，" },
     {
-      "type": "append",
-      "field": "$request.messages",
-      "value": { "role": "user", "content": "$message" }
+      "type": "concat",
+      "description": "加上你的名字",
+      "inputs": ["$greeting", "$name"],
+      "output": "$result"
+    },
+    {
+      "type": "concat",
+      "description": "送上一句鼓励",
+      "inputs": ["$result", "。让想法，从这一步开始。"],
+      "output": "$result"
     }
   ]
 }

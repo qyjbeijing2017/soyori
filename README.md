@@ -4,10 +4,16 @@
 
 项目目标是让用户和 AI 更方便地开发、运行和逐步调试 AI Agent，重点放在工具能力与联调，流程保持轻量。新加入的开发者或 AI 窗口先读 [项目目标与决策](docs/project-context.md)；自动协作入口见 [AGENTS.md](AGENTS.md)。文档明确区分已实现能力、用户确认方向和后续方案建议。
 
+核心产品原则：**预设子流程负责简单，底层节点负责能力**。已确认设计见 [AI 工具与预设](docs/ai-tools-and-presets.md)。单次模型调用已接入，使用方法见 [AI 工具](agent-plan-ai/README.md)；流程工具桥接与 Agent 预设仍待实现。
+
+CLI/Editor 已接入通用 JSON 存储与 token 计数，见 [存储与计数](docs/storage-and-tokens.md)。记忆和压缩由流程组合；不自动保存运行现场。
+
 ```text
 agent-plan/
 ├─ agent-plan-core/       # Git 子模块：独立运行内核
 ├─ agent-plan-cli/        # Git 子模块：独立命令行工具
+├─ agent-plan-ai/         # Editor/CLI 共用的模型调用工具
+├─ agent-plan-editor/     # Web 编辑与运行工作台
 ├─ examples/              # 可运行流程与外部函数示例
 ├─ .gitmodules
 ├─ pnpm-workspace.yaml

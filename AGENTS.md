@@ -6,11 +6,15 @@
 
 - 帮助用户和 AI 更方便地开发、运行及逐步调试 AI Agent，兼顾不熟悉编程的用户。
 - 工具开发与调试是重点；流程保持简单、顺序、可理解。editor 使用步骤列表和嵌套块，不以画布或任意连线为目标。
+- 核心产品原则：**预设子流程负责简单，底层节点负责能力**。新手默认使用预设，按需展开内部流程；不为易用性另造隐藏执行语义。
+- AI 能力通过独立 `call` 工具提供，优先复用 LangChain 集成，供 Editor/CLI 共享；供应商切换和 Agent 工具循环由可编辑子流程组合。设计及未实现边界见 [AI 工具与预设](docs/ai-tools-and-presets.md)。
 - 手机方便操作是核心要求，不能只把桌面布局缩小。Web 优先，并考虑后续 Windows、macOS、iOS、Android 适配。
 - 用户与外部 AI 应能读取项目、流程、工具、字段、执行位置和错误，未来共同操作同一调试会话。
-- editor 已有 React + TypeScript + Vite 基础工程（JSON 编辑、校验、单步示例）；文件管理、助手、同步、MCP、远程会话与原生封装尚未实现。
+- editor 已有 React + TypeScript + Vite 步骤工作台及本地/OpenAI/Anthropic 单次调用；CLI 复用 [AI 工具包](agent-plan-ai/README.md)。文件管理、助手、同步、通用工具加载、流程工具桥接、Agent 循环预设、MCP 和原生封装尚未实现。
 
 ## 必须保持的现有规则
+
+- 通用存储与计数见 [存储与计数](docs/storage-and-tokens.md)：记忆仍是流程变量，编排和压缩交给子流程；存储按 key 分组，不增加 namespace。CLI 支持可配置文件目录与固定位置的用户配置，浏览器使用 IndexedDB；两端注册同名工具。tokenizer 实际计数与通用估算必须明确区分。
 
 - core 是唯一的流程语义实现；CLI、未来 editor 和服务复用公开 API，不复制校验或执行规则。
 - 步骤输入：JSON 常量、`$` 变量路径、`$$` 字符串转义；字面量对象/数组递归解析。写入目标为 `$` 路径。

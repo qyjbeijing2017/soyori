@@ -13,3 +13,6 @@ temp/
 Thumbs.db
 .idea/
 .vscode/
+.playwright-cli/
+output/playwright/
+.agent-plan/storage/

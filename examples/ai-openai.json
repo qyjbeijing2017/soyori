@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "name": "OpenAI 问答",
+  "description": "在宿主设置 OPENAI_API_KEY 和 OPENAI_MODEL，不把密钥写入流程。",
+  "fields": {
+    "prompt": { "input": true, "initial": "请用中文写一句简短的欢迎语。" },
+    "result": { "output": true }
+  },
+  "steps": [
+    {
+      "type": "call",
+      "target": { "kind": "function", "id": "openai.generate" },
+      "inputs": { "prompt": "$prompt", "maxTokens": 128 },
+      "output": "$result"
+    }
+  ]
+}

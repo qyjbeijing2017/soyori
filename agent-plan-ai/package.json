@@ -1,0 +1,25 @@
+{
+  "name": "agent-plan-ai",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./dist/index.js",
+    "./local": "./dist/local.js",
+    "./tokens": "./dist/tokens.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "pnpm build && node --test tests/*.test.mjs"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "4.3.0",
+    "@langchain/anthropic": "1.5.11",
+    "@langchain/core": "1.2.13",
+    "@langchain/openai": "1.6.0"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2"
+  }
+}

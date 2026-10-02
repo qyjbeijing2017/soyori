@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "name": "存储与 token 计数",
+  "description": "读取旧记忆、估算文字 token 数并写入新记忆；不调用模型。",
+  "fields": {
+    "text": { "input": true, "initial": "你好，这是一次记忆测试。" },
+    "previous": { "output": true },
+    "count": { "output": true }
+  },
+  "steps": [
+    {
+      "type": "call",
+      "target": { "kind": "function", "id": "storage.read" },
+      "inputs": { "key": "demo/memory" },
+      "output": "$previous"
+    },
+    {
+      "type": "call",
+      "target": { "kind": "function", "id": "tokens.count" },
+      "inputs": { "text": "$text", "mode": "estimate" },
+      "output": "$count"
+    },
+    {
+      "type": "call",
+      "target": { "kind": "function", "id": "storage.write" },
+      "inputs": {
+        "key": "demo/memory",
+        "value": { "summary": "", "messages": [{ "role": "user", "content": "$text" }] }
+      }
+    }
+  ]
+}
