@@ -22,6 +22,48 @@ CLI 的 `assistant/memory/chat-001` 对应 `<storage>/assistant/memory/chat-001.
 
 浏览器按完整 key 存入 IndexedDB 的 `agent-plan-storage` 数据库，事务完成后才报告成功。当前同源页面共享这一存储，通过 key 分组；不额外按工程隔离。浏览器可能清除站点数据，CLI 无法直接访问它。尚无浏览器存储管理页面、备份导入导出和同步。
 
+## Editor 原始对话记录
+
+Chat 页面将每个线程保存为通用存储中的 `threads/<threadId>`，底层仍是 JSON 数据。线程 ID 是独立 UUID，不包含流程 ID。下面用 YAML 表示其结构，便于阅读：
+
+```yaml
+id: 线程UUID
+flowId: 流程ID
+title: 对话标题
+messages:
+  - role: user
+    content: 你好
+  - role: assistant
+    content: "**你好！**"
+  - role: assistant
+    content: |-
+      - one
+      - two
+    format: yaml
+```
+
+`content` 始终是字符串；普通文字保留 Markdown 原文，结构化输出保存为 YAML 展示文本并标记 `format: yaml`。因此这里保存的是对话内容，不是运行时对象的可恢复快照。
+
+每轮运行前先保存本轮 user 消息，然后将 `chatIn` 和 `threadId` 作为输入传给流程；成功后将 chatOut 追加为 assistant 消息。执行失败或停止保留已保存的 user 消息，输入保存失败则不运行。宿主不再生成或注入 memoryKey，也不自动给模型传入历史。
+
+流程读取当前线程可使用以下步骤：
+
+```yaml
+- type: template
+  template: threads/$threadId$
+  output: $transcriptKey
+- type: call
+  target: storage.read
+  inputs:
+    key: $transcriptKey
+  outputs:
+    value: $transcript
+```
+
+读取结果中的 `messages` 已包含本轮用户消息。压缩记忆、摘要和自定义状态由流程在自己选择的 key 中管理。`threads/` 是界面维护原始记录的分组；流程若直接写入同一个记录，可能被后续界面保存覆盖，它不是记忆合并接口。
+
+界面的排序和当前选择单独保存在 `agent-plan-conversations` 的 `thread-index/<flowId>`，结构为 `{activeId, threadIds}`，不复制消息正文。删除线程只删除该线程记录和索引项，不清理流程自己的其他 key。旧版按流程保存的对话记录不迁移、不读取、不删除。
+
 ## CLI 位置与配置
 
 优先级：`--storage-dir` > `AGENT_PLAN_STORAGE_DIR` > 配置文件 `storageDir` > 系统默认目录。

@@ -73,10 +73,24 @@ export function AgentChat({
     setMessages([...prior, { role: "user", content: question }]);
     setPrompt("");
     abort.current = new AbortController();
+    let inputSaved = false;
+    const incoming: ChatMessage[] = [...prior, { role: "user", content: question }];
+    const pendingBook = {
+      ...currentBook,
+      threads: currentBook.threads.map((t) =>
+        t.id === thread.id
+          ? { ...t, messages: incoming, title: t.messages.length ? t.title : question.slice(0, 24) }
+          : t,
+      ),
+    };
     try {
+      // Make this turn's original input available to storage.read before executing the flow.
+      await onBookChange(pendingBook);
+      inputSaved = true;
+      abort.current.signal.throwIfAborted();
       const session = createSession(
         loadLibraryGraph({ ...doc, flow: threadFlow(doc.flow, thread) }, documents),
-        { chatIn: question, memoryKey: thread.memoryKey },
+        { chatIn: question, threadId: thread.id },
         aiHost.tools(settings, abort.current.signal, setProgress),
       );
       let steps = 0;
@@ -113,8 +127,10 @@ export function AgentChat({
         setError(tr("回答已生成，但对话记录保存失败。请检查浏览器存储空间。"));
       }
     } catch (cause) {
-      setMessages(prior);
-      setPrompt(question);
+      if (!inputSaved) {
+        setMessages(prior);
+        setPrompt(question);
+      }
       setError(cause instanceof Error ? cause.message : String(cause));
     } finally {
       lock.current = false;

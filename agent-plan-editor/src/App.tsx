@@ -142,7 +142,6 @@ export function App() {
     const next = makeDocument(parseFlow(structuredClone(example)));
     next.flow.name = "";
     next.flow.description = "";
-    next.flow.fields.memoryKey.initial = `editor/${next.id}/memory`;
     setMetadataError("");
     setCreating(true);
     setRename(next);

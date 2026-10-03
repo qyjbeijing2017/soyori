@@ -9,7 +9,7 @@ export interface ChatThread {
   id: string;
   title: string;
   messages: ChatMessage[];
-  memoryKey: string;
+  flowId: string;
 }
 export interface ThreadBook {
   activeId: string;
@@ -17,7 +17,7 @@ export interface ThreadBook {
 }
 export function newThread(docId: string): ChatThread {
   const id = crypto.randomUUID();
-  return { id, title: "新对话", messages: [], memoryKey: `editor/threads/${docId}/${id}/memory` };
+  return { id, title: "新对话", messages: [], flowId: docId };
 }
 export function threadFlow(flow: FlowDefinition, thread: ChatThread): FlowDefinition {
   return {
@@ -25,7 +25,7 @@ export function threadFlow(flow: FlowDefinition, thread: ChatThread): FlowDefini
     fields: {
       ...flow.fields,
       chatIn: { ...flow.fields.chatIn, input: true },
-      memoryKey: { ...flow.fields.memoryKey, input: true, initial: thread.memoryKey },
+      threadId: { ...flow.fields.threadId, input: true, initial: thread.id },
     },
   };
 }
@@ -51,7 +51,7 @@ export function readThreadBook(value: unknown): ThreadBook {
         t &&
         typeof t.id === "string" &&
         typeof t.title === "string" &&
-        typeof t.memoryKey === "string" &&
+        typeof t.flowId === "string" &&
         validMessages(t.messages),
     ) ||
     new Set(book.threads.map((t) => t.id)).size !== book.threads.length ||

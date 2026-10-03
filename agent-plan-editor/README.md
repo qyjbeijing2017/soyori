@@ -19,14 +19,15 @@ pnpm editor
 
 ## 默认本地 Agent
 
-Agent 的内置入口与首次 Library 模板使用简单的 hello Agent Plan 流程，仅包含 chatIn、memoryKey、chatOut 三个变量和设置 chatOut 的一步；不调用模型、不自动读写记忆。
+Agent 的内置入口与首次 Library 模板使用简单的 hello Agent Plan 流程，仅包含 chatIn、threadId、chatOut 三个变量和设置 chatOut 的一步；不调用模型、不自动读写记忆。
 
-新建流程从同一模板开始，但使用独立记忆 key。Agent 的“新对话”创建独立 thread，保留旧记录，并为 `memoryKey` 提供独立初值。其他硬编码 key 的自定义记忆由用户流程管理，Editor 调试仍使用流程原始 key。
+新建流程从同一模板开始。Agent 的“新对话”生成独立 UUID，每轮传入 `threadId` 和 `chatIn`；不自动提供 memoryKey。记忆结构和存储 key 由流程自行管理。Editor 调试可手动填写 threadId。
 
 ## 数据保存
 
 - 流程定义：IndexedDB `agent-plan-library`，按稳定 ID 保存；重命名不改变 ID。
-- 对话展示记录：IndexedDB `agent-plan-conversations`，按流程 ID 保存；展示历史不等于模型实际接收的记忆范围。
+- 原始对话记录：通用 IndexedDB `agent-plan-storage` 的 `threads/<threadId>`，每线程一条，包含 id、flowId、title、messages。流程可用 storage.read 读取。
+- 对话界面索引：`agent-plan-conversations` 的 `thread-index/<flowId>`，只保存 activeId 和 threadIds；聊天内容不再按流程打包保存。
 - 流程的通用存储：原有 `agent-plan-storage`，通过 key 分组。
 - 模型凭据、下载许可：仅当前页面内存，刷新后重新设置，不写入导出的流程。
 
@@ -40,12 +41,12 @@ Agent 的内置入口与首次 Library 模板使用简单的 hello Agent Plan �
 
 ## 验证
 
-`pnpm --filter agent-plan-editor test`、`pnpm --filter agent-plan-editor build`。自动测试覆盖 JSON/YAML 导入、错误文件拒绝、默认对话入口、thread 记忆键隔离、步骤调试记录。真实 Chromium 已验证上传、重命名、下载、刷新持久化、流程驱动对话、步骤及对象变量表单编辑，以及 390px 下三页无横向溢出；不等于真实手机 GPU 验证。
+`pnpm --filter agent-plan-editor test`、`pnpm --filter agent-plan-editor build`。自动测试覆盖 JSON/YAML 导入、错误文件拒绝、默认对话入口、thread ID 隔离、步骤调试记录。真实 Chromium 已验证上传、重命名、下载、刷新持久化、流程驱动对话、步骤及对象变量表单编辑，以及 390px 下三页无横向溢出；不等于真实手机 GPU 验证。
 
 
 ### 多对话与节点展示（2026-10-02）
 
-Agent 支持新建和切换多个 thread，每个流程的会话列表、当前选择和聊天记录保存在浏览器中。新对话不删除旧记录。约定 `memoryKey` 字段为对话记忆位置，Agent 运行时为每个 thread 提供独立初值；硬编码存储 key 的自定义流程仍共享该 key。已有单会话记录迁移为第一个 thread，保留原记忆位置。Editor 调试仍使用流程原始初值。
+Agent 支持新建和切换多个 thread，每个流程的会话列表、当前选择和聊天记录保存在浏览器中。新对话不删除旧记录。每轮传入 chatIn 和 threadId，原始对话按 threads/<threadId> 存入通用存储；流程自行决定是否读取历史和怎样保存记忆。旧版对话数据不迁移、不读取、不删除。Editor 调试仍使用流程原始初值。
 
 Library 默认导出可读 YAML，仍兼容 JSON/YAML 上传。19 种基础节点按数据、文本、计算、判断、控制和调用六类着色；卡片优先显示节点名称或调用目标，说明作为辅助文本，参数与详细结果按需打开。
 
@@ -87,7 +88,7 @@ Library 默认导出可读 YAML，仍兼容 JSON/YAML 上传。19 种基础节�
 
 设置只从抽屉底部进入，桌面和手机均为带返回入口的独立页面，采用常规、本地模型、OpenAI、Anthropic 分组，不折叠内容；返回保留原页面与草稿。抽屉使用侧栏折叠图标。
 
-每条 thread 右侧提供删除图标，确认后持久化删除聊天记录；不删除流程或工具存储。删除当前 thread 时选择剩余 thread；删掉最后一条 thread 后保留空列表；显式新建或首次发送消息时才创建新的 thread 与 memoryKey。运行中禁止删除。
+每条 thread 右侧提供删除图标，确认后持久化删除聊天记录；不删除流程或流程自行管理的其他存储数据。删除当前 thread 时选择剩余 thread；删掉最后一条 thread 后保留空列表；显式新建或首次发送消息时才创建新的 thread 与 threadId。运行中禁止删除。
 
 ### 紧凑列表与删除修正（2026-10-03）
 
@@ -103,7 +104,7 @@ Editor 点击步骤中部或变量名称区域进入编辑，行末为带确认�
 
 运行值标题与“重置到默认值”“设置为默认值”按钮同排显示。运行值与默认值一致时隐藏两个按钮；设置为默认值将已声明变量的当前 JSON 值写入流程默认值，未设置值移除对应默认值，非 JSON 值不支持保存为默认值。
 
-Editor 对未满足对话约定的流程显示“设置为对话”，补齐 chatIn、memoryKey 输入及 chatOut 输出，保留已有字段配置和步骤。满足约定后隐藏该按钮；此操作仅配置对话入口，不自动添加模型调用或改写回答逻辑。
+Editor 对未满足对话约定的流程显示“设置为对话”，补齐 chatIn、threadId 输入及 chatOut 输出，保留已有字段配置和步骤。满足约定后隐藏该按钮；此操作仅配置对话入口，不自动添加模型调用或改写回答逻辑。
 
 顶部导航与底部运行工具栏共用视觉规范：中文名称为对话、流程库、编辑器；桌面显示图标和文字，小屏（小于 768px）仅显示图标并保留无障碍名称。选中项深绿填充，小屏胶囊容器、桌面小圆角矩形。
 
@@ -113,7 +114,7 @@ Editor 对未满足对话约定的流程显示“设置为对话”，补齐 cha
 
 Editor 调用目标统一搜索内置工具和 Library 流程，不再选择调用类型。选择 Library 流程时保存局部别名与 `library:<文档ID>` imports，重名显示名分配不同别名，流程改名不影响已保存引用；新建/改名/上传不得使用内置工具名。Editor 和 Agent 对话通过 Core LoadedFlow 图执行 Library 子流程，使用其 input/output 字段契约；每次运行固定依赖快照，删除依赖明确报错，循环依赖由 Core 调用深度限制保护。步骤列表保留父调用执行前后结果，不把子流程同路径节点误标为父步骤。外部文件/HTTPS imports 仍不支持；导出文件的 library: 引用仅能在拥有相应文档的浏览器库中解析，CLI 使用前需替换为文件或 HTTPS 来源。
 
-2026-10-03 对话入口改为只检查 chatOut.output；宿主运行时补齐 chatIn 和 memoryKey 输入。每个 thread 创建时生成独立 memoryKey，并随 thread 持久化，同一线程所有轮次复用。初始流程仅定义这三个变量，将 chatOut 设置为 hello Agent Plan；已有流程的步骤不被模板替换。
+2026-10-03 对话入口改为只检查 chatOut.output；宿主运行时补齐 chatIn 和 threadId 输入。每个 thread 创建时生成独立 ID，同一线程所有轮次复用；不再生成或注入 memoryKey。初始流程仅定义这三个变量，将 chatOut 设置为 hello Agent Plan；已有流程的步骤不被模板替换。
 
 2026-10-03：对话的 `chatOut` 支持文字、数字、布尔值、null、对象和数组。字符串按 Markdown 展示，其他值以 YAML 代码块展示，并将展示文字保存到对话记录；未赋值显示 `undefined`，不再因输出不是字符串而报错。
 
@@ -124,3 +125,14 @@ Editor 调用目标统一搜索内置工具和 Library 流程，不再选择调�
 2026-10-03：Markdown 仅用于 Chat 消息和流程/变量/步骤说明的展示。说明输入框下方提供预览/编辑切换，源文本保留；Chat 输入不增加预览，Editor 的名称、参数、变量值和模板正文保持原行为，不增加文本模式。结构化 chatOut 以 YAML 代码块展示，对话记录保存格式标记；不启用原始 HTML 或数学公式语法。
 
 2026-10-03：未设置（undefined）在文本模板中隐式转为空字符串，在数学运算/大小比较中转为 0；转换不写回源变量，不改变相等比较与存储语义。非法路径、无法转换的值和除零仍报错。
+
+
+### 按线程保存原始对话（2026-10-03）
+
+通用存储 key 为 `threads/<threadId>`，JSON 数据结构为 `{id, flowId, title, messages}`。消息沿用 `{role, content, format?}`，文字保留 Markdown 原文，结构化回复保存 YAML 展示文本及 `format: "yaml"`。线程 ID 全局生成 UUID，不再使用重复的 initial ID。
+
+运行顺序：先持久化本轮 user 消息，再把 chatIn、threadId 传给流程，完成后追加 assistant 消息。流程可通过模板 `threads/$threadId$` 构造 key，然后调用 storage.read 读取包括本轮输入的记录；不会自动把历史或记忆交给模型。执行失败或停止保留已存的 user 消息，不追加虚构回复；输入保存失败则不执行流程。
+
+不迁移旧对话，也不删除旧数据。旧流程里的 memoryKey 仍是用户字段，不再由宿主赋值。删除线程只删除对应原始记录和索引项，不删除流程自行管理的记忆。
+
+原始记录结构、读取示例及流程与界面的写入边界见 [Editor 原始对话记录](../docs/storage-and-tokens.md#editor-原始对话记录)。

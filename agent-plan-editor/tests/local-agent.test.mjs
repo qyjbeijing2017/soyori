@@ -10,12 +10,12 @@ test("starter chat has three variables and returns hello Agent Plan without mode
   const flow = parseFlow(
     JSON.parse(readFileSync(new URL("../src/example.json", import.meta.url), "utf8")),
   );
-  assert.deepEqual(Object.keys(flow.fields).sort(), ["chatIn", "chatOut", "memoryKey"]);
+  assert.deepEqual(Object.keys(flow.fields).sort(), ["chatIn", "chatOut", "threadId"]);
   assert.equal(canChat(flow), true);
   const thread = newThread("starter");
   const session = createSession(threadFlow(flow, thread), {
     chatIn: "hello",
-    memoryKey: thread.memoryKey,
+    threadId: thread.id,
   });
   await session.runtime.run();
   assert.equal(session.runtime.getState().output.chatOut, "hello Agent Plan");

@@ -3,7 +3,7 @@ name: 文字回应
 fields:
   chatIn:
     input: true
-  memoryKey:
+  threadId:
     input: true
   chatOut:
     output: true

@@ -56,7 +56,7 @@ test("enabling chat adds the contract and preserves existing fields and steps", 
     const enabled = parseFlow(enableChat(original));
     assert.equal(canChat(enabled), true);
     assert.equal(enabled.fields.chatIn.input, true);
-    assert.equal(enabled.fields.memoryKey.input, true);
+    assert.equal(enabled.fields.threadId.input, true);
     assert.equal(enabled.fields.chatOut.output, true);
     assert.deepEqual(enabled.steps, original.steps);
     assert.deepEqual(original, snapshot);
@@ -70,7 +70,7 @@ test("chatOut alone is enough and thread host supplies inputs even when undeclar
     schemaVersion: 1,
     name: "minimal",
     fields: { chatOut: { output: true } },
-    steps: [{ type: "template", template: "$chatIn$:$memoryKey$", output: "$chatOut" }],
+    steps: [{ type: "template", template: "$chatIn$:$threadId$", output: "$chatOut" }],
   };
   assert.equal(canChat(flow), true);
   const first = newThread("minimal"),
@@ -78,12 +78,12 @@ test("chatOut alone is enough and thread host supplies inputs even when undeclar
   for (const thread of [first, first, second]) {
     const session = createSession(threadFlow(flow, thread), {
       chatIn: "hello",
-      memoryKey: thread.memoryKey,
+      threadId: thread.id,
     });
     await session.runtime.run();
-    assert.equal(session.runtime.getState().output.chatOut, `hello:${thread.memoryKey}`);
+    assert.equal(session.runtime.getState().output.chatOut, `hello:${thread.id}`);
   }
-  assert.notEqual(first.memoryKey, second.memoryKey);
+  assert.notEqual(first.id, second.id);
   assert.equal(flow.fields.chatIn, undefined);
 });
 

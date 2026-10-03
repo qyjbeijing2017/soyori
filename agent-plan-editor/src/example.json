@@ -7,9 +7,9 @@
       "input": true,
       "description": "本轮用户消息，由对话页面自动传入。"
     },
-    "memoryKey": {
+    "threadId": {
       "input": true,
-      "description": "当前对话的记忆存储键；同一对话内保持不变，可用于读写记忆。"
+      "description": "当前线程 ID，由对话页面传入；原始记录保存在 threads/<threadId>，记忆由流程自行管理。"
     },
     "chatOut": {
       "output": true,

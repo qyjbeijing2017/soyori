@@ -31,13 +31,13 @@ export function upgradeDefaultChat(flow: FlowDefinition): FlowDefinition {
 }
 
 export function enableChat(flow: FlowDefinition): FlowDefinition {
-  if (canChat(flow) && flow.fields.chatIn?.input && flow.fields.memoryKey?.input) return flow;
+  if (canChat(flow) && flow.fields.chatIn?.input && flow.fields.threadId?.input) return flow;
   return {
     ...flow,
     fields: {
       ...flow.fields,
       chatIn: { ...flow.fields.chatIn, input: true },
-      memoryKey: { ...flow.fields.memoryKey, input: true },
+      threadId: { ...flow.fields.threadId, input: true },
       chatOut: { ...flow.fields.chatOut, output: true },
     },
   };

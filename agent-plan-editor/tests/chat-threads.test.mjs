@@ -5,22 +5,22 @@ import { newThread, readThreadBook, threadFlow } from "../src/chat-threads.ts";
 import { readFlowFile } from "../src/flow-files.ts";
 import { createSession } from "../src/session.ts";
 
-test("thread memory is isolated while the original flow stays unchanged", async () => {
+test("thread IDs are isolated while the original flow stays unchanged", async () => {
   const flow = {
     schemaVersion: 1,
     name: "test",
-    fields: { memoryKey: { initial: "shared" }, answer: { output: true } },
-    steps: [{ type: "set", field: "$answer", value: "$memoryKey" }],
+    fields: { threadId: { initial: "shared" }, answer: { output: true } },
+    steps: [{ type: "set", field: "$answer", value: "$threadId" }],
   };
   const a = newThread("agent"),
     b = newThread("agent");
-  assert.notEqual(a.memoryKey, b.memoryKey);
+  assert.notEqual(a.id, b.id);
   for (const thread of [a, b]) {
     const session = createSession(threadFlow(flow, thread), {});
     await session.runtime.run();
-    assert.equal(session.runtime.getState().output.answer, thread.memoryKey);
+    assert.equal(session.runtime.getState().output.answer, thread.id);
   }
-  assert.equal(flow.fields.memoryKey.initial, "shared");
+  assert.equal(flow.fields.threadId.initial, "shared");
   assert.deepEqual(readFlowFile(stringify(flow), "flow.yaml"), flow);
 });
 test("thread records preserve selection and reject broken records", () => {
