@@ -1,4 +1,4 @@
-import { Button, Checkbox, Modal, Textarea, TextInput, UnstyledButton } from "@mantine/core";
+import { Button, Checkbox, Modal, TextInput, UnstyledButton } from "@mantine/core";
 import {
   type FieldDefinition,
   type FlowDefinition,
@@ -7,7 +7,9 @@ import {
 } from "agent-plan-core";
 import { useEffect, useRef, useState } from "react";
 import { ConfirmDelete } from "./ConfirmDelete";
+import { DescriptionInput } from "./DescriptionInput";
 import { tr } from "./i18n";
+import { MarkdownText } from "./MarkdownText";
 import { arrayMove, SortableList, SortableRow } from "./Sortable";
 import { IconButton } from "./ui";
 import { AutoValueInput, ValueTypeTag } from "./ValueEditor";
@@ -198,7 +200,10 @@ export function FieldsEditor({
                     />
                   </div>
                   {field.description && (
-                    <p className="editor-description variable-description">{field.description}</p>
+                    <MarkdownText
+                      className="editor-description variable-description"
+                      source={field.description}
+                    />
                   )}
                 </div>
               )}
@@ -290,7 +295,7 @@ export function FieldsEditor({
               </div>
             </section>
             <section className="dialog-section dialog-description">
-              <Textarea
+              <DescriptionInput
                 label={tr("说明（可选）")}
                 autosize
                 minRows={2}

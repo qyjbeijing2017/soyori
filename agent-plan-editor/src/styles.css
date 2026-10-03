@@ -2280,7 +2280,7 @@ textarea:where(:not([class*="mantine-"])) {
   grid-column: 2;
   margin: 4px 12px 10px;
 }
-.step-name > .step-description {
+.step-details > .step-description {
   display: block;
   margin-top: 6px;
   color: #596c65;
@@ -2290,4 +2290,114 @@ textarea:where(:not([class*="mantine-"])) {
   .variable-description {
     margin-inline: 10px 6px;
   }
+}
+
+/* Markdown is a display concern; input values and templates stay plain text. */
+.markdown-content {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+.markdown-content > :first-child {
+  margin-top: 0;
+}
+.markdown-content > :last-child {
+  margin-bottom: 0;
+}
+.markdown-content p {
+  margin: 0.5em 0;
+  white-space: pre-wrap;
+}
+.markdown-content :is(h1, h2, h3, h4, h5, h6) {
+  font-size: 1.1em;
+  line-height: 1.5;
+  margin: 0.7em 0 0.3em;
+}
+.markdown-content :is(ul, ol) {
+  padding-left: 1.6em;
+  margin-block: 0.5em;
+}
+.markdown-content pre {
+  white-space: pre;
+  overflow-x: auto;
+  max-width: 100%;
+  padding: 10px;
+  background: #eef3f0;
+  border-radius: 8px;
+}
+.markdown-content code {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.9em;
+}
+.markdown-content blockquote {
+  margin: 0.5em 0;
+  padding-left: 12px;
+  border-left: 3px solid #adc9bd;
+}
+.markdown-content table {
+  display: block;
+  overflow-x: auto;
+  border-collapse: collapse;
+}
+.markdown-content :is(th, td) {
+  border: 1px solid #dce5df;
+  padding: 5px 8px;
+}
+.markdown-content img {
+  max-width: 100%;
+  height: auto;
+}
+.markdown-content a {
+  color: #17695c;
+  text-decoration: underline;
+}
+.chat-message.user .markdown-content {
+  background: #eaf1e8;
+  border-radius: 16px 16px 4px 16px;
+  padding: 12px 20px;
+}
+.chat-message.user .markdown-content p {
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+}
+.step-details {
+  flex: 1;
+  min-width: 0;
+}
+.step-details .step-name {
+  width: 100%;
+}
+.flow-library-card .card-description a {
+  pointer-events: auto;
+  position: relative;
+  z-index: 1;
+}
+.description-editor {
+  min-width: 0;
+}
+.description-editor .mantine-Textarea-root,
+.description-preview {
+  display: grid;
+  grid-template-columns: minmax(88px, 0.65fr) minmax(0, 1.7fr);
+  gap: 12px;
+  align-items: start;
+}
+.dialog-section .description-editor .mantine-InputWrapper-label,
+.description-label {
+  padding-top: 12px;
+  font-size: 13px;
+  color: #596c65;
+  font-weight: 400;
+}
+.dialog-section .description-editor .mantine-Input-wrapper {
+  min-width: 0;
+}
+.description-editor .description-preview .markdown-content {
+  min-height: 80px;
+  padding: 10px 12px;
+}
+.description-editor > button {
+  display: block;
+  margin: 6px 0 0 auto;
 }

@@ -1,4 +1,13 @@
 import type { FlowDefinition } from "agent-plan-core";
+import { stringify } from "yaml";
+import { formatState } from "./format-state.ts";
+
+/** Convert output for display and transcript storage without parsing strings again. */
+export function formatChatOutput(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (value === undefined) return "undefined";
+  return stringify(JSON.parse(formatState(value)), { lineWidth: 0 }).trimEnd();
+}
 
 export function canChat(flow: FlowDefinition) {
   return Boolean(flow.fields.chatOut?.output);

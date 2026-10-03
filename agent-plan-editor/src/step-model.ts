@@ -3,7 +3,7 @@ import { tr } from "./i18n.ts";
 export const stepNames: Record<Step["type"], string> = {
   set: "设置",
   append: "追加",
-  concat: "拼接",
+  template: "文本模板",
   add: "加法",
   subtract: "减法",
   multiply: "乘法",
@@ -27,7 +27,7 @@ export function stepCategory(
   if (type === "call") return "call";
   if (type === "if" || type === "while") return "control";
   if (type === "set" || type === "append") return "data";
-  if (type === "concat") return "text";
+  if (type === "template") return "text";
   if (["add", "subtract", "multiply", "divide"].includes(type)) return "math";
   return "logic";
 }
@@ -76,8 +76,8 @@ export function stepSummary(step: Step): string {
     return call;
   }
   if (step.type === "not") return `${step.output} = !${brief(step.input)}`;
-  if (step.type === "concat")
-    return `${step.output} = concat(${step.inputs.map((input) => brief(input)).join(", ")})`;
+  if (step.type === "template")
+    return `${step.output} = template(${JSON.stringify(step.template)})`;
   if (step.type === "and" || step.type === "or")
     return `${step.output} = Boolean(${step.inputs.map((input) => brief(input)).join(step.type === "and" ? " && " : " || ")})`;
   // Core equality supports structural/coercing comparisons, unlike JavaScript ===.
@@ -99,8 +99,8 @@ export function stepSummary(step: Step): string {
 const emptyDestination = "" as `$${string}`;
 export function newStep(type: Step["type"]): Step {
   if (type === "set" || type === "append") return { type, field: emptyDestination, value: "" };
-  if (type === "concat" || type === "and" || type === "or")
-    return { type, inputs: [""], output: emptyDestination };
+  if (type === "template") return { type, template: "", output: emptyDestination };
+  if (type === "and" || type === "or") return { type, inputs: [""], output: emptyDestination };
   if (type === "not") return { type, input: false, output: emptyDestination };
   if (type === "if") return { type, condition: true, then: [], else: [] };
   if (type === "while") return { type, condition: false, body: [] };

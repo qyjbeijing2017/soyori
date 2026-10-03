@@ -1,4 +1,4 @@
-import { Button, Modal, NativeSelect, Textarea, TextInput, UnstyledButton } from "@mantine/core";
+import { Button, Modal, NativeSelect, TextInput, UnstyledButton } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { parseFlow } from "agent-plan-core";
 import { useEffect, useId, useRef, useState } from "react";
@@ -8,6 +8,7 @@ import { AiSettings } from "./AiSettings";
 import { BrowserAiHost, initialAiSettings } from "./ai-host";
 import { newThread, removeThread, type ThreadBook } from "./chat-threads";
 import { loadConversations, saveConversations } from "./conversations";
+import { DescriptionInput } from "./DescriptionInput";
 import example from "./example.json";
 import { FlowEditor } from "./FlowEditor";
 import { readFlowFile } from "./flow-files";
@@ -21,6 +22,7 @@ import {
   makeDocument,
   saveDocument,
 } from "./library";
+import { MarkdownText } from "./MarkdownText";
 import { NavigationDrawer } from "./NavigationDrawer";
 
 import { EllipsisText, Icon, IconButton } from "./ui";
@@ -390,7 +392,10 @@ export function App() {
                                 {canChat(entry.flow) ? tr("对话 Agent") : tr("流程")}
                               </span>
                             </div>
-                            <p className="card-description">{entry.flow.description || ""}</p>
+                            <MarkdownText
+                              className="card-description"
+                              source={entry.flow.description || ""}
+                            />
                             <div className="card-top">
                               <div className="card-icon-actions">
                                 <IconButton
@@ -600,7 +605,7 @@ export function App() {
               </label>
             </section>
             <section className="dialog-section dialog-description">
-              <Textarea
+              <DescriptionInput
                 label={tr("说明（可选）")}
                 name="description"
                 defaultValue={rename.flow.description ?? ""}

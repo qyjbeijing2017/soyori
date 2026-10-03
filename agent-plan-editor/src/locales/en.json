@@ -140,7 +140,6 @@
   "文本": "Text",
   "设置": "Set",
   "追加": "Append",
-  "拼接": "Concat",
   "加法": "Add",
   "减法": "Subtract",
   "乘法": "Multiply",
@@ -278,5 +277,12 @@
   "留空不保存": "Leave blank to skip",
   "此调用没有输出变量": "This call has no outputs",
   "这个流程没有返回文字 chatOut，请到 Editor 设置输出。": "This flow did not return text in chatOut. Configure its output in Editor.",
-  "流程的 chatOut 变量开启输出，即可在这里对话。": "Enable output on chatOut to use this flow in chat."
+  "流程的 chatOut 变量开启输出，即可在这里对话。": "Enable output on chatOut to use this flow in chat.",
+  "文本模板": "Text template",
+  "模板正文": "Template text",
+  "用 $变量名$ 插入变量，$$ 显示 $；保留换行和缩进。": "Use $name$ for variables and $$ for a literal $. Line breaks and indentation are preserved.",
+  "说明预览": "Description preview",
+  "暂无说明": "No description",
+  "编辑说明": "Edit description",
+  "预览说明": "Preview description"
 }

@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { parseFlow } from "agent-plan-core";
-import { canChat, enableChat, upgradeDefaultChat } from "../src/chat-contract.ts";
+import { parse } from "yaml";
+import { canChat, enableChat, formatChatOutput, upgradeDefaultChat } from "../src/chat-contract.ts";
 import { createSession } from "../src/session.ts";
 
 test("any user flow with chatOut output can run as a conversation", async () => {
@@ -9,7 +10,7 @@ test("any user flow with chatOut output can run as a conversation", async () => 
     schemaVersion: 1,
     name: "用户流程",
     fields: { chatIn: { input: true }, chatOut: { output: true } },
-    steps: [{ type: "concat", inputs: ["收到：", "$chatIn"], output: "$chatOut" }],
+    steps: [{ type: "template", template: "收到：$chatIn$", output: "$chatOut" }],
   });
   assert.equal(canChat(flow), true);
   const session = createSession(flow, { chatIn: "你好" });
@@ -32,7 +33,7 @@ test("built-in chat migration preserves edits and uses ordinary core steps", asy
       answer: { output: true },
       memoryKey: { initial: "existing/key" },
     },
-    steps: [{ type: "concat", inputs: ["已修改：", "$prompt"], output: "$answer" }],
+    steps: [{ type: "template", template: "已修改：$prompt$", output: "$answer" }],
   });
   const upgraded = parseFlow(upgradeDefaultChat(original));
   assert.equal(canChat(upgraded), true);
@@ -69,7 +70,7 @@ test("chatOut alone is enough and thread host supplies inputs even when undeclar
     schemaVersion: 1,
     name: "minimal",
     fields: { chatOut: { output: true } },
-    steps: [{ type: "concat", inputs: ["$chatIn", ":", "$memoryKey"], output: "$chatOut" }],
+    steps: [{ type: "template", template: "$chatIn$:$memoryKey$", output: "$chatOut" }],
   };
   assert.equal(canChat(flow), true);
   const first = newThread("minimal"),
@@ -84,4 +85,39 @@ test("chatOut alone is enough and thread host supplies inputs even when undeclar
   }
   assert.notEqual(first.memoryKey, second.memoryKey);
   assert.equal(flow.fields.chatIn, undefined);
+});
+
+test("chat displays all JSON output types and retains literal strings", async () => {
+  for (const value of [
+    0,
+    42,
+    false,
+    true,
+    null,
+    [],
+    {},
+    ["one", 2],
+    { count: 2, keys: [] },
+    "{literal}",
+    "",
+  ]) {
+    const flow = parseFlow({
+      schemaVersion: 1,
+      name: "output",
+      fields: { chatOut: { output: true, initial: value } },
+      steps: [],
+    });
+    const session = createSession(flow, {});
+    await session.runtime.run();
+    const text = formatChatOutput(session.runtime.getState().output.chatOut);
+    if (typeof value === "string") assert.equal(text, value);
+    else assert.deepEqual(parse(text), value);
+    assert.equal(JSON.parse(JSON.stringify({ content: text })).content, text);
+  }
+  assert.equal(formatChatOutput(["one", "two"]), "- one\n- two");
+  assert.equal(formatChatOutput({ count: 2 }), "count: 2");
+  assert.equal(formatChatOutput(undefined), "undefined");
+  const circular = {};
+  circular.self = circular;
+  assert.match(formatChatOutput(circular), /circular reference/);
 });

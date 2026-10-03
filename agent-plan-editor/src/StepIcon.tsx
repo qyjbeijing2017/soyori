@@ -5,7 +5,7 @@ import { Icon, type IconName } from "./ui";
 const stepIcons: Record<Step["type"], IconName> = {
   set: "nodeSet",
   append: "nodeAppend",
-  concat: "nodeConcat",
+  template: "nodeConcat",
   add: "nodeAdd",
   subtract: "nodeSubtract",
   multiply: "nodeMultiply",

@@ -1,4 +1,4 @@
-import { Button, Select, Textarea } from "@mantine/core";
+import { Button, Select } from "@mantine/core";
 import type { JsonValue, Step } from "agent-plan-core";
 import { useContext, useId, useState } from "react";
 import { CallChoices } from "./CallChoices";
@@ -9,10 +9,12 @@ import {
   restrictCallInputs,
   tools,
 } from "./call-tools";
+import { DescriptionInput } from "./DescriptionInput";
 import { tr } from "./i18n";
 import { defaultOperand } from "./library-calls";
 import { StepIcon } from "./StepIcon";
 import { newStep, stepCategory, stepNames } from "./step-model";
+import { TemplateInput } from "./TemplateInput";
 import { AutoValueInput, ValueEditor, ValueTypeTag } from "./ValueEditor";
 import { VariableInput } from "./VariableInput";
 
@@ -146,13 +148,26 @@ export function StepForm({
             <h3>{tr(draft.type === "if" || draft.type === "while" ? "判断条件" : "输入参数")}</h3>
             {(draft.type === "set" || draft.type === "append") &&
               operand("value", tr("写入内容"), draft.value)}
+            {draft.type === "template" && (
+              <TemplateInput
+                label={tr("模板正文")}
+                inputWrapperOrder={["label", "input", "description", "error"]}
+                styles={{ description: { gridColumn: 2 } }}
+                description={tr("用 $变量名$ 插入变量，$$ 显示 $；保留换行和缩进。")}
+                autosize
+                minRows={5}
+                maxRows={16}
+                value={draft.template}
+                onValue={(template) => patch({ template })}
+              />
+            )}
             {"left" in draft && (
               <>
                 {operand("left", tr("左侧"), draft.left)}
                 {operand("right", tr("右侧"), draft.right)}
               </>
             )}
-            {(draft.type === "concat" || draft.type === "and" || draft.type === "or") && (
+            {(draft.type === "and" || draft.type === "or") && (
               <ValueEditor
                 label={tr("输入项")}
                 value={draft.inputs}
@@ -311,7 +326,7 @@ export function StepForm({
           </>
         )}
         <section className="dialog-section dialog-description">
-          <Textarea
+          <DescriptionInput
             label={tr("说明（可选）")}
             value={draft.description ?? ""}
             autosize

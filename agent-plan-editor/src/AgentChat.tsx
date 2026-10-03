@@ -1,10 +1,12 @@
 import { Button, Modal, Textarea, TextInput, UnstyledButton } from "@mantine/core";
 import { useEffect, useRef, useState } from "react";
 import type { AiSettings, BrowserAiHost } from "./ai-host";
+import { formatChatOutput } from "./chat-contract";
 import { type ChatMessage, newThread, type ThreadBook, threadFlow } from "./chat-threads";
 import { tr } from "./i18n";
 import { canChat, type FlowDocument } from "./library";
 import { loadLibraryGraph } from "./library-calls";
+import { MarkdownText } from "./MarkdownText";
 import { createSession } from "./session";
 import { Icon } from "./ui";
 
@@ -86,13 +88,15 @@ export function AgentChat({
       }
       const state = session.runtime.getState();
       if (state.error) throw Error(state.error.message);
-      const answer = state.output?.chatOut;
-      if (typeof answer !== "string")
-        throw Error(tr("这个流程没有返回文字 chatOut，请到 Editor 设置输出。"));
+      const answer = formatChatOutput(state.output?.chatOut);
       const next: ChatMessage[] = [
         ...prior,
         { role: "user", content: question },
-        { role: "assistant", content: answer },
+        {
+          role: "assistant",
+          content: answer,
+          ...(typeof state.output?.chatOut === "string" ? {} : { format: "yaml" as const }),
+        },
       ];
       setMessages(next);
       const updated = {
@@ -184,7 +188,7 @@ export function AgentChat({
                 <span className="message-author">
                   {message.role === "user" ? tr("你") : doc.flow.name}
                 </span>
-                <p>{message.content}</p>
+                <MarkdownText source={message.content} format={message.format} />
               </article>
             ))}
             {busy && (

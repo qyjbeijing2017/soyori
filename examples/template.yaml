@@ -1,0 +1,15 @@
+schemaVersion: 1
+name: 文本模板示例
+fields:
+  chatIn:
+    input: true
+    initial: 你好
+  chatOut:
+    output: true
+steps:
+  - type: template
+    template: |-
+      用户说：$chatIn$
+      欢迎使用 Agent Plan！
+      价格：$$99
+    output: $chatOut

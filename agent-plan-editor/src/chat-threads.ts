@@ -3,6 +3,7 @@ import type { FlowDefinition } from "agent-plan-core";
 export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
+  format?: "yaml";
 }
 export interface ChatThread {
   id: string;
@@ -31,7 +32,13 @@ export function threadFlow(flow: FlowDefinition, thread: ChatThread): FlowDefini
 export function validMessages(value: unknown): value is ChatMessage[] {
   return (
     Array.isArray(value) &&
-    value.every((m) => m && ["user", "assistant"].includes(m.role) && typeof m.content === "string")
+    value.every(
+      (m) =>
+        m &&
+        ["user", "assistant"].includes(m.role) &&
+        typeof m.content === "string" &&
+        (m.format === undefined || m.format === "yaml"),
+    )
   );
 }
 export function readThreadBook(value: unknown): ThreadBook {

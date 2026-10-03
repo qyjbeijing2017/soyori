@@ -3,6 +3,7 @@ import type { Step } from "agent-plan-core";
 import { useState } from "react";
 import { ConfirmDelete } from "./ConfirmDelete";
 import { tr } from "./i18n";
+import { MarkdownText } from "./MarkdownText";
 import { arrayMove, SortableList, SortableRow } from "./Sortable";
 import { StepForm } from "./StepForm";
 import { StepIcon } from "./StepIcon";
@@ -99,24 +100,27 @@ export function StepList({
                     >
                       <StepIcon type={step.type} />
                     </span>
-                    <button
-                      className="step-name"
-                      type="button"
-                      disabled={disabled}
-                      aria-label={tr("编辑 {{name}}", { name: label })}
-                      title={step.description || label}
-                      onClick={() => onEdit(step, path)}
-                    >
-                      <strong>
-                        <EllipsisText text={label} />
-                      </strong>
-                      <EllipsisText text={stepSummary(step)} />
+                    <div className="step-details">
+                      <button
+                        className="step-name"
+                        type="button"
+                        disabled={disabled}
+                        aria-label={tr("编辑 {{name}}", { name: label })}
+                        title={step.description || label}
+                        onClick={() => onEdit(step, path)}
+                      >
+                        <strong>
+                          <EllipsisText text={label} />
+                        </strong>
+                        <EllipsisText text={stepSummary(step)} />
+                      </button>
                       {step.description && (
-                        <span className="editor-description step-description">
-                          {step.description}
-                        </span>
+                        <MarkdownText
+                          className="editor-description step-description"
+                          source={step.description}
+                        />
                       )}
-                    </button>
+                    </div>
                     {(failed || current || executed?.has(path)) && (
                       <span className={`status ${failed ? "bad" : current ? "next" : "done"}`}>
                         {failed ? tr("出错") : current ? tr("下一步") : tr("已执行")}

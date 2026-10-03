@@ -46,3 +46,15 @@ test("deleting conversations preserves other history and persists an empty book"
   assert.deepEqual(last, { activeId: "", threads: [] });
   assert.deepEqual(readThreadBook(last), last);
 });
+
+test("YAML message display metadata persists and legacy Markdown messages remain valid", () => {
+  const thread = newThread("agent");
+  thread.messages = [
+    { role: "user", content: "**hello**" },
+    { role: "assistant", content: "- one\n- two", format: "yaml" },
+  ];
+  const book = { activeId: thread.id, threads: [thread] };
+  assert.deepEqual(readThreadBook(JSON.parse(JSON.stringify(book))), book);
+  thread.messages[1].format = "html";
+  assert.throws(() => readThreadBook(book));
+});

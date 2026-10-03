@@ -8,8 +8,6 @@ fields:
   chatOut:
     output: true
 steps:
-  - type: concat
-    inputs:
-      - "收到："
-      - $chatIn
+  - type: template
+    template: "收到：$chatIn$"
     output: $chatOut
