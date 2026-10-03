@@ -1,6 +1,7 @@
 import {
   createRuntime,
   type FlowDefinition,
+  type LoadedFlow,
   type RuntimeFailure,
   type RuntimeFunction,
 } from "agent-plan-core";
@@ -14,13 +15,14 @@ export interface StepRecord {
   branch?: string;
 }
 export function createSession(
-  flow: FlowDefinition,
+  flow: FlowDefinition | LoadedFlow,
   inputs: Record<string, unknown>,
   functions: Record<string, RuntimeFunction> = {},
 ) {
   const runtime = createRuntime(flow, inputs, { functions });
   const records: StepRecord[] = [];
   const executed = new Set<string>();
+  let pending: StepRecord | undefined;
   return {
     runtime,
     records,
@@ -28,16 +30,28 @@ export function createSession(
     async step() {
       const before = formatState(runtime.getState().fields);
       const result = await runtime.step();
-      if (result.event) {
-        executed.add(result.event.path);
-        records.push({
+      if (result.event?.invocationId === runtime.invocationId) {
+        const record: StepRecord = {
           path: result.event.path,
           before,
           after: formatState(result.state.fields),
           ...(result.event.error ? { error: { ...result.event.error } } : {}),
           branch: result.event.branch,
-        });
+        };
+        if (runtime.getState().status === "waiting") pending = record;
+        else {
+          executed.add(record.path);
+          records.push(record);
+        }
         if (records.length > 300) records.shift();
+      }
+      if (pending && runtime.getState().status !== "waiting") {
+        pending.after = formatState(runtime.getState().fields);
+        if (runtime.getState().error) pending.error = { ...runtime.getState().error! };
+        executed.add(pending.path);
+        records.push(pending);
+        if (records.length > 300) records.shift();
+        pending = undefined;
       }
       return result;
     },

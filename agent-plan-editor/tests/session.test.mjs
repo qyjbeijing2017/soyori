@@ -1,26 +1,8 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import test from "node:test";
 import { parseFlow } from "agent-plan-core";
 import { createSession } from "../src/session.ts";
 import { replaceStep } from "../src/step-model.ts";
-
-test("example runs with user input and captures independent step results", async () => {
-  const flow = parseFlow(
-    JSON.parse(
-      readFileSync(new URL("../src/example.json", import.meta.url), "utf8").replace(/^\uFEFF/, ""),
-    ),
-  );
-  const session = createSession(flow, { name: "小明" });
-  await session.step();
-  const first = session.records[0].after;
-  await session.step();
-  await session.step();
-  assert.equal(session.runtime.getState().status, "completed");
-  assert.equal(session.runtime.getState().output.result, "你好，小明。让想法，从这一步开始。");
-  assert.equal(session.records[0].after, first);
-  assert.equal(session.records.length, 3);
-});
 
 test("failed nested step is attributed to its exact path and preserves previous effects", async () => {
   const flow = parseFlow({

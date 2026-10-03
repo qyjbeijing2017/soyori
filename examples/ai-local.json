@@ -9,7 +9,7 @@
   "steps": [
     {
       "type": "call",
-      "target": { "kind": "function", "id": "local.generate" },
+      "target": "local.generate",
       "inputs": { "prompt": "$prompt", "maxTokens": 64 },
       "outputs": { "text": "$answer" }
     }

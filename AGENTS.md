@@ -10,7 +10,7 @@
 - AI 能力通过独立 `call` 工具提供，优先复用 LangChain 集成，供 Editor/CLI 共享；供应商切换和 Agent 工具循环由可编辑子流程组合。设计及未实现边界见 [AI 工具与预设](docs/ai-tools-and-presets.md)。
 - 手机方便操作是核心要求，不能只把桌面布局缩小。Web 优先，并考虑后续 Windows、macOS、iOS、Android 适配。
 - 用户与外部 AI 应能读取项目、流程、工具、字段、执行位置和错误，未来共同操作同一调试会话。
-- editor 已有 React + TypeScript + Vite 步骤工作台及本地/OpenAI/Anthropic 单次调用；CLI 复用 [AI 工具包](agent-plan-ai/README.md)。文件管理、助手、同步、通用工具加载、流程工具桥接、Agent 循环预设、MCP 和原生封装尚未实现。
+- editor 分为 Agent 对话、Library 平铺流程库、Editor 步骤与变量表单三个界面。Library 支持 JSON/YAML 上传、JSON 下载、改名及 IndexedDB 保存；编辑不依赖手写 JSON。CLI 复用 [AI 工具包](agent-plan-ai/README.md)。目录同步、操作编辑器的助手、通用工具加载、流程工具桥接、Agent 循环预设、MCP 和原生封装尚未实现。
 
 ## 必须保持的现有规则
 

@@ -1,25 +1,27 @@
 {
   "schemaVersion": 1,
-  "name": "给自己写一句欢迎语",
-  "description": "输入你的名字，运行三步小流程。无需模型、密钥或网络。",
+  "name": "我的对话流程",
+  "description": "从 hello Agent Plan 开始创建对话流程。",
   "fields": {
-    "name": { "initial": "朋友", "input": true, "description": "你的名字" },
-    "greeting": {},
-    "result": { "output": true, "description": "欢迎语" }
+    "chatIn": {
+      "input": true,
+      "description": "本轮用户消息，由对话页面自动传入。"
+    },
+    "memoryKey": {
+      "input": true,
+      "description": "当前对话的记忆存储键；同一对话内保持不变，可用于读写记忆。"
+    },
+    "chatOut": {
+      "output": true,
+      "description": "本轮回复内容；开启输出后，流程可用于对话。"
+    }
   },
   "steps": [
-    { "type": "set", "description": "准备问候", "field": "$greeting", "value": "你好，" },
     {
-      "type": "concat",
-      "description": "加上你的名字",
-      "inputs": ["$greeting", "$name"],
-      "output": "$result"
-    },
-    {
-      "type": "concat",
-      "description": "送上一句鼓励",
-      "inputs": ["$result", "。让想法，从这一步开始。"],
-      "output": "$result"
+      "type": "set",
+      "field": "$chatOut",
+      "value": "hello Agent Plan",
+      "description": "将 hello Agent Plan 作为本轮回复；可以替换为你自己的回复内容。"
     }
   ]
 }

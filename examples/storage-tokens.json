@@ -10,19 +10,19 @@
   "steps": [
     {
       "type": "call",
-      "target": { "kind": "function", "id": "storage.read" },
+      "target": "storage.read",
       "inputs": { "key": "demo/memory" },
       "output": "$previous"
     },
     {
       "type": "call",
-      "target": { "kind": "function", "id": "tokens.count" },
+      "target": "tokens.count",
       "inputs": { "text": "$text", "mode": "estimate" },
       "output": "$count"
     },
     {
       "type": "call",
-      "target": { "kind": "function", "id": "storage.write" },
+      "target": "storage.write",
       "inputs": {
         "key": "demo/memory",
         "value": { "summary": "", "messages": [{ "role": "user", "content": "$text" }] }

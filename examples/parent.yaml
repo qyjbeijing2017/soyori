@@ -9,9 +9,7 @@ fields:
     output: true
 steps:
   - type: call
-    target:
-      kind: flow
-      key: add-one
+    target: add-one
     inputs:
       count: $count
     outputs:

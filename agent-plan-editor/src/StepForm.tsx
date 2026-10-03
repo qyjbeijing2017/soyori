@@ -1,344 +1,339 @@
-import { AI_TOOLS } from "agent-plan-ai";
+import { Button, Select, Textarea } from "@mantine/core";
 import type { JsonValue, Step } from "agent-plan-core";
-import { type FormEvent, useState } from "react";
-import { newStep, stepNames } from "./step-model";
+import { useContext, useId, useState } from "react";
+import { CallChoices } from "./CallChoices";
+import {
+  callOutputDestinations,
+  callOutputNames,
+  callParameterNames,
+  restrictCallInputs,
+  tools,
+} from "./call-tools";
+import { tr } from "./i18n";
+import { defaultOperand } from "./library-calls";
+import { StepIcon } from "./StepIcon";
+import { newStep, stepCategory, stepNames } from "./step-model";
+import { AutoValueInput, ValueEditor, ValueTypeTag } from "./ValueEditor";
+import { VariableInput } from "./VariableInput";
 
-export function ValueInput({
-  name,
-  value,
-  literal = false,
-}: {
-  name: string;
-  value: JsonValue;
-  literal?: boolean;
-}) {
-  const initialMode =
-    typeof value !== "string"
-      ? "json"
-      : !literal && value.startsWith("$") && !value.startsWith("$$")
-        ? "reference"
-        : "text";
-  const [mode, setMode] = useState(initialMode);
-  const initialText =
-    initialMode === "json"
-      ? JSON.stringify(value, null, 2)
-      : !literal && typeof value === "string" && value.startsWith("$$")
-        ? value.slice(1)
-        : String(value);
-  return (
-    <div className="value-input">
-      <select
-        name={`${name}:mode`}
-        aria-label={`${name} 输入方式`}
-        value={mode}
-        onChange={(e) => setMode(e.target.value)}
-      >
-        <option value="text">直接填写文字</option>
-        {!literal && <option value="reference">引用数据（$路径）</option>}
-        <option value="json">数字 / 对象 / 布尔值</option>
-      </select>
-      <textarea
-        name={name}
-        aria-label={name}
-        rows={mode === "json" ? 3 : 2}
-        defaultValue={initialText}
-        spellCheck={false}
-      />
-    </div>
-  );
-}
-export function readValue(data: FormData, name: string, literal = false): JsonValue {
-  const value = String(data.get(name) ?? "");
-  const mode = data.get(`${name}:mode`);
-  if (mode === "json") {
-    try {
-      return JSON.parse(value);
-    } catch {
-      throw new Error(`${name}：请填写有效的 JSON，例如 3、true 或 {"key":"value"}。`);
-    }
-  }
-  if (mode === "reference") {
-    if (!value.startsWith("$") || value.startsWith("$$"))
-      throw new Error(`${name}：引用需要以单个 $ 开头。`);
-    return value;
-  }
-  return !literal && value.startsWith("$") ? `$${value}` : value;
-}
 export function StepForm({
   step,
   onSave,
   onCancel,
 }: {
   step: Step;
-  onSave: (step: Step) => void;
+  onSave: (step: Step) => void | Promise<void>;
   onCancel: () => void;
 }) {
-  const [draft, setDraft] = useState(step);
+  const choices = useContext(CallChoices);
+  const formId = useId();
+  const [draft, setDraft] = useState<Step>(() => structuredClone(step));
   const [error, setError] = useState("");
-  const [formKey, setFormKey] = useState(0);
-  const toolId = step.type === "call" && step.target.kind === "function" ? step.target.id : "";
-  const initialTool =
-    AI_TOOLS.some((id) => id === toolId) &&
-    step.type === "call" &&
-    step.inputs?.messages === undefined &&
-    Object.keys(step.inputs ?? {}).every((key) =>
-      ["prompt", "model", "maxTokens", "temperature"].includes(key),
-    ) &&
-    [step.inputs?.maxTokens, step.inputs?.temperature].every(
-      (value) => value === undefined || typeof value === "number",
-    ) &&
-    (!step.outputs ||
-      (Object.keys(step.outputs).length === 1 && step.outputs.text !== undefined)) &&
-    (step.output !== undefined || step.outputs?.text !== undefined)
-      ? toolId
-      : "";
-  const [aiTool, setAiTool] = useState(initialTool);
-  function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    try {
-      const data = new FormData(event.currentTarget);
-      const next = { ...draft, description: String(data.get("description") ?? "") };
-      if ("field" in next) next.field = String(data.get("field")) as `$${string}`;
-      if ("output" in next) next.output = String(data.get("output")) as `$${string}`;
-      if ("value" in next) next.value = readValue(data, "内容");
-      if ("left" in next) {
-        next.left = readValue(data, "左值");
-        next.right = readValue(data, "右值");
-      }
-      if ("condition" in next) next.condition = readValue(data, "判断条件");
-      if (next.type === "not") next.input = readValue(data, "输入");
-      if (next.type === "concat" || next.type === "and" || next.type === "or")
-        next.inputs = next.inputs.map((_, i) => readValue(data, `第 ${i + 1} 项`));
-      if (next.type === "call") {
-        if (aiTool) {
-          const inputs: Record<string, JsonValue> = {
-            prompt: readValue(data, "提示词"),
-            maxTokens: Number(data.get("maxTokens")),
-          };
-          const model = String(data.get("model") ?? "").trim();
-          if (model && aiTool !== "local.generate") inputs.model = model;
-          const temperature = String(data.get("temperature") ?? "");
-          if (temperature !== "") inputs.temperature = Number(temperature);
-          const destination = String(data.get("aiOutput")) as `$${string}`;
-          onSave({
-            type: "call",
-            description: next.description,
-            target: { kind: "function", id: aiTool },
-            inputs,
-            ...(data.get("aiOutputMode") === "text"
-              ? { outputs: { text: destination } }
-              : { output: destination }),
-          });
-          return;
-        }
-        const value: unknown = JSON.parse(String(data.get("call")));
-        if (!value || typeof value !== "object" || Array.isArray(value))
-          throw new Error("调用配置必须是对象。");
-        onSave({ ...value, type: "call", description: next.description } as Step);
-      } else onSave(next);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
-    }
+  const callNames =
+    draft.type === "call"
+      ? callParameterNames(draft.target, choices.find((c) => c.alias === draft.target)?.flow)
+      : null;
+  const outputNames =
+    draft.type === "call"
+      ? callOutputNames(draft.target, choices.find((c) => c.alias === draft.target)?.flow)
+      : [];
+  const outputDestinations =
+    draft.type === "call" ? callOutputDestinations(draft, outputNames) : {};
+  const extraInputs =
+    draft.type === "call" && callNames
+      ? Object.keys(draft.inputs ?? {}).filter((name) => !callNames.includes(name))
+      : [];
+  function patch(value: Record<string, unknown>) {
+    setDraft({ ...draft, ...value } as Step);
   }
+  function operand(property: string, label: string, value: JsonValue) {
+    return (
+      <ValueEditor
+        key={property}
+        label={label}
+        value={value}
+        onChange={(next) => patch({ [property]: next })}
+      />
+    );
+  }
+  const destination = (property: string, value: string, label = tr("保存到变量")) => (
+    <label htmlFor={`${formId}-1`}>
+      {label}
+      <VariableInput
+        id={`${formId}-1`}
+        aria-label={label}
+        suggest
+        destination
+        autosize
+        minRows={1}
+        required={draft.type !== "call"}
+        onValue={(next) => patch({ [property]: next })}
+        value={value}
+        onChange={(e) => patch({ [property]: e.target.value })}
+        placeholder="answer"
+      />
+    </label>
+  );
   return (
-    <form className="step-form" onSubmit={submit}>
-      <div className="panel-title">
-        <h2>编辑步骤</h2>
-        <button type="button" onClick={onCancel}>
-          取消
-        </button>
-      </div>
-      <p className="muted">保存后生效，并清空旧运行。切换类型会重置该步参数及子步骤。</p>
-      <label>
-        操作类型
-        <select
-          value={draft.type}
-          onChange={(e) => {
-            setDraft(newStep(e.target.value as Step["type"]));
-            setAiTool("");
-            setFormKey(formKey + 1);
-            setError("");
-          }}
-        >
-          {Object.entries(stepNames).map(([type, name]) => (
-            <option key={type} value={type}>
-              {name}
-            </option>
-          ))}
-        </select>
-      </label>
-      <div key={formKey} className="form-fields">
-        <label>
-          步骤名称
-          <input
-            name="description"
-            defaultValue={draft.description ?? ""}
-            placeholder={stepNames[draft.type]}
-          />
-        </label>
-        {"field" in draft && (
-          <label>
-            保存到数据位置
-            <input name="field" defaultValue={draft.field} placeholder="$result" required />
-          </label>
-        )}
-        {"output" in draft && draft.type !== "call" && (
-          <label>
-            结果保存到
-            <input name="output" defaultValue={draft.output} required />
-          </label>
-        )}
-        {"value" in draft && (
-          <div>
-            <span>内容</span>
-            <ValueInput name="内容" value={draft.value} />
-          </div>
-        )}
-        {"left" in draft && (
-          <>
-            <div>
-              左值
-              <ValueInput name="左值" value={draft.left} />
-            </div>
-            <div>
-              右值
-              <ValueInput name="右值" value={draft.right} />
-            </div>
-          </>
-        )}
-        {"condition" in draft && (
-          <div>
-            判断条件
-            <ValueInput name="判断条件" value={draft.condition} />
-          </div>
-        )}
-        {draft.type === "not" && (
-          <div>
-            输入
-            <ValueInput name="输入" value={draft.input} />
-          </div>
-        )}
-        {(draft.type === "concat" || draft.type === "and" || draft.type === "or") && (
-          <>
-            {draft.inputs.map((value, i) => (
-              <div key={String(i)}>
-                第 {i + 1} 项<ValueInput name={`第 ${i + 1} 项`} value={value} />
-              </div>
-            ))}
-            <button
-              type="button"
-              onClick={() => setDraft({ ...draft, inputs: [...draft.inputs, ""] })}
-            >
-              ＋ 增加一项
-            </button>
-            {draft.inputs.length > 1 && (
-              <button
-                type="button"
-                onClick={() => setDraft({ ...draft, inputs: draft.inputs.slice(0, -1) })}
-              >
-                移除最后一项
-              </button>
+    <form
+      className="step-form"
+      onKeyDown={(event) => {
+        // Let child comboboxes select suggestions, but never implicitly submit from an input.
+        if (event.key === "Enter" && event.target instanceof HTMLInputElement)
+          event.preventDefault();
+      }}
+      onSubmit={async (e) => {
+        e.preventDefault();
+        try {
+          if (draft.type === "call") {
+            if (!callNames) throw Error(tr("请先选择可用的调用目标"));
+            const { output, outputs, inputs, ...rest } = draft;
+            const base = { ...rest, inputs: restrictCallInputs(inputs ?? {}, callNames) };
+            const mapped = Object.fromEntries(
+              Object.entries(outputDestinations).filter(([, value]) => value.trim()),
+            );
+            await onSave(Object.keys(mapped).length ? { ...base, outputs: mapped } : base);
+          } else await onSave(draft);
+        } catch (cause) {
+          setError(cause instanceof Error ? cause.message : String(cause));
+        }
+      }}
+    >
+      <div className="form-fields dialog-form">
+        <section className="dialog-section dialog-identity">
+          <Select
+            label={tr("步骤类型")}
+            leftSection={<StepIcon type={draft.type} />}
+            leftSectionWidth={40}
+            classNames={{ groupLabel: "step-type-group" }}
+            renderOption={({ option }) => (
+              <span className="step-type-option">
+                <StepIcon type={option.value as Step["type"]} />
+                <span>{option.label}</span>
+              </span>
             )}
-          </>
+            value={draft.type}
+            searchable
+            allowDeselect={false}
+            nothingFoundMessage={tr("没有匹配的步骤")}
+            comboboxProps={{ withinPortal: true, zIndex: 350 }}
+            data={(
+              [
+                ["call", "调用工具"],
+                ["data", "变量操作"],
+                ["control", "流程控制"],
+                ["text", "文本处理"],
+                ["math", "数学运算"],
+                ["logic", "比较与逻辑"],
+              ] as const
+            ).map(([category, title]) => ({
+              group: tr(title),
+              items: Object.entries(stepNames)
+                .filter(([id]) => stepCategory(id as Step["type"]) === category)
+                .map(([value, name]) => ({ value, label: tr(name) })),
+            }))}
+            onChange={(value) => {
+              if (value)
+                setDraft({
+                  ...newStep(value as Step["type"]),
+                  ...(draft.description === undefined ? {} : { description: draft.description }),
+                });
+            }}
+          />
+        </section>
+        {draft.type !== "call" && (
+          <section className="dialog-section">
+            <h3>{tr(draft.type === "if" || draft.type === "while" ? "判断条件" : "输入参数")}</h3>
+            {(draft.type === "set" || draft.type === "append") &&
+              operand("value", tr("写入内容"), draft.value)}
+            {"left" in draft && (
+              <>
+                {operand("left", tr("左侧"), draft.left)}
+                {operand("right", tr("右侧"), draft.right)}
+              </>
+            )}
+            {(draft.type === "concat" || draft.type === "and" || draft.type === "or") && (
+              <ValueEditor
+                label={tr("输入项")}
+                value={draft.inputs}
+                validate={(value) => {
+                  if (!Array.isArray(value))
+                    throw Error(tr("请输入列表，例如 [1, 2] 或 YAML 列表"));
+                }}
+                onChange={(value) => {
+                  if (Array.isArray(value)) patch({ inputs: value });
+                }}
+              />
+            )}
+            {draft.type === "not" && <>{operand("input", tr("输入"), draft.input)}</>}
+            {(draft.type === "if" || draft.type === "while") && (
+              <>
+                {operand("condition", tr("判断条件"), draft.condition)}
+                <p className="muted">
+                  {tr("分支内的步骤在列表中展开编辑。引用一个判断结果变量即可。")}
+                </p>
+              </>
+            )}
+          </section>
+        )}
+        {draft.type !== "call" && "output" in draft && (
+          <section className="dialog-section">
+            <h3>{tr("输出结果")}</h3>
+            {destination("output", draft.output)}
+          </section>
+        )}
+        {(draft.type === "set" || draft.type === "append") && (
+          <section className="dialog-section">
+            <h3>{tr("输出结果")}</h3>
+            {destination("field", draft.field)}
+          </section>
         )}
         {draft.type === "call" && (
           <>
-            <label>
-              调用方式
-              <select value={aiTool} onChange={(e) => setAiTool(e.target.value)}>
-                <option value="">高级 JSON / 其他调用</option>
-                <option value="local.generate">本地 AI（免费，无需密钥）</option>
-                <option value="openai.generate">OpenAI / 兼容服务</option>
-                <option value="anthropic.generate">Anthropic</option>
-              </select>
-            </label>
-            {aiTool ? (
-              <>
-                <p className="muted">
-                  单次文本调用。密钥与默认模型在页面“AI 设置”中配置；不自动执行工具。
-                </p>
-                <div>
-                  提示词
-                  <ValueInput name="提示词" value={draft.inputs?.prompt ?? ""} />
-                </div>
-                {aiTool !== "local.generate" && (
-                  <label>
-                    模型（留空使用 AI 设置）
-                    <input
-                      name="model"
-                      defaultValue={
-                        typeof draft.inputs?.model === "string" ? draft.inputs.model : ""
-                      }
+            <section className="dialog-section">
+              <h3>{tr("调用目标")}</h3>
+              <Select
+                label={tr("选择调用目标")}
+                placeholder={tr("搜索工具或流程")}
+                searchable
+                required
+                allowDeselect={false}
+                value={draft.target || null}
+                nothingFoundMessage={tr("没有匹配的调用目标")}
+                comboboxProps={{ withinPortal: true, zIndex: 350 }}
+                data={[
+                  {
+                    group: tr("内置工具"),
+                    items: Object.keys(tools).map((value) => ({ value, label: value })),
+                  },
+                  {
+                    group: tr("流程库"),
+                    items: choices.map((choice) => ({
+                      value: choice.alias,
+                      label: choice.label,
+                      disabled: choice.unavailable,
+                    })),
+                  },
+                  ...(!Object.hasOwn(tools, draft.target) &&
+                  !choices.some((c) => c.alias === draft.target) &&
+                  draft.target
+                    ? [
+                        {
+                          group: tr("不可用"),
+                          items: [{ value: draft.target, label: draft.target, disabled: true }],
+                        },
+                      ]
+                    : []),
+                ]}
+                onChange={(target) => {
+                  if (!target) return;
+                  const choice = choices.find((c) => c.alias === target);
+                  const { output: _output, outputs: _outputs, ...base } = draft;
+                  setDraft({
+                    ...base,
+                    target,
+                    inputs: structuredClone(
+                      (Object.hasOwn(tools, target) ? tools[target] : undefined) ??
+                        Object.fromEntries(
+                          Object.entries(choice?.flow?.fields ?? {})
+                            .filter(([, field]) => field.input)
+                            .map(([name, field]) => [
+                              name,
+                              defaultOperand(field.initial === undefined ? "" : field.initial),
+                            ]),
+                        ),
+                    ),
+                  });
+                }}
+              />
+            </section>
+            <section className="dialog-section">
+              <section className="parameter-map" aria-label={tr("调用参数")}>
+                <h3>{tr("调用参数")}</h3>
+                {callNames?.map((name) => (
+                  <div className="parameter-row" key={name}>
+                    <span className="parameter-name" title={name}>
+                      {name}
+                      <ValueTypeTag value={draft.inputs?.[name]} />
+                    </span>
+                    <AutoValueInput
+                      label={name}
+                      value={draft.inputs?.[name]}
+                      allowUnset
+                      suggest
+                      onChange={(value) => {
+                        const inputs = { ...draft.inputs };
+                        if (value === undefined) delete inputs[name];
+                        else
+                          Object.defineProperty(inputs, name, {
+                            value,
+                            enumerable: true,
+                            configurable: true,
+                            writable: true,
+                          });
+                        patch({ inputs });
+                      }}
                     />
-                  </label>
+                  </div>
+                ))}
+                {callNames?.length === 0 && <p className="muted">{tr("此调用无需参数")}</p>}
+                {extraInputs.length > 0 && (
+                  <p className="muted">
+                    {tr("应用时将移除未声明的参数：{{names}}", { names: extraInputs.join(", ") })}
+                  </p>
                 )}
-                <label>
-                  最多生成 Token
-                  <input
-                    name="maxTokens"
-                    type="number"
-                    min={1}
-                    max={aiTool === "local.generate" ? 512 : 32768}
-                    defaultValue={
-                      typeof draft.inputs?.maxTokens === "number" ? draft.inputs.maxTokens : 128
-                    }
-                    required
+              </section>
+            </section>
+            <section className="dialog-section">
+              <h3>{tr("输出结果")}</h3>
+              {outputNames.map((name, index) => (
+                <label key={name} htmlFor={`${formId}-result-${index}`}>
+                  {name}
+                  <VariableInput
+                    id={`${formId}-result-${index}`}
+                    aria-label={tr("保存输出 {{name}}", { name })}
+                    suggest
+                    destination
+                    placeholder={tr("留空不保存")}
+                    value={outputDestinations[name]}
+                    onValue={(value) => {
+                      const { output: _output, outputs: _outputs, ...base } = draft;
+                      setDraft({
+                        ...base,
+                        outputs: { ...outputDestinations, [name]: value as `$${string}` },
+                      });
+                    }}
                   />
                 </label>
-                <label>
-                  随机程度（留空使用默认值）
-                  <input
-                    name="temperature"
-                    type="number"
-                    min={0}
-                    max={1}
-                    step={0.1}
-                    defaultValue={
-                      typeof draft.inputs?.temperature === "number" ? draft.inputs.temperature : ""
-                    }
-                  />
-                </label>
-                <label>
-                  保存内容
-                  <select
-                    name="aiOutputMode"
-                    defaultValue={draft.outputs?.text ? "text" : "result"}
-                  >
-                    <option value="text">回复文字</option>
-                    <option value="result">完整结果（含用量和结束原因）</option>
-                  </select>
-                </label>
-                <label>
-                  保存到
-                  <input
-                    name="aiOutput"
-                    defaultValue={draft.outputs?.text ?? draft.output ?? "$answer"}
-                    required
-                  />
-                </label>
-              </>
-            ) : (
-              <>
-                <p className="muted">
-                  支持三个 AI 工具；messages 多轮文本输入可在此配置。外部子流程加载仍未接入。
-                </p>
-                <label>
-                  调用配置（JSON）
-                  <textarea name="call" rows={10} defaultValue={JSON.stringify(draft, null, 2)} />
-                </label>
-              </>
-            )}
+              ))}
+              {outputNames.length === 0 && <p className="muted">{tr("此调用没有输出变量")}</p>}
+            </section>
           </>
         )}
+        <section className="dialog-section dialog-description">
+          <Textarea
+            label={tr("说明（可选）")}
+            value={draft.description ?? ""}
+            autosize
+            minRows={2}
+            maxRows={5}
+            onChange={(e) => patch({ description: e.currentTarget.value })}
+          />
+        </section>
       </div>
       {error && (
         <p className="error" role="alert">
           {error}
         </p>
       )}
-      <button className="primary" type="submit">
-        保存步骤
-      </button>
+      <div className="modal-actions">
+        <Button variant="subtle" onClick={onCancel}>
+          {tr("关闭")}
+        </Button>
+        <Button variant="filled" className="primary" type="submit">
+          {tr("应用步骤")}
+        </Button>
+      </div>
     </form>
   );
 }

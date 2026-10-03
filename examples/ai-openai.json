@@ -9,7 +9,7 @@
   "steps": [
     {
       "type": "call",
-      "target": { "kind": "function", "id": "openai.generate" },
+      "target": "openai.generate",
       "inputs": { "prompt": "$prompt", "maxTokens": 128 },
       "output": "$result"
     }

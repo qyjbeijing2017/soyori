@@ -1,429 +1,680 @@
-import { type FlowDefinition, parseFlow, type Step } from "agent-plan-core";
-import { useEffect, useRef, useState } from "react";
+import { Button, Modal, NativeSelect, Textarea, TextInput, UnstyledButton } from "@mantine/core";
+import { useMediaQuery } from "@mantine/hooks";
+import { parseFlow } from "agent-plan-core";
+import { useEffect, useId, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { AgentChat } from "./AgentChat";
 import { AiSettings } from "./AiSettings";
 import { BrowserAiHost, initialAiSettings } from "./ai-host";
+import { newThread, removeThread, type ThreadBook } from "./chat-threads";
+import { loadConversations, saveConversations } from "./conversations";
 import example from "./example.json";
-import { formatState } from "./format-state";
-import { readValue, StepForm, ValueInput } from "./StepForm";
-import { StepList } from "./StepList";
-import { createSession, errorAdvice, type Session } from "./session";
-import { replaceStep } from "./step-model";
+import { FlowEditor } from "./FlowEditor";
+import { readFlowFile } from "./flow-files";
+import { tr } from "./i18n";
+import {
+  canChat,
+  deleteDocument,
+  downloadDocument,
+  type FlowDocument,
+  loadLibrary,
+  makeDocument,
+  saveDocument,
+} from "./library";
+import { NavigationDrawer } from "./NavigationDrawer";
 
-function EditDialog({
-  step,
-  onSave,
-  onClose,
-}: {
-  step: Step;
-  onSave: (step: Step) => void;
-  onClose: () => void;
-}) {
-  const ref = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
-    ref.current?.showModal();
-  }, []);
-  return (
-    <dialog ref={ref} onCancel={onClose} aria-label="编辑步骤">
-      <StepForm step={step} onSave={onSave} onCancel={onClose} />
-    </dialog>
-  );
-}
+import { EllipsisText, Icon, IconButton } from "./ui";
 
+type Page = "agent" | "library" | "editor";
 export function App() {
-  const [aiSettings, setAiSettings] = useState(initialAiSettings);
-  const [aiHost] = useState(() => new BrowserAiHost());
-  const abortAi = useRef<AbortController | null>(null);
-  useEffect(
-    () => () => {
-      abortAi.current?.abort();
-      aiHost.dispose();
-    },
-    [aiHost],
+  const formId = useId();
+  const { i18n } = useTranslation();
+  const mobile = useMediaQuery("(max-width: 48em)");
+  const [page, setPage] = useState<Page>("agent");
+  const [documents, setDocuments] = useState<FlowDocument[]>([]);
+  const [agentSelected, setAgentSelected] = useState("builtin-local-agent");
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [books, setBooks] = useState<Record<string, ThreadBook>>({});
+  const [threadSaving, setThreadSaving] = useState(false);
+  const [builtin] = useState(() =>
+    makeDocument(parseFlow(structuredClone(example)), "builtin-local-agent"),
   );
-  const [flow, setFlow] = useState<FlowDefinition>(() => parseFlow(example));
-  const [revision, setRevision] = useState(0);
-  const [session, setSession] = useState<Session | null>(null);
-  const [, repaint] = useState(0);
+  const chatDocs = [
+    { ...builtin, flow: { ...builtin.flow, name: tr("本地 Agent") } },
+    ...documents.filter((d) => canChat(d.flow)),
+  ];
+  const [selected, setSelected] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [editing, setEditing] = useState<{ step: Step; path: string } | null>(null);
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState("先试试示例，也可以点击任意步骤修改。");
-  const [undo, setUndo] = useState<FlowDefinition | null>(null);
-  const inputForm = useRef<HTMLFormElement>(null);
-  const resultPanel = useRef<HTMLElement>(null);
-  const running = useRef(false);
-  const stop = useRef(false);
-  const state = session?.runtime.getState();
-  const completed = state?.status === "completed";
-  const failed = state?.status === "failed";
-  const terminal = completed || failed;
+  const [settings, setSettings] = useState(initialAiSettings);
+  const [host] = useState(() => new BrowserAiHost());
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [threadDelete, setThreadDelete] = useState<{
+    docId: string;
+    id: string;
+    title: string;
+  } | null>(null);
+  const [threadDeleteError, setThreadDeleteError] = useState("");
+  const [rename, setRename] = useState<FlowDocument | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [metadataError, setMetadataError] = useState("");
+  const [deleting, setDeleting] = useState<FlowDocument | null>(null);
+  const [deleteError, setDeleteError] = useState("");
+  const [search, setSearch] = useState("");
+  const upload = useRef<HTMLInputElement>(null);
+  const doc = documents.find((entry) => entry.id === selected);
+  const agentDoc = chatDocs.find((entry) => entry.id === agentSelected) ?? chatDocs[0];
+  const chatIds = chatDocs.map((d) => d.id).join("|");
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Load histories when library membership changes, not on flow edits or language changes.
   useEffect(() => {
-    if (
-      !busy &&
-      (completed || failed || error) &&
-      window.matchMedia("(max-width: 760px)").matches
-    ) {
-      resultPanel.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    let active = true;
+    void Promise.all(
+      chatDocs.map(async (entry) => [entry.id, await loadConversations(entry)] as const),
+    )
+      .then((entries) => {
+        if (active) setBooks((current) => ({ ...Object.fromEntries(entries), ...current }));
+      })
+      .catch((cause) => {
+        if (active) setError(String(cause));
+      });
+    return () => {
+      active = false;
+    };
+  }, [chatIds]);
+  async function updateBook(docId: string, book: ThreadBook) {
+    await saveConversations(docId, book);
+    setBooks((current) => ({ ...current, [docId]: book }));
+  }
+  async function chooseThread(docId: string, id?: string) {
+    if (busy || threadSaving || !books[docId]) return;
+    setThreadSaving(true);
+    try {
+      const book = books[docId],
+        fresh = id ? null : newThread(docId);
+      await updateBook(docId, {
+        activeId: id ?? fresh!.id,
+        threads: fresh ? [fresh, ...book.threads] : book.threads,
+      });
+      setAgentSelected(docId);
+      setPage("agent");
+      if (mobile) setDrawerOpen(false);
+    } catch (cause) {
+      setError(String(cause));
+    } finally {
+      setThreadSaving(false);
     }
-  }, [busy, completed, failed, error]);
-  const status = busy
-    ? "正在运行"
-    : failed
-      ? "需要修改"
-      : completed
-        ? "运行完成"
-        : session
-          ? "等待下一步"
-          : "准备就绪";
-
-  function invalidate(message = "修改已应用，下一次将从头运行。") {
-    setSession(null);
-    setError("");
-    setNotice(message);
   }
-  function change(next: FlowDefinition) {
-    const valid = parseFlow(next);
-    setUndo(flow);
-    setFlow(valid);
-    setRevision((value) => value + 1);
-    invalidate();
-  }
-  async function execute(single: boolean) {
-    if (running.current) return;
-    running.current = true;
-    stop.current = false;
+  useEffect(() => {
+    let active = true;
+    void loadLibrary()
+      .then((docs) => {
+        if (active) {
+          setDocuments(docs);
+          setSelected(docs.find((d) => d.id === "local-agent")?.id ?? docs[0]?.id ?? "");
+        }
+      })
+      .catch((cause) => {
+        if (active) setError(String(cause));
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+      host.dispose();
+    };
+  }, [host]);
+  async function persist(next: FlowDocument) {
+    setSaving(true);
     setError("");
     try {
-      let current = session;
-      if (!current || terminal) {
-        const data = new FormData(inputForm.current!);
-        const inputs = Object.fromEntries(
-          Object.entries(flow.fields)
-            .filter(
-              ([name, field]) =>
-                field.input && (field.initial !== undefined || data.get(`use:${name}`) === "on"),
-            )
-            .map(([name]) => [name, readValue(data, `input:${name}`, true)]),
-        );
-        abortAi.current = new AbortController();
-        current = createSession(
-          parseFlow(flow),
-          inputs,
-          aiHost.tools(aiSettings, abortAi.current.signal, setNotice),
-        );
-        setSession(current);
-      }
-      setBusy(true);
-      let count = 0;
-      do {
-        await current.step();
-        count++;
-        repaint((value) => value + 1);
-        const next = current.runtime.getState();
-        if (next.status === "completed" || next.status === "failed") break;
-        // Let the browser paint and accept pause between core steps.
-        await new Promise((resolve) => setTimeout(resolve, 16));
-      } while (!single && !stop.current && count < 2000);
-      setNotice(
-        current.runtime.getState().status === "failed"
-          ? "运行已停止。检查提示后可从头重新运行。"
-          : count >= 2000
-            ? "已执行 2000 步，暂时暂停。可继续运行。"
-            : stop.current
-              ? "已在步骤之间暂停，可以继续。"
-              : "步骤结果已更新，可展开每一步查看。",
-      );
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      const saved = await saveDocument(next);
+      setDocuments((docs) => [saved, ...docs.filter((entry) => entry.id !== saved.id)]);
     } finally {
-      running.current = false;
-      setBusy(false);
+      setSaving(false);
     }
   }
-
+  function create() {
+    const next = makeDocument(parseFlow(structuredClone(example)));
+    next.flow.name = "";
+    next.flow.description = "";
+    next.flow.fields.memoryKey.initial = `editor/${next.id}/memory`;
+    setMetadataError("");
+    setCreating(true);
+    setRename(next);
+  }
+  function closeMetadata() {
+    if (saving) return;
+    setRename(null);
+    setCreating(false);
+    setMetadataError("");
+  }
+  async function importFiles(files: FileList | null) {
+    if (!files?.length) return;
+    setSaving(true);
+    setError("");
+    try {
+      const incoming: FlowDocument[] = [];
+      for (const file of Array.from(files)) {
+        if (file.size > 5 * 1024 * 1024)
+          throw Error(tr("{{name}} 超过 5 MB，无法导入。", { name: file.name }));
+        const text = (await file.text()).replace(/^\uFEFF/, "");
+        try {
+          incoming.push(makeDocument(readFlowFile(text, file.name)));
+        } catch (cause) {
+          throw Error(`${file.name}：${cause instanceof Error ? cause.message : String(cause)}`);
+        }
+      }
+      for (const item of incoming) {
+        const saved = await saveDocument(item);
+        setDocuments((docs) => [saved, ...docs]);
+      }
+    } catch (cause) {
+      setError(String(cause));
+    } finally {
+      setSaving(false);
+      if (upload.current) upload.current.value = "";
+    }
+  }
   return (
-    <main>
-      <header className="topbar">
-        <div className="brand">
-          <img
-            className="brand-logo"
-            src={`${import.meta.env.BASE_URL}brand/agent-plan-logo.png`}
-            alt=""
-            width="64"
-            height="64"
-          />
-          <span className="brand-name">Agent Plan</span>
-          <span className="edition">工作台</span>
-        </div>
-        <span className="storage-note">当前页面草稿 · 刷新后重置</span>
-      </header>
-      <div className="flow-heading">
-        <div>
-          <span className="eyebrow">从一个小流程开始</span>
-          <h1>{flow.name}</h1>
-          <p>{flow.description}</p>
-        </div>
-        <span className={`status big ${failed ? "bad" : ""}`} aria-live="polite">
-          {status}
-        </span>
-      </div>
-      <div className="workbench">
-        <div className="flow-column">
-          <AiSettings
-            value={aiSettings}
-            disabled={busy}
-            onChange={(value) => {
-              setAiSettings(value);
-              invalidate("AI 设置已更新，下一次从头运行。");
-            }}
-            onRelease={() => {
-              aiHost.dispose();
-              setNotice("本地模型内存已释放，下载缓存保留。");
-            }}
-          />
-          <button
-            type="button"
-            disabled={busy}
+    <div
+      className={`app-shell workspace-shell ${drawerOpen && !mobile && !settingsOpen ? "drawer-visible" : ""}`}
+    >
+      <div hidden={settingsOpen}>
+        <NavigationDrawer opened={drawerOpen} onChange={setDrawerOpen} mobile={Boolean(mobile)}>
+          <div className="drawer-brand">
+            <img
+              src={`${import.meta.env.BASE_URL}brand/agent-plan-logo.png`}
+              alt=""
+              width="32"
+              height="32"
+            />
+            <strong>Agent Plan</strong>
+            <IconButton
+              icon="sidebarClose"
+              label={tr("关闭抽屉")}
+              onClick={() => setDrawerOpen(false)}
+            />
+          </div>
+          <Button
+            className="new-thread"
+            leftSection={<Icon name="plus" />}
+            disabled={busy || threadSaving || !books[agentDoc.id]}
+            onClick={() => void chooseThread(agentDoc.id)}
+          >
+            {tr("新对话")}
+          </Button>
+          <nav className="drawer-threads" aria-label={tr("对话列表")}>
+            {chatDocs.map((entry) =>
+              books[entry.id]?.threads.map((thread) => (
+                <div
+                  className={`thread-row ${agentDoc.id === entry.id && books[entry.id].activeId === thread.id ? "active" : ""}`}
+                  key={`${entry.id}:${thread.id}`}
+                >
+                  <UnstyledButton
+                    type="button"
+                    className="thread-item"
+                    disabled={busy || threadSaving}
+                    onClick={() => void chooseThread(entry.id, thread.id)}
+                  >
+                    <span>{thread.messages.length ? thread.title : tr("新对话")}</span>
+                    <small>{entry.flow.name}</small>
+                  </UnstyledButton>
+                  <IconButton
+                    icon="delete"
+                    label={tr("删除对话 {{name}}", {
+                      name: thread.messages.length ? thread.title : tr("新对话"),
+                    })}
+                    disabled={busy || threadSaving}
+                    onClick={() => {
+                      setThreadDeleteError("");
+                      setThreadDelete({
+                        docId: entry.id,
+                        id: thread.id,
+                        title: thread.messages.length ? thread.title : tr("新对话"),
+                      });
+                    }}
+                  />
+                </div>
+              )),
+            )}
+          </nav>
+          <Button
+            className="drawer-settings"
+            variant="subtle"
+            leftSection={<Icon name="settings" />}
             onClick={() => {
-              let name = "answer";
-              for (let i = 2; Object.hasOwn(flow.fields, name); i++) name = `answer${i}`;
-              change({
-                ...flow,
-                fields: { ...flow.fields, [name]: { output: true, description: "AI 回复" } },
-                steps: [
-                  ...flow.steps,
-                  {
-                    type: "call",
-                    description: "询问本地 AI",
-                    target: { kind: "function", id: "local.generate" },
-                    inputs: { prompt: "请用中文简短介绍你自己。", maxTokens: 128 },
-                    outputs: { text: `$${name}` },
-                  },
-                ],
-              });
+              setSettingsOpen(true);
+              if (mobile) setDrawerOpen(false);
             }}
           >
-            ＋ 添加 AI 调用
-          </button>
-          <section className="input-panel" aria-labelledby="input-title">
-            <h2 id="input-title">这次的输入</h2>
-            <form
-              ref={inputForm}
-              key={JSON.stringify(flow.fields)}
-              onSubmit={(e) => {
-                e.preventDefault();
-                void execute(false);
-              }}
-              onChange={() => invalidate("输入已修改，下一次将从头运行。")}
-            >
-              <fieldset disabled={busy}>
-                {Object.entries(flow.fields)
-                  .filter(([, field]) => field.input)
-                  .map(([name, field]) => (
-                    <div className="input-field" key={name}>
-                      <span className="field-title">{field.description || name}</span>
-                      {field.initial === undefined && (
-                        <label className="check">
-                          <input name={`use:${name}`} type="checkbox" />
-                          提供这个输入（否则保持未定义）
-                        </label>
-                      )}
-                      <ValueInput
-                        name={`input:${name}`}
-                        value={field.initial === undefined ? "" : field.initial}
-                        literal
-                      />
-                    </div>
-                  ))}
-                {!Object.values(flow.fields).some((field) => field.input) && (
-                  <p className="muted">这个流程无需额外输入。</p>
-                )}
-              </fieldset>
-            </form>
-          </section>
-          <div className="section-title">
-            <h2>
-              流程步骤 <span>{flow.steps.length}</span>
-            </h2>
-            <button
-              type="button"
-              disabled={busy || !undo}
-              onClick={() => {
-                if (undo) {
-                  const previous = undo;
-                  change(previous);
-                  setUndo(null);
-                }
-              }}
-            >
-              撤销修改
-            </button>
-          </div>
-          <StepList
-            steps={flow.steps}
-            onChange={(steps) => change({ ...flow, steps })}
-            onEdit={(step, path) => setEditing({ step, path })}
-            records={session?.records ?? []}
-            executed={session?.executed}
-            nextPath={state?.nextStepPath}
-            failedPath={state?.error?.path}
-            disabled={busy}
-          />
-          <details className="advanced" key={revision}>
-            <summary>流程设置与源码</summary>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                try {
-                  const data = new FormData(e.currentTarget);
-                  change(parseFlow(JSON.parse(String(data.get("source")))));
-                } catch (cause) {
-                  setError(cause instanceof Error ? cause.message : String(cause));
-                }
-              }}
-            >
-              <p className="muted">
-                用于修改流程名称、输入/输出字段与完整结构。应用会重建输入表单，并清空旧运行。
-              </p>
-              <label>
-                流程 JSON
-                <textarea
-                  name="source"
-                  rows={18}
-                  defaultValue={JSON.stringify(flow, null, 2)}
-                  disabled={busy}
-                  spellCheck={false}
+            {tr("偏好设置")}
+          </Button>
+        </NavigationDrawer>
+        <div className="workspace-main">
+          <header className="workspace-toolbar">
+            <div className="toolbar-side">
+              {!drawerOpen && (
+                <IconButton
+                  icon="menu"
+                  label={tr("打开抽屉")}
+                  onClick={() => setDrawerOpen(true)}
                 />
-              </label>
-              <button type="submit" disabled={busy}>
-                校验并应用源码
-              </button>
-            </form>
-          </details>
-        </div>
-        <aside ref={resultPanel} className="result-panel" aria-labelledby="result-title">
-          <div className="panel-title">
-            <h2 id="result-title">运行结果</h2>
-            <span className="eyebrow">OUTPUT</span>
-          </div>
-          {!session && (
-            <div className="empty-result">
-              <span className="empty-icon">↗</span>
-              <h3>看看这几步会发生什么</h3>
-              <p>
-                运行后，结果会出现在这里。
-                <br />
-                也可以逐步执行，观察数据变化。
-              </p>
-            </div>
-          )}
-          {session && !completed && !failed && (
-            <p className="muted">流程尚未结束。展开步骤卡片可以查看已执行的结果。</p>
-          )}
-          {completed && (
-            <div className="output-list">
-              {Object.entries(state.output ?? {}).map(([name, value]) => (
-                <div key={name}>
-                  <span className="field-title">{flow.fields[name]?.description || name}</span>
-                  {typeof value === "string" ? (
-                    <p className="output-text">{value}</p>
-                  ) : (
-                    <pre>{formatState(value)}</pre>
-                  )}
-                </div>
-              ))}
-              {Object.keys(state.output ?? {}).length === 0 && (
-                <p>流程已完成，未配置输出字段。可展开下方的数据详情。</p>
               )}
             </div>
-          )}
-          {failed && state.error && (
-            <div role="alert" className="failure">
-              <h3>有一步没有完成</h3>
-              <p>{state.error.message}</p>
-              <p>{errorAdvice(state.error.code)}</p>
-              <p className="muted">位置：{state.error.path}</p>
-              <details>
-                <summary>原始错误</summary>
-                <pre>{formatState(state.error)}</pre>
-              </details>
-            </div>
-          )}
-          {error && (
-            <div className="failure" role="alert">
-              <h3>暂时无法执行或应用修改</h3>
-              <p>{error}</p>
-              <p className="muted">检查步骤和 AI 设置。外部子流程加载仍未接入当前浏览器。</p>
-            </div>
-          )}
-          {session && (
-            <details className="data-details">
-              <summary>查看当前全部数据</summary>
-              <pre>{formatState(state?.fields)}</pre>
-              <p className="muted small">
-                仅保留最近 300 条步骤记录；记录用于查看，不支持恢复现场。
-              </p>
-            </details>
-          )}
-          <p className="run-note" role="status">
-            {notice}
-          </p>
-        </aside>
-      </div>
-      <div className="run-bar">
-        <div>
-          <strong>{status}</strong>
-          <span className="muted">修改后从头运行</span>
+            <nav className="workspace-tabs" aria-label={tr("主导航")}>
+              {(["agent", "library", "editor"] as const).map((id) => (
+                <UnstyledButton
+                  type="button"
+                  key={id}
+                  aria-current={page === id ? "page" : undefined}
+                  aria-label={tr({ agent: "对话", library: "流程库", editor: "编辑器" }[id])}
+                  title={tr({ agent: "对话", library: "流程库", editor: "编辑器" }[id])}
+                  className="navigation-tab"
+                  disabled={busy || saving || (id === "editor" && !doc)}
+                  onClick={() => setPage(id)}
+                >
+                  <Icon name={id === "agent" ? "chat" : id === "library" ? "flow" : "edit"} />
+                  <span className="navigation-label">
+                    {tr({ agent: "对话", library: "流程库", editor: "编辑器" }[id])}
+                  </span>
+                </UnstyledButton>
+              ))}
+            </nav>
+            <div className="toolbar-side" aria-hidden="true" />
+          </header>
+          <main className={`page-content page-${page}`}>
+            {error && (
+              <div className="global-error" role="alert">
+                {error}
+                <Button
+                  type="button"
+                  variant="subtle"
+                  className="quiet"
+                  onClick={() => setError("")}
+                >
+                  {tr("关闭提示")}
+                </Button>
+              </div>
+            )}
+            {loading ? (
+              <div className="loading-state">{tr("正在打开你的工作空间…")}</div>
+            ) : (
+              <>
+                {agentDoc && (
+                  <div hidden={page !== "agent"}>
+                    <AgentChat
+                      key={`agent:${agentDoc.id}`}
+                      doc={agentDoc}
+                      documents={documents}
+                      aiHost={host}
+                      settings={settings}
+                      onBusy={setBusy}
+                      book={books[agentDoc.id] ?? null}
+                      onBookChange={(book) => updateBook(agentDoc.id, book)}
+                      onLibrary={() => setPage("library")}
+                      flows={chatDocs}
+                      onSelectFlow={setAgentSelected}
+                    />
+                  </div>
+                )}
+                {page === "library" && (
+                  <section className="library-page">
+                    <div className="library-toolbar">
+                      <TextInput
+                        type="search"
+                        aria-label={tr("搜索流程")}
+                        placeholder={tr("搜索流程…")}
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                      />
+                      <span className="library-count">
+                        {tr("{{count}} 个流程", { count: documents.length })}
+                      </span>
+                      <input
+                        ref={upload}
+                        hidden
+                        type="file"
+                        multiple
+                        accept=".json,.yaml,.yml"
+                        aria-label={tr("上传流程文件")}
+                        onChange={(e) => void importFiles(e.target.files)}
+                      />
+                      <Button
+                        className="library-tool"
+                        variant="subtle"
+                        aria-label={tr("↑ 上传流程")}
+                        disabled={saving}
+                        onClick={() => upload.current?.click()}
+                      >
+                        <Icon name="upload" />
+                        <span>{tr("上传流程")}</span>
+                      </Button>
+                      <Button
+                        className="library-tool"
+                        aria-label={tr("＋ 新建流程")}
+                        variant="subtle"
+                        disabled={saving || loading}
+                        onClick={create}
+                      >
+                        <Icon name="plus" />
+                        <span>{tr("新建流程")}</span>
+                      </Button>
+                    </div>
+                    <div className="flow-cards">
+                      {documents
+                        .filter((entry) =>
+                          entry.flow.name.toLowerCase().includes(search.toLowerCase()),
+                        )
+                        .map((entry) => (
+                          <article className="flow-library-card" key={entry.id}>
+                            <UnstyledButton
+                              className="card-open"
+                              aria-label={tr("编辑流程 {{name}}", { name: entry.flow.name })}
+                              disabled={saving}
+                              onClick={() => {
+                                setSelected(entry.id);
+                                setPage("editor");
+                              }}
+                            />
+                            <div className="card-name-row">
+                              <span className="flow-symbol">
+                                <Icon name={canChat(entry.flow) ? "chat" : "flow"} />
+                              </span>
+                              <h2>
+                                <EllipsisText text={entry.flow.name} />
+                              </h2>
+                              <span className="tag">
+                                {canChat(entry.flow) ? tr("对话 Agent") : tr("流程")}
+                              </span>
+                            </div>
+                            <p className="card-description">{entry.flow.description || ""}</p>
+                            <div className="card-top">
+                              <div className="card-icon-actions">
+                                <IconButton
+                                  icon="edit"
+                                  label={tr("名称与说明")}
+                                  disabled={saving}
+                                  onClick={() => setRename(entry)}
+                                />
+                                {canChat(entry.flow) && (
+                                  <IconButton
+                                    icon="chat"
+                                    label={tr("对话")}
+                                    disabled={saving}
+                                    onClick={() => {
+                                      setAgentSelected(entry.id);
+                                      setPage("agent");
+                                    }}
+                                  />
+                                )}
+                                <IconButton
+                                  icon="download"
+                                  label={tr("下载 YAML")}
+                                  onClick={() => downloadDocument(entry)}
+                                />
+                                <IconButton
+                                  icon="delete"
+                                  label={tr("删除流程")}
+                                  disabled={saving || busy}
+                                  onClick={() => {
+                                    setDeleteError("");
+                                    setDeleting(entry);
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          </article>
+                        ))}
+                    </div>
+                    {!documents.filter((entry) =>
+                      entry.flow.name.toLowerCase().includes(search.toLowerCase()),
+                    ).length && (
+                      <p className="empty-panel">
+                        {tr("没有匹配的流程。试试其他名称，或上传一个流程文件。")}
+                      </p>
+                    )}
+                  </section>
+                )}
+                {doc && (
+                  <div hidden={page !== "editor"}>
+                    <FlowEditor
+                      key={`editor:${doc.id}`}
+                      doc={doc}
+                      documents={documents}
+                      aiHost={host}
+                      settings={settings}
+                      onBusy={setBusy}
+                      saving={saving}
+                      onSave={(flow) => persist({ ...doc, flow })}
+                    />
+                  </div>
+                )}
+                {!doc && !loading && page !== "library" && (
+                  <div className="empty-panel">
+                    <p>{tr("请先从 Library 选择一个流程。")}</p>
+                    <Button type="button" onClick={() => setPage("library")}>
+                      {tr("打开 Library")}
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
+          </main>
         </div>
-        <div className="actions">
-          {busy && (
-            <button
-              type="button"
-              onClick={() => {
-                stop.current = true;
-                abortAi.current?.abort();
-              }}
-            >
-              取消 AI 调用
-            </button>
-          )}
-          <button
-            type="button"
-            disabled={busy || !session}
-            onClick={() => invalidate("运行已清空，输入保持不变。")}
-          >
-            重置
-          </button>
-          <button type="button" disabled={busy} onClick={() => void execute(true)}>
-            {terminal ? "从头单步" : "下一步"}
-          </button>
-          {busy ? (
-            <button
-              className="primary"
-              type="button"
-              onClick={() => {
-                stop.current = true;
-              }}
-            >
-              暂停
-            </button>
-          ) : (
-            <button className="primary" type="button" onClick={() => void execute(false)}>
-              {terminal ? "重新运行" : session ? "继续运行" : "运行流程"}
-            </button>
-          )}
-        </div>
       </div>
-      {editing && (
-        <EditDialog
-          step={editing.step}
-          onClose={() => setEditing(null)}
-          onSave={(step) => {
-            change({ ...flow, steps: replaceStep(flow.steps, editing.path, step) });
-            setEditing(null);
-          }}
-        />
+      {settingsOpen && (
+        <main className="settings-page">
+          <header className="settings-page-header">
+            <Button
+              variant="subtle"
+              leftSection={<Icon name="back" />}
+              onClick={() => setSettingsOpen(false)}
+            >
+              {tr("返回")}
+            </Button>
+            <h1>{tr("偏好设置")}</h1>
+          </header>
+          <div className="settings-page-content">
+            <section className="settings-group">
+              <h2>{tr("常规")}</h2>
+              <div className="settings-card">
+                <div className="settings-row">
+                  <div>
+                    <strong>{tr("语言")}</strong>
+                    <p>{tr("选择界面显示语言")}</p>
+                  </div>
+                  <NativeSelect
+                    aria-label={tr("语言")}
+                    value={i18n.resolvedLanguage ?? "zh-CN"}
+                    onChange={(e) => void i18n.changeLanguage(e.target.value)}
+                    data={[
+                      { value: "zh-CN", label: "简体中文" },
+                      { value: "en", label: "English" },
+                    ]}
+                  />
+                </div>
+              </div>
+            </section>
+            <AiSettings
+              value={settings}
+              disabled={busy}
+              onChange={setSettings}
+              onRelease={() => host.dispose()}
+            />
+          </div>
+        </main>
       )}
-    </main>
+      <Modal
+        opened={Boolean(threadDelete)}
+        zIndex={400}
+        onClose={() => {
+          if (!threadSaving) setThreadDelete(null);
+        }}
+        title={tr("删除对话")}
+        closeOnEscape={!threadSaving}
+        closeOnClickOutside={!threadSaving}
+        closeButtonProps={{ "aria-label": tr("关闭"), disabled: threadSaving }}
+      >
+        <p style={{ overflowWrap: "anywhere" }}>
+          {tr("确定删除对话「{{name}}」吗？聊天记录将被移除，流程和工具存储不会删除。", {
+            name: threadDelete?.title,
+          })}
+        </p>
+        {threadDeleteError && (
+          <p className="error" role="alert">
+            {threadDeleteError}
+          </p>
+        )}
+        <div className="modal-actions">
+          <Button data-autofocus disabled={threadSaving} onClick={() => setThreadDelete(null)}>
+            {tr("取消")}
+          </Button>
+          <Button
+            color="red"
+            variant="filled"
+            loading={threadSaving}
+            disabled={busy}
+            onClick={async () => {
+              if (!threadDelete || busy || threadSaving) return;
+              setThreadSaving(true);
+              try {
+                await updateBook(
+                  threadDelete.docId,
+                  removeThread(books[threadDelete.docId], threadDelete.id),
+                );
+                setThreadDelete(null);
+              } catch (cause) {
+                setThreadDeleteError(String(cause));
+              } finally {
+                setThreadSaving(false);
+              }
+            }}
+          >
+            {tr("确认删除")}
+          </Button>
+        </div>
+      </Modal>
+      {rename && (
+        <Modal
+          opened
+          onClose={closeMetadata}
+          title={tr(creating ? "新建流程" : "名称与说明")}
+          closeOnEscape={!saving}
+          closeOnClickOutside={!saving}
+          closeButtonProps={{ "aria-label": tr("关闭"), disabled: saving }}
+        >
+          <form
+            className="dialog-form"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const data = new FormData(e.currentTarget);
+              const name = String(data.get("name") ?? "").trim();
+              const description = String(data.get("description") ?? "").trim();
+              if (!name || saving) return;
+              setMetadataError("");
+              try {
+                await persist({ ...rename, flow: { ...rename.flow, name, description } });
+                if (creating) {
+                  setSelected(rename.id);
+                  setPage("editor");
+                }
+                setRename(null);
+                setCreating(false);
+              } catch (cause) {
+                setMetadataError(String(cause));
+              }
+            }}
+          >
+            <section className="dialog-section dialog-identity">
+              <label htmlFor={`${formId}-1`}>
+                {tr("流程名称")}
+                <TextInput
+                  id={`${formId}-1`}
+                  name="name"
+                  required
+                  defaultValue={rename.flow.name}
+                />
+              </label>
+            </section>
+            <section className="dialog-section dialog-description">
+              <Textarea
+                label={tr("说明（可选）")}
+                name="description"
+                defaultValue={rename.flow.description ?? ""}
+                autosize
+                minRows={3}
+                maxRows={8}
+                mt="md"
+              />
+            </section>
+            {metadataError && (
+              <p className="error" role="alert">
+                {metadataError}
+              </p>
+            )}
+            <div className="modal-actions">
+              <Button type="button" disabled={saving} onClick={closeMetadata}>
+                {tr("取消")}
+              </Button>
+              <Button variant="filled" className="primary" disabled={saving} type="submit">
+                {tr("保存")}
+              </Button>
+            </div>
+          </form>
+        </Modal>
+      )}
+      <Modal
+        opened={Boolean(deleting)}
+        onClose={() => {
+          if (!saving) setDeleting(null);
+        }}
+        title={tr("删除流程")}
+        closeOnEscape={!saving}
+        closeOnClickOutside={!saving}
+        closeButtonProps={{ "aria-label": tr("关闭"), disabled: saving }}
+      >
+        <p style={{ overflowWrap: "anywhere" }}>
+          {tr("确定删除「{{name}}」吗？此操作无法撤销。", { name: deleting?.flow.name })}
+        </p>
+        {deleteError && (
+          <p className="error" role="alert">
+            {deleteError}
+          </p>
+        )}
+        <div className="actions dialog-actions">
+          <Button data-autofocus disabled={saving} onClick={() => setDeleting(null)}>
+            {tr("取消")}
+          </Button>
+          <Button
+            color="red"
+            variant="filled"
+            loading={saving}
+            disabled={busy}
+            onClick={async () => {
+              if (!deleting || saving || busy) return;
+              setSaving(true);
+              setDeleteError("");
+              try {
+                await deleteDocument(deleting.id);
+                const remaining = documents.filter((entry) => entry.id !== deleting.id);
+                setDocuments(remaining);
+                if (selected === deleting.id) setSelected(remaining[0]?.id ?? "");
+                if (agentSelected === deleting.id) setAgentSelected("");
+                setDeleting(null);
+              } catch (cause) {
+                setDeleteError(String(cause));
+              } finally {
+                setSaving(false);
+              }
+            }}
+          >
+            {tr("确认删除")}
+          </Button>
+        </div>
+      </Modal>
+    </div>
   );
 }

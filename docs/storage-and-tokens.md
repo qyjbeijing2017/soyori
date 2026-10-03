@@ -4,7 +4,7 @@
 
 ## 流程工具
 
-CLI 和 Editor 均可通过 `call` 使用以下工具（Editor 使用高级调用 JSON）：
+CLI 和 Editor 均可通过 `call` 使用以下工具（Editor 使用调用参数表单）：
 
 | 工具 | inputs | 返回 |
 | --- | --- | --- |

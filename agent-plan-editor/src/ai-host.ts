@@ -16,7 +16,7 @@ export interface AiSettings {
 export const initialAiSettings: AiSettings = {
   openai: {},
   anthropic: {},
-  allowLocalDownload: false,
+  allowLocalDownload: true,
 };
 
 export class BrowserAiHost {
