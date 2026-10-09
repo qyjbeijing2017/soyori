@@ -1,32 +1,104 @@
+import { AI_TOOL_DEFINITIONS, TOKEN_TOOL_DEFINITIONS } from "agent-plan-ai";
 import type { FlowDefinition, JsonValue } from "agent-plan-core";
-export const tools: Record<string, Record<string, JsonValue>> = {
-  "local.generate": { messages: "$messages", maxTokens: 128 },
-  "openai.generate": { prompt: "$prompt", maxTokens: 512 },
-  "anthropic.generate": { prompt: "$prompt", maxTokens: 512 },
-  "storage.read": { key: "$memoryKey" },
-  "storage.write": { key: "$memoryKey", value: "$memory" },
-  "storage.delete": { key: "$memoryKey" },
-  "storage.list": { prefix: "" },
-  "tokens.count": { messages: "$messages", mode: "local" },
-};
+import {
+  type FieldEntry,
+  fieldEntries,
+  type ParameterEntry,
+  type ToolDefinition,
+  toolParameters,
+} from "agent-plan-core";
+import { STORAGE_TOOL_DEFINITIONS } from "agent-plan-storage";
+import { tr } from "./i18n.ts";
+import type { CallChoice } from "./library-calls.ts";
 
-// Full accepted inputs, including optional and mutually exclusive alternatives.
-const toolParameters: Record<string, readonly string[]> = {
-  "local.generate": ["prompt", "messages", "model", "maxTokens", "temperature"],
-  "openai.generate": ["prompt", "messages", "model", "maxTokens", "temperature"],
-  "anthropic.generate": ["prompt", "messages", "model", "maxTokens", "temperature"],
-  "storage.read": ["key"],
-  "storage.write": ["key", "value"],
-  "storage.delete": ["key"],
-  "storage.list": ["prefix"],
-  "tokens.count": ["text", "messages", "mode"],
+export function callTargetGroups(choices: CallChoice[], target: string) {
+  const items = [
+    ...Object.keys(tools).map((value) => ({ value, label: value, disabled: false })),
+    ...choices.map((choice) => ({
+      value: choice.alias,
+      label: choice.label,
+      disabled: Boolean(choice.unavailable),
+    })),
+  ];
+  if (target && !items.some((item) => item.value === target))
+    items.push({ value: target, label: `${target} (${tr("不可用")})`, disabled: true });
+  const groups = new Map<string, typeof items>();
+  for (const item of items) {
+    const separator = item.value.indexOf(".");
+    const namespace = separator < 0 ? "" : item.value.slice(0, separator);
+    const group = groups.get(namespace) ?? [];
+    group.push({
+      ...item,
+      label: `${item.value.slice(separator + 1)}${item.disabled ? ` (${tr("不可用")})` : ""}`,
+    });
+    groups.set(namespace, group);
+  }
+  return Array.from(groups, ([namespace, items]) => ({
+    group: namespace || tr("全局"),
+    items,
+  }));
+}
+
+export const toolDefinitions: Record<string, ToolDefinition> = {
+  ...AI_TOOL_DEFINITIONS,
+  ...TOKEN_TOOL_DEFINITIONS,
+  ...STORAGE_TOOL_DEFINITIONS,
 };
+export const tools: Record<string, Record<string, JsonValue>> = Object.fromEntries(
+  Object.entries(toolDefinitions).map(([name, definition]) => [
+    name,
+    Object.fromEntries(
+      toolParameters(definition.inputs)
+        .filter((field) => field.initial !== undefined)
+        .map((field) => [field.name, field.initial!]),
+    ),
+  ]),
+);
+export function callParameterEntries(
+  target: string,
+  direction: "inputs" | "outputs",
+  flow?: FlowDefinition,
+): ParameterEntry[] {
+  if (Object.hasOwn(toolDefinitions, target)) return toolDefinitions[target][direction];
+  const visit = (entries: FieldEntry[]): ParameterEntry[] =>
+    entries.flatMap<ParameterEntry>((entry) => {
+      if (entry.type === "group") {
+        const fields = visit(entry.fields);
+        return fields.length ? [{ ...entry, fields }] : [];
+      }
+      if (!entry[direction === "inputs" ? "input" : "output"]) return [];
+      return [
+        {
+          name: entry.name,
+          description: entry.description,
+          ...(entry.initial === undefined ? {} : { defaultValue: entry.initial }),
+        },
+      ];
+    });
+  return flow ? visit(fieldEntries(flow.fields)) : [];
+}
+export function callParameterPlaceholder(
+  target: string,
+  name: string,
+  flow?: FlowDefinition,
+): string | undefined {
+  const field = toolParameters(callParameterEntries(target, "inputs", flow)).find(
+    (f) => f.name === name,
+  );
+  if (field?.placeholder !== undefined) return tr(field.placeholder);
+  if (field?.defaultValue !== undefined)
+    return typeof field.defaultValue === "string"
+      ? field.defaultValue
+      : JSON.stringify(field.defaultValue);
+  return undefined;
+}
 export function callParameterNames(
   target: string,
   flow?: FlowDefinition,
 ): readonly string[] | null {
-  if (Object.hasOwn(toolParameters, target)) return toolParameters[target];
-  return flow ? Object.keys(flow.fields).filter((name) => flow.fields[name].input) : null;
+  return Object.hasOwn(toolDefinitions, target) || flow
+    ? toolParameters(callParameterEntries(target, "inputs", flow)).map((field) => field.name)
+    : null;
 }
 export function restrictCallInputs(
   inputs: Record<string, JsonValue>,
@@ -35,19 +107,8 @@ export function restrictCallInputs(
   return Object.fromEntries(Object.entries(inputs).filter(([name]) => names.includes(name)));
 }
 
-const toolOutputs: Record<string, readonly string[]> = {
-  "local.generate": ["text", "model", "content", "finishReason", "usage"],
-  "openai.generate": ["text", "model", "content", "finishReason", "usage"],
-  "anthropic.generate": ["text", "model", "content", "finishReason", "usage"],
-  "storage.read": ["found", "value"],
-  "storage.write": ["key"],
-  "storage.delete": ["deleted"],
-  "storage.list": ["keys"],
-  "tokens.count": ["tokens", "method", "model"],
-};
 export function callOutputNames(target: string, flow?: FlowDefinition): readonly string[] {
-  if (Object.hasOwn(toolOutputs, target)) return toolOutputs[target];
-  return flow ? Object.keys(flow.fields).filter((name) => flow.fields[name].output) : [];
+  return toolParameters(callParameterEntries(target, "outputs", flow)).map((field) => field.name);
 }
 export function callOutputDestinations(
   step: { output?: string; outputs?: Record<string, string> },

@@ -1,21 +1,12 @@
-import {
-  type Connection,
-  createAiTools,
-  type GenerateInput,
-  type GenerateResult,
-} from "agent-plan-ai";
+import { createAiTools, type GenerateInput, type GenerateResult } from "agent-plan-ai";
 import { createTokenTools } from "agent-plan-ai/tokens";
 import { createStorageTools } from "agent-plan-storage";
 import { createBrowserStorage } from "agent-plan-storage/browser";
 
 export interface AiSettings {
-  openai: Connection;
-  anthropic: Connection;
   allowLocalDownload: boolean;
 }
 export const initialAiSettings: AiSettings = {
-  openai: {},
-  anthropic: {},
   allowLocalDownload: true,
 };
 
@@ -38,7 +29,6 @@ export class BrowserAiHost {
       ...createAiTools({
         browser: true,
         signal,
-        connection: (provider) => settings[provider],
         local: (input) => {
           if (!settings.allowLocalDownload)
             throw new Error("请先在 AI 设置中允许下载本地模型（约 255 MB 权重，另需运行库）。");

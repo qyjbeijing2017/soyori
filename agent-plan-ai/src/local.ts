@@ -63,9 +63,7 @@ export function createLocalModel(options: LocalOptions) {
         if (!item || !("generated_text" in item) || typeof item.generated_text !== "string")
           throw new Error("AI_LOCAL: Unexpected generation result.");
         return {
-          text: item.generated_text,
-          model: LOCAL_MODEL,
-          content: item.generated_text,
+          result: item.generated_text,
           finishReason: null,
           usage: null,
         };

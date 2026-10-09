@@ -84,7 +84,7 @@ export async function deleteDocument(id: string) {
 export function usesLocalModel(steps: Step[]): boolean {
   return steps.some((step) =>
     step.type === "call"
-      ? step.target === "local.generate"
+      ? step.target === "llm.local"
       : step.type === "if"
         ? usesLocalModel([...step.then, ...(step.else ?? [])])
         : step.type === "while"

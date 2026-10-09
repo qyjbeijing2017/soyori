@@ -31,6 +31,8 @@ const paths = {
   grip: "M8 5h1m6 0h1M8 12h1m6 0h1M8 19h1m6 0h1",
   play: "m7 3 14 9-14 9V3Z",
   next: "m5 4 11 8-11 8V4Zm14 0v16",
+  ungroup: "M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5M8 8h8v8H8z",
+  chevronRight: "m9 5 7 7-7 7",
   undo: "M4 10h10a6 6 0 0 1 0 12M4 10l6-6M4 10l6 6",
   stop: "M5 5h14v14H5Z",
   pause: "M8 4v16M16 4v16",

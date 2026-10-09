@@ -1,3 +1,7 @@
+import { describeTools } from "agent-plan-core";
+import { STORAGE_TOOL_DEFINITIONS } from "./definitions.js";
+
+export { STORAGE_TOOL_DEFINITIONS } from "./definitions.js";
 export interface Storage {
   read(key: string): Promise<{ found: boolean; value: unknown }>;
   write(key: string, value: unknown): Promise<{ key: string }>;
@@ -62,22 +66,25 @@ export function encode(value: unknown): string {
 }
 
 export function createStorageTools(storage: Storage) {
-  return {
-    "storage.read": async ({ key }: Record<string, unknown>) => {
-      validateKey(key);
-      return storage.read(key);
+  return describeTools(
+    {
+      "storage.read": async ({ key }: Record<string, unknown>) => {
+        validateKey(key);
+        return storage.read(key);
+      },
+      "storage.write": async ({ key, value }: Record<string, unknown>) => {
+        validateKey(key);
+        return storage.write(key, value);
+      },
+      "storage.delete": async ({ key }: Record<string, unknown>) => {
+        validateKey(key);
+        return storage.delete(key);
+      },
+      "storage.list": async ({ prefix = "" }: Record<string, unknown>) => {
+        validatePrefix(prefix);
+        return storage.list(prefix);
+      },
     },
-    "storage.write": async ({ key, value }: Record<string, unknown>) => {
-      validateKey(key);
-      return storage.write(key, value);
-    },
-    "storage.delete": async ({ key }: Record<string, unknown>) => {
-      validateKey(key);
-      return storage.delete(key);
-    },
-    "storage.list": async ({ prefix = "" }: Record<string, unknown>) => {
-      validatePrefix(prefix);
-      return storage.list(prefix);
-    },
-  };
+    STORAGE_TOOL_DEFINITIONS,
+  );
 }

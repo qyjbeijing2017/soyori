@@ -1,4 +1,5 @@
 import type { FlowDefinition } from "agent-plan-core";
+import { fieldDefinitions, withFieldDefinitions } from "agent-plan-core";
 
 export interface ChatMessage {
   role: "user" | "assistant";
@@ -22,11 +23,11 @@ export function newThread(docId: string): ChatThread {
 export function threadFlow(flow: FlowDefinition, thread: ChatThread): FlowDefinition {
   return {
     ...flow,
-    fields: {
-      ...flow.fields,
-      chatIn: { ...flow.fields.chatIn, input: true },
-      threadId: { ...flow.fields.threadId, input: true, initial: thread.id },
-    },
+    fields: withFieldDefinitions(flow.fields, {
+      ...fieldDefinitions(flow.fields),
+      chatIn: { ...fieldDefinitions(flow.fields).chatIn, input: true },
+      threadId: { ...fieldDefinitions(flow.fields).threadId, input: true, initial: thread.id },
+    }),
   };
 }
 export function validMessages(value: unknown): value is ChatMessage[] {

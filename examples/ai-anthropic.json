@@ -1,16 +1,36 @@
 {
   "schemaVersion": 1,
   "name": "Anthropic 问答",
-  "description": "在宿主设置 ANTHROPIC_API_KEY 和 ANTHROPIC_MODEL，不把密钥写入流程。",
+  "description": "连接信息由本步骤参数传入，支持变量引用。",
   "fields": {
-    "prompt": { "input": true, "initial": "请用中文写一句简短的欢迎语。" },
-    "result": { "output": true }
+    "prompt": {
+      "input": true,
+      "initial": "请用中文写一句简短的欢迎语。"
+    },
+    "result": {
+      "output": true
+    },
+    "apiKey": {
+      "input": true
+    },
+    "model": {
+      "input": true
+    },
+    "baseURL": {
+      "input": true
+    }
   },
   "steps": [
     {
       "type": "call",
-      "target": "anthropic.generate",
-      "inputs": { "prompt": "$prompt", "maxTokens": 128 },
+      "target": "llm.anthropic",
+      "inputs": {
+        "input": "$prompt",
+        "maxTokens": 128,
+        "apiKey": "$apiKey",
+        "model": "$model",
+        "baseURL": "$baseURL"
+      },
       "output": "$result"
     }
   ]

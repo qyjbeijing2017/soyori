@@ -141,7 +141,6 @@ export function App() {
   function create() {
     const next = makeDocument(parseFlow(structuredClone(example)));
     next.flow.name = "";
-    next.flow.description = "";
     setMetadataError("");
     setCreating(true);
     setRename(next);

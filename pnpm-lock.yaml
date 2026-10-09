@@ -26,6 +26,9 @@ importers:
       '@langchain/openai':
         specifier: 1.6.0
         version: 1.6.0(@langchain/core@1.2.13(openai@7.25.0(zod@4.6.5)))
+      agent-plan-core:
+        specifier: workspace:*
+        version: link:../agent-plan-core
     devDependencies:
       typescript:
         specifier: 7.0.2
@@ -134,6 +137,10 @@ importers:
         version: 8.3.1(@types/node@24.19.0)(yaml@2.9.1)
 
   agent-plan-storage:
+    dependencies:
+      agent-plan-core:
+        specifier: workspace:*
+        version: link:../agent-plan-core
     devDependencies:
       '@types/node':
         specifier: 24.19.0

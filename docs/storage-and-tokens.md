@@ -12,7 +12,7 @@ CLI 和 Editor 均可通过 `call` 使用以下工具（Editor 使用调用参�
 | `storage.write` | `key, value` | `{ key }`；完整替换 |
 | `storage.delete` | `key` | `{ deleted }`；缺失时 false |
 | `storage.list` | 可选 `prefix` | `{ keys }`；排序后的 key 列表 |
-| `tokens.count` | `text` 或 `messages`，可选 `mode` | `{ tokens, method, model }` |
+| `tokens.count` | `input`（文本或消息数组），可选 `mode` | `{ tokens, method, model }` |
 
 存储只接受 JSON 数据；拒绝 undefined、非有限数、函数、循环引用、特殊对象、稀疏数组及 getter，避免静默丢数据。损坏、权限和配额错误会使当前步骤失败，不当作“没有数据”。同一 key 并发写入采用最后成功写入结果，不做合并或跨调用事务。
 
@@ -89,10 +89,22 @@ pnpm cli storage delete demo/memory --storage-dir ./.agent-plan/storage
 
 ## token 计数
 
-- `mode: "local"`（默认）：使用当前 LFM2.5-350M tokenizer 实际计算，仅下载/读取 tokenizer 文件，不加载模型权重、不要求 WebGPU。`text` 统计裸文本且不添加特殊 token；`messages` 使用与本地生成一致的聊天模板及生成前缀。返回 `method: "tokenizer"` 和固定模型 ID。浏览器需要先允许本地下载。
+- `mode: "local"`（默认）：使用当前 LFM2.5-350M tokenizer 实际计算，仅下载/读取 tokenizer 文件，不加载模型权重、不要求 WebGPU。字符串 input 统计裸文本且不添加特殊 token；消息数组 input 使用与本地生成一致的聊天模板及生成前缀。返回 `method: "tokenizer"` 和固定模型 ID。浏览器需要先允许本地下载。
 - `mode: "estimate"`：不联网，以 UTF-8 字节数加消息开销估算，返回 `method: "estimate", model: null`。适合初步测试，可能明显高估，且不是所有供应商 token 数的严格上界，不能用于计费或保证远程请求不超限。
-- `messages` 仅支持 system/user/assistant 的文本消息，与目前生成工具保持一致。text 和 messages 必须且只能提供一个。
+- input 接受字符串（含空字符串）或非空消息数组。消息数组仅支持 system/user/assistant 的文本消息，与目前生成工具保持一致；不再提供 text/messages 两个入口。
 - 计数只包含输入。流程应另行预留输出预算与安全余量；当前本地模型输入加输出限制为 2048 tokens。远程供应商的精确计数 API 尚未接入。
 - tokenizer 文件与现有本地模型共用缓存；CLI 使用 `AGENT_PLAN_MODEL_CACHE` 或 `~/.cache/agent-plan/models`。
 
 测试示例连续运行两次，第二次 `previous` 能读到上次保存的数据。要测试精确计数，将示例计数步骤的 mode 改成 local；首次运行给 tokenizer 下载留出超时预算。压缩子流程尚未内置。
+
+统一输入示例（JSON 的 inputs 同样使用 input 键）：
+
+```yaml
+- type: call
+  target: tokens.count
+  inputs:
+    input: $messages # 也可填 $chatIn 或直接写文本
+    mode: estimate
+  outputs:
+    tokens: $tokenCount
+```

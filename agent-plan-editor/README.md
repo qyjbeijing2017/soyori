@@ -35,7 +35,7 @@ Agent 的内置入口与首次 Library 模板使用简单的 hello Agent Plan �
 
 ## 工具与限制
 
-已注册 `local.generate`、`openai.generate`、`anthropic.generate`、`storage.read/write/delete/list`、`tokens.count`。在 Editor 添加调用步骤，选择工具名称后编辑参数。使用方法见 [AI 工具](../agent-plan-ai/README.md) 和 [存储与计数](../docs/storage-and-tokens.md)。
+已注册 `llm.local`、`llm.openai`、`llm.anthropic`、`storage.read/write/delete/list`、`tokens.count`。在 Editor 添加调用步骤，选择工具名称后编辑参数。使用方法见 [AI 工具](../agent-plan-ai/README.md) 和 [存储与计数](../docs/storage-and-tokens.md)。
 
 模型调用仍复用共享工具；本地模型在 Worker 中运行。停止调用无法回滚之前已发生的存储或外部副作用。外部子流程加载、浏览器 runScript、通用工具加载和 Agent 工具循环仍未实现。当前的 Agent 对话页运行用户流程，不是操作编辑器的内置助手。
 
@@ -136,3 +136,21 @@ Editor 调用目标统一搜索内置工具和 Library 流程，不再选择调�
 不迁移旧对话，也不删除旧数据。旧流程里的 memoryKey 仍是用户字段，不再由宿主赋值。删除线程只删除对应原始记录和索引项，不删除流程自行管理的记忆。
 
 原始记录结构、读取示例及流程与界面的写入边界见 [Editor 原始对话记录](../docs/storage-and-tokens.md#editor-原始对话记录)。
+
+调用目标选择器按调用名第一个英文句点（.）前的 namespace 分组，无句点的放入全局；正在编辑的流程在选项行最右侧显示独立的当前流程标签。列表名称只去掉第一级 namespace（a.b.c 显示 b.c），悬停及选择后的输入框显示完整调用名；分组不改变调用别名或 imports。
+
+远程模型连接参数 baseURL、apiKey、model 在每个调用步骤内填写或引用变量，设置页面不再提供远程连接。outputFormat 默认 text；设为 json 时必须填写 jsonSchema，输出 result 为解析后的值，文本模式的 result 是字符串；模型输出统一为 result、finishReason、usage。直接填写的密钥会随流程保存/导出。
+
+三个 llm 工具统一使用 input 输入：文字作为单条 user 消息，数组保留 system/user/assistant 角色及顺序。旧 prompt/messages 调用参数不再接受；tokens.count 的 text/messages 参数保持不变。
+
+### 内联分组
+
+运行值通过“添加变量”弹窗顶部的“变量类型”选择变量或变量分组，组内也使用同一入口，不再提供独立添加分组按钮。新增变量点击完成后保存，切换类型不会留下未完成的变量；已有变量仍自动保存。支持嵌套、命名和说明分组；通过独立手柄拖动调整顺序，拖到分组标题或组内放置区可移入，拖到外层放置区可移出。分组的折叠按钮与编辑标题分开，右侧解散按钮保留内部变量；变量弹窗不再提供所属分组选择。步骤类型中可添加步骤分组，整理菜单支持放入新分组、移入已有同层组、移到外层及解散保留内容。默认折叠随流程保存、导出；临时展开不写入文档。调试时自动展开下一步或错误所在的组、分支和循环。运行值和步骤面板也可整体折叠。
+
+调用表单使用工具包的 inputs / outputs 接口和内联分组，子流程接口使用 fields 的同一分组结构。运行时默认值显示为 placeholder，预填值单独由 initial 指定。分组说明支持 Markdown；中英文界面均可使用。
+
+变量与步骤共享跨层拖拽：同层占位随目标让位，跨组显示目标占位；步骤可拖入分组、条件分支、循环体，或拖回外层，禁止把容器拖入自身及后代。拖拽未松手不保存流程，取消不改变数据。
+
+拖拽落位以当前可见目标占位为终点，动画完成后才应用结构移动，不依赖排序前的位置 ID。分组与循环卡片中部可直接接收步骤，条件节点使用各分支作为明确接收区；接收区的高度在拖动期间保持稳定。
+
+默认流程统一为本地模型记忆对话，新建、首次初始化和固定内置入口复用 src/example.json。无需 API Key；首次使用需下载模型。上下文独立存储于 memory/<threadId>，超过 768 token 触发摘要压缩（最多 256 token），回复最多 512 token。超长输入仍可能超过模型 2048 token 限制。Editor 调试时请填写 chatIn 和独立的 threadId。

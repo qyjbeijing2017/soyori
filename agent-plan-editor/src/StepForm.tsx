@@ -1,19 +1,24 @@
-import { Button, Select } from "@mantine/core";
+import { Badge, Button, Checkbox, Group, Select, Text, TextInput } from "@mantine/core";
 import type { JsonValue, Step } from "agent-plan-core";
-import { useContext, useId, useState } from "react";
+import { fieldDefinitions } from "agent-plan-core";
+import { useContext, useEffect, useId, useState } from "react";
 import { CallChoices } from "./CallChoices";
 import {
   callOutputDestinations,
   callOutputNames,
+  callParameterEntries,
   callParameterNames,
+  callParameterPlaceholder,
+  callTargetGroups,
   restrictCallInputs,
   tools,
 } from "./call-tools";
 import { DescriptionInput } from "./DescriptionInput";
 import { tr } from "./i18n";
 import { defaultOperand } from "./library-calls";
+import { ParameterFields } from "./ParameterFields";
 import { StepIcon } from "./StepIcon";
-import { newStep, stepCategory, stepNames } from "./step-model";
+import { newStep, stepCategory, stepNames, stepSummary } from "./step-model";
 import { TemplateInput } from "./TemplateInput";
 import { AutoValueInput, ValueEditor, ValueTypeTag } from "./ValueEditor";
 import { VariableInput } from "./VariableInput";
@@ -22,19 +27,26 @@ export function StepForm({
   step,
   onSave,
   onCancel,
+  onSummaryChange,
 }: {
   step: Step;
   onSave: (step: Step) => void | Promise<void>;
   onCancel: () => void;
+  onSummaryChange?: (summary: string) => void;
 }) {
   const choices = useContext(CallChoices);
   const formId = useId();
   const [draft, setDraft] = useState<Step>(() => structuredClone(step));
+  useEffect(() => {
+    onSummaryChange?.(stepSummary(draft));
+  }, [draft, onSummaryChange]);
   const [error, setError] = useState("");
   const callNames =
     draft.type === "call"
       ? callParameterNames(draft.target, choices.find((c) => c.alias === draft.target)?.flow)
       : null;
+  const callFlow =
+    draft.type === "call" ? choices.find((c) => c.alias === draft.target)?.flow : undefined;
   const outputNames =
     draft.type === "call"
       ? callOutputNames(draft.target, choices.find((c) => c.alias === draft.target)?.flow)
@@ -52,6 +64,9 @@ export function StepForm({
     return (
       <ValueEditor
         key={property}
+        emptyStringAsBlank={
+          property === "value" && (draft.type === "set" || draft.type === "append")
+        }
         label={label}
         value={value}
         onChange={(next) => patch({ [property]: next })}
@@ -143,7 +158,23 @@ export function StepForm({
             }}
           />
         </section>
-        {draft.type !== "call" && (
+        {draft.type === "group" && (
+          <section className="dialog-section">
+            <TextInput
+              label={tr("分组名称")}
+              required
+              value={draft.name}
+              onChange={(e) => patch({ name: e.currentTarget.value })}
+            />
+            <Checkbox
+              label={tr("默认折叠")}
+              checked={draft.collapsed ?? false}
+              onChange={(e) => patch({ collapsed: e.currentTarget.checked })}
+            />
+            <p className="muted">{tr("分组不创建变量作用域，内部步骤按顺序执行。")}</p>
+          </section>
+        )}
+        {draft.type !== "call" && draft.type !== "group" && (
           <section className="dialog-section">
             <h3>{tr(draft.type === "if" || draft.type === "while" ? "判断条件" : "输入参数")}</h3>
             {(draft.type === "set" || draft.type === "append") &&
@@ -216,30 +247,23 @@ export function StepForm({
                 value={draft.target || null}
                 nothingFoundMessage={tr("没有匹配的调用目标")}
                 comboboxProps={{ withinPortal: true, zIndex: 350 }}
-                data={[
-                  {
-                    group: tr("内置工具"),
-                    items: Object.keys(tools).map((value) => ({ value, label: value })),
-                  },
-                  {
-                    group: tr("流程库"),
-                    items: choices.map((choice) => ({
-                      value: choice.alias,
-                      label: choice.label,
-                      disabled: choice.unavailable,
-                    })),
-                  },
-                  ...(!Object.hasOwn(tools, draft.target) &&
-                  !choices.some((c) => c.alias === draft.target) &&
-                  draft.target
-                    ? [
-                        {
-                          group: tr("不可用"),
-                          items: [{ value: draft.target, label: draft.target, disabled: true }],
-                        },
-                      ]
-                    : []),
-                ]}
+                data={callTargetGroups(choices, draft.target).map((group) => ({
+                  ...group,
+                  items: group.items.map((item) => ({ ...item, label: item.value })),
+                }))}
+                renderOption={({ option }) => (
+                  <Group justify="space-between" wrap="nowrap" w="100%" miw={0}>
+                    <Text size="sm" truncate title={option.value} style={{ minWidth: 0 }}>
+                      {option.value.slice(option.value.indexOf(".") + 1)}
+                      {option.disabled ? ` (${tr("不可用")})` : ""}
+                    </Text>
+                    {choices.some((choice) => choice.alias === option.value && choice.current) && (
+                      <Badge size="sm" variant="light" style={{ flexShrink: 0 }}>
+                        {tr("当前流程")}
+                      </Badge>
+                    )}
+                  </Group>
+                )}
                 onChange={(target) => {
                   if (!target) return;
                   const choice = choices.find((c) => c.alias === target);
@@ -250,7 +274,7 @@ export function StepForm({
                     inputs: structuredClone(
                       (Object.hasOwn(tools, target) ? tools[target] : undefined) ??
                         Object.fromEntries(
-                          Object.entries(choice?.flow?.fields ?? {})
+                          Object.entries(fieldDefinitions(choice?.flow?.fields ?? {}))
                             .filter(([, field]) => field.input)
                             .map(([name, field]) => [
                               name,
@@ -262,18 +286,25 @@ export function StepForm({
                 }}
               />
             </section>
-            <section className="dialog-section">
-              <section className="parameter-map" aria-label={tr("调用参数")}>
-                <h3>{tr("调用参数")}</h3>
-                {callNames?.map((name) => (
+            <section className="dialog-section" aria-label={tr("调用参数")}>
+              <h3>{tr("调用参数")}</h3>
+              <ParameterFields
+                key={`${draft.target}-inputs`}
+                translate={Object.hasOwn(tools, draft.target)}
+                entries={callParameterEntries(draft.target, "inputs", callFlow)}
+                renderField={({ name, required, valueType }) => (
                   <div className="parameter-row" key={name}>
                     <span className="parameter-name" title={name}>
-                      {name}
+                      <span title={valueType}>
+                        {name}
+                        {required && <span className="required-marker"> *</span>}
+                      </span>
                       <ValueTypeTag value={draft.inputs?.[name]} />
                     </span>
                     <AutoValueInput
                       label={name}
                       value={draft.inputs?.[name]}
+                      placeholder={callParameterPlaceholder(draft.target, name, callFlow)}
                       allowUnset
                       suggest
                       onChange={(value) => {
@@ -290,37 +321,46 @@ export function StepForm({
                       }}
                     />
                   </div>
-                ))}
-                {callNames?.length === 0 && <p className="muted">{tr("此调用无需参数")}</p>}
-                {extraInputs.length > 0 && (
-                  <p className="muted">
-                    {tr("应用时将移除未声明的参数：{{names}}", { names: extraInputs.join(", ") })}
-                  </p>
                 )}
-              </section>
+              />
+              {callNames?.length === 0 && <p className="muted">{tr("此调用无需参数")}</p>}
+              {extraInputs.length > 0 && (
+                <p className="muted">
+                  {tr("应用时将移除未声明的参数：{{names}}", { names: extraInputs.join(", ") })}
+                </p>
+              )}
             </section>
             <section className="dialog-section">
               <h3>{tr("输出结果")}</h3>
-              {outputNames.map((name, index) => (
-                <label key={name} htmlFor={`${formId}-result-${index}`}>
-                  {name}
-                  <VariableInput
-                    id={`${formId}-result-${index}`}
-                    aria-label={tr("保存输出 {{name}}", { name })}
-                    suggest
-                    destination
-                    placeholder={tr("留空不保存")}
-                    value={outputDestinations[name]}
-                    onValue={(value) => {
-                      const { output: _output, outputs: _outputs, ...base } = draft;
-                      setDraft({
-                        ...base,
-                        outputs: { ...outputDestinations, [name]: value as `$${string}` },
-                      });
-                    }}
-                  />
-                </label>
-              ))}
+              <ParameterFields
+                key={`${draft.target}-outputs`}
+                translate={Object.hasOwn(tools, draft.target)}
+                entries={callParameterEntries(draft.target, "outputs", callFlow)}
+                renderField={({ name }) => (
+                  <label
+                    className="parameter-output"
+                    key={name}
+                    htmlFor={`${formId}-result-${name}`}
+                  >
+                    {name}
+                    <VariableInput
+                      id={`${formId}-result-${name}`}
+                      aria-label={tr("保存输出 {{name}}", { name })}
+                      suggest
+                      destination
+                      placeholder={tr("留空不保存")}
+                      value={outputDestinations[name]}
+                      onValue={(value) => {
+                        const { output: _output, outputs: _outputs, ...base } = draft;
+                        setDraft({
+                          ...base,
+                          outputs: { ...outputDestinations, [name]: value as `$${string}` },
+                        });
+                      }}
+                    />
+                  </label>
+                )}
+              />
               {outputNames.length === 0 && <p className="muted">{tr("此调用没有输出变量")}</p>}
             </section>
           </>

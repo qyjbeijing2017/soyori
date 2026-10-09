@@ -1,5 +1,12 @@
 import { Button, Modal } from "@mantine/core";
-import { type FlowDefinition, parseFlow, type Step, toJsonValue } from "agent-plan-core";
+import {
+  type FlowDefinition,
+  fieldDefinitions,
+  parseFlow,
+  type Step,
+  toJsonValue,
+  withFieldDefinitions,
+} from "agent-plan-core";
 import { useEffect, useRef, useState } from "react";
 import type { AiSettings, BrowserAiHost } from "./ai-host";
 import { CallChoices } from "./CallChoices";
@@ -9,7 +16,7 @@ import { FieldsEditor } from "./FieldsEditor";
 import { tr } from "./i18n";
 import type { FlowDocument } from "./library";
 import { bindLibraryCalls, libraryChoices, loadLibraryGraph } from "./library-calls";
-import { StepForm } from "./StepForm";
+import { StepDialog } from "./StepDialog";
 import { StepList } from "./StepList";
 import { createSession, type Session } from "./session";
 import { replaceStep } from "./step-model";
@@ -34,9 +41,11 @@ export function FlowEditor({
   saving: boolean;
 }) {
   const [flow, setFlow] = useState(doc.flow);
+  const [valuesOpen, setValuesOpen] = useState(true);
+  const [stepsOpen, setStepsOpen] = useState(true);
   const [clearing, setClearing] = useState<"variables" | "steps" | null>(null);
   const [clearBlocked, setClearBlocked] = useState(false);
-  const choices = libraryChoices(flow, documents);
+  const choices = libraryChoices(flow, documents, doc.id);
   const latestFlow = useRef(flow);
   const queue = useRef<Promise<void>>(Promise.resolve());
   const [pending, setPending] = useState(false);
@@ -49,7 +58,7 @@ export function FlowEditor({
   const [notice, setNotice] = useState(tr("选择一个步骤，编辑它的参数。"));
   const [runValues, setRunValues] = useState<Record<string, unknown>>(() =>
     Object.fromEntries(
-      Object.entries(doc.flow.fields).map(([name, field]) => [
+      Object.entries(fieldDefinitions(doc.flow.fields)).map(([name, field]) => [
         name,
         structuredClone(field.initial),
       ]),
@@ -61,6 +70,9 @@ export function FlowEditor({
   const running = useRef(false);
   const pause = useRef(false);
   const state = session?.runtime.getState();
+  useEffect(() => {
+    if (state?.nextStepPath || state?.error || session?.records.length) setStepsOpen(true);
+  }, [state?.nextStepPath, state?.error, session?.records.length]);
   useEffect(() => () => abort.current?.abort(), []);
   useEffect(() => {
     // Library rename is external to this editor; save acknowledgements must not replace newer edits.
@@ -90,7 +102,7 @@ export function FlowEditor({
       setSession(null);
       setRunValues((current) =>
         Object.fromEntries(
-          Object.entries(valid.fields).map(([name, field]) => [
+          Object.entries(fieldDefinitions(valid.fields)).map(([name, field]) => [
             name,
             Object.hasOwn(current, name) ? current[name] : structuredClone(field.initial),
           ]),
@@ -179,20 +191,23 @@ export function FlowEditor({
           ? Object.fromEntries(Object.entries(item).sort(([a], [b]) => a.localeCompare(b)))
           : item,
       );
-    nextDefaults = Object.fromEntries(
-      Object.entries(flow.fields).map(([name, field]) => {
-        const value = runValues[name] === undefined ? undefined : toJsonValue(runValues[name]);
-        if (canonical(value) !== canonical(field.initial)) defaultsMatch = false;
-        const { initial: _initial, ...rest } = field;
-        return [name, value === undefined ? rest : { ...rest, initial: value }];
-      }),
+    nextDefaults = withFieldDefinitions(
+      flow.fields,
+      Object.fromEntries(
+        Object.entries(fieldDefinitions(flow.fields)).map(([name, field]) => {
+          const value = runValues[name] === undefined ? undefined : toJsonValue(runValues[name]);
+          if (canonical(value) !== canonical(field.initial)) defaultsMatch = false;
+          const { initial: _initial, ...rest } = field;
+          return [name, value === undefined ? rest : { ...rest, initial: value }];
+        }),
+      ),
     );
   } catch {
     defaultsMatch = false;
   }
   return (
     <CallChoices.Provider value={choices}>
-      <VariableNames.Provider value={Object.keys(flow.fields)}>
+      <VariableNames.Provider value={Object.keys(fieldDefinitions(flow.fields))}>
         <section className="editor-page compact-editor">
           {clearing && (
             <ConfirmDelete
@@ -208,7 +223,7 @@ export function FlowEditor({
                 if (locked) return;
                 if (clearing === "variables") {
                   const next = { ...latestFlow.current, fields: {} };
-                  if (Object.keys(parseFlow(next).fields).length) {
+                  if (Object.keys(fieldDefinitions(parseFlow(next).fields)).length) {
                     setClearing(null);
                     setClearBlocked(true);
                     return;
@@ -236,16 +251,26 @@ export function FlowEditor({
           )}
           <section className="variables-panel" ref={variablesPanel}>
             <div className="section-caption run-values-heading">
-              <span>{tr("运行值")}</span>
+              <button
+                className="panel-toggle"
+                type="button"
+                aria-expanded={valuesOpen}
+                onClick={() => setValuesOpen(!valuesOpen)}
+              >
+                <Icon name={valuesOpen ? "down" : "chevronRight"} />
+                {tr("运行值")}
+              </button>
               <div className="run-values-actions">
-                {Object.keys(flow.fields).length > 0 && (
+                {Object.keys(fieldDefinitions(flow.fields)).length > 0 && (
                   <Button
                     variant="subtle"
                     aria-label={tr("清空变量")}
                     disabled={locked}
                     onClick={() => {
                       if (
-                        Object.keys(parseFlow({ ...latestFlow.current, fields: {} }).fields).length
+                        Object.keys(
+                          fieldDefinitions(parseFlow({ ...latestFlow.current, fields: {} }).fields),
+                        ).length
                       )
                         setClearBlocked(true);
                       else setClearing("variables");
@@ -272,10 +297,9 @@ export function FlowEditor({
                         setSession(null);
                         setRunValues(
                           Object.fromEntries(
-                            Object.entries(latestFlow.current.fields).map(([name, field]) => [
-                              name,
-                              structuredClone(field.initial),
-                            ]),
+                            Object.entries(fieldDefinitions(latestFlow.current.fields)).map(
+                              ([name, field]) => [name, structuredClone(field.initial)],
+                            ),
                           ),
                         );
                         setNotice(tr("已重置"));
@@ -310,29 +334,39 @@ export function FlowEditor({
                 <p>{state.error.message}</p>
               </div>
             )}
-            <FieldsEditor
-              flow={flow}
-              disabled={busy}
-              values={runValues}
-              debugging={Boolean(session)}
-              finished={state?.status === "completed" || state?.status === "failed"}
-              onPending={setPending}
-              onValueChange={(name, value) => {
-                if (
-                  session &&
-                  !["completed", "failed"].includes(session.runtime.getState().status)
-                ) {
-                  session.runtime.setFields({ [name]: value });
-                  paint((v) => v + 1);
-                }
-                setRunValues((current) => ({ ...current, [name]: value }));
-              }}
-              onSave={(fields) => commit({ ...latestFlow.current, fields })}
-            />
+            <div hidden={!valuesOpen}>
+              <FieldsEditor
+                flow={flow}
+                disabled={busy}
+                values={runValues}
+                debugging={Boolean(session)}
+                finished={state?.status === "completed" || state?.status === "failed"}
+                onPending={setPending}
+                onValueChange={(name, value) => {
+                  if (
+                    session &&
+                    !["completed", "failed"].includes(session.runtime.getState().status)
+                  ) {
+                    session.runtime.setFields({ [name]: value });
+                    paint((v) => v + 1);
+                  }
+                  setRunValues((current) => ({ ...current, [name]: value }));
+                }}
+                onSave={(fields) => commit({ ...latestFlow.current, fields })}
+              />
+            </div>
           </section>
           <section className="steps-panel" aria-label={tr("流程步骤")}>
             <div className="section-caption run-values-heading">
-              <span>{tr("流程步骤")}</span>
+              <button
+                className="panel-toggle"
+                type="button"
+                aria-expanded={stepsOpen}
+                onClick={() => setStepsOpen(!stepsOpen)}
+              >
+                <Icon name={stepsOpen ? "down" : "chevronRight"} />
+                {tr("流程步骤")}
+              </button>
               {flow.steps.length > 0 && (
                 <div className="run-values-actions">
                   <Button
@@ -346,23 +380,26 @@ export function FlowEditor({
                 </div>
               )}
             </div>
-            <StepList
-              steps={flow.steps}
-              onChange={(steps) =>
-                commit({ ...latestFlow.current, steps }).catch((cause) => {
-                  setError(String(cause));
-                  throw cause;
-                })
-              }
-              onEdit={(step, path) => setEditing({ step, path })}
-              records={session?.records ?? []}
-              executed={session?.executed}
-              nextPath={state?.nextStepPath}
-              failedPath={
-                session?.records.filter((record) => record.error).at(-1)?.path ?? state?.error?.path
-              }
-              disabled={locked}
-            />
+            <div hidden={!stepsOpen}>
+              <StepList
+                steps={flow.steps}
+                onChange={(steps) =>
+                  commit({ ...latestFlow.current, steps }).catch((cause) => {
+                    setError(String(cause));
+                    throw cause;
+                  })
+                }
+                onEdit={(step, path) => setEditing({ step, path })}
+                records={session?.records ?? []}
+                executed={session?.executed}
+                nextPath={state?.nextStepPath}
+                failedPath={
+                  session?.records.filter((record) => record.error).at(-1)?.path ??
+                  state?.error?.path
+                }
+                disabled={locked}
+              />
+            </div>
           </section>
           <div className="editor-bottom-bar">
             <Button
@@ -417,30 +454,22 @@ export function FlowEditor({
               </Button>
             )}
           </div>
-          <Modal
-            opened={Boolean(editing)}
-            onClose={() => setEditing(null)}
-            title={tr("编辑步骤")}
-            size="lg"
-            closeButtonProps={{ "aria-label": tr("关闭") }}
-          >
-            {editing && (
-              <fieldset disabled={locked}>
-                <StepForm
-                  key={editing.path}
-                  step={editing.step}
-                  onCancel={() => setEditing(null)}
-                  onSave={async (step) => {
-                    await commit({
-                      ...latestFlow.current,
-                      steps: replaceStep(latestFlow.current.steps, editing.path, step),
-                    });
-                    setEditing(null);
-                  }}
-                />
-              </fieldset>
-            )}
-          </Modal>
+          {editing && (
+            <StepDialog
+              key={editing.path}
+              mode="edit"
+              step={editing.step}
+              disabled={locked}
+              onClose={() => setEditing(null)}
+              onSave={async (step) => {
+                await commit({
+                  ...latestFlow.current,
+                  steps: replaceStep(latestFlow.current.steps, editing.path, step),
+                });
+                setEditing(null);
+              }}
+            />
+          )}
         </section>
       </VariableNames.Provider>
     </CallChoices.Provider>

@@ -8,20 +8,31 @@ test("token estimates explicitly identify uncertainty and never load a model", a
       throw new Error("must not load");
     },
   })["tokens.count"];
-  assert.deepEqual(await count({ text: "abc", mode: "estimate" }), {
+  assert.deepEqual(await count({ input: "abc", mode: "estimate" }), {
     tokens: 3,
     method: "estimate",
     model: null,
   });
-  assert.equal((await count({ text: "你好", mode: "estimate" })).tokens, 6);
-  assert.equal((await count({ text: "", mode: "estimate" })).tokens, 0);
+  assert.equal((await count({ input: "你好", mode: "estimate" })).tokens, 6);
+  assert.equal((await count({ input: "", mode: "estimate" })).tokens, 0);
   assert.ok(
-    (await count({ messages: [{ role: "user", content: "abc" }], mode: "estimate" })).tokens > 3,
+    (await count({ input: [{ role: "user", content: "abc" }], mode: "estimate" })).tokens > 3,
   );
-  await assert.rejects(count({ text: "a", messages: [] }), /Provide text or messages/);
-  await assert.rejects(count({ text: "a", mode: "unknown" }), /mode must/);
+  for (const input of [undefined, null, 42, true, {}])
+    await assert.rejects(
+      count({ input, mode: "estimate" }),
+      /input must be a string or a message array/,
+    );
+  await assert.rejects(count({ input: [], mode: "estimate" }), /non-empty message array/);
+  await assert.rejects(count({ text: "a", mode: "estimate" }), /Unsupported parameter text/);
+  await assert.rejects(count({ messages: [], mode: "estimate" }), /Unsupported parameter messages/);
+  assert.deepEqual(
+    count.definition.inputs.map((field) => field.name),
+    ["input", "mode"],
+  );
+  await assert.rejects(count({ input: "a", mode: "unknown" }), /mode must/);
   await assert.rejects(
-    count({ messages: [{ role: "tool", content: "a" }] }),
+    count({ input: [{ role: "tool", content: "a" }] }),
     /system\/user\/assistant/,
   );
 });

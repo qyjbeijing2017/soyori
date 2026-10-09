@@ -32,16 +32,16 @@ AI 工具不仅给 Editor 使用，CLI 也需要。具体共享包名称、目�
 底层保留不同能力的工具 key 和参数。以下名称仅为设计示意，不是已注册 API：
 
 ```text
-openai.generate
-anthropic.generate
-local.generate
+llm.openai
+llm.anthropic
+llm.local
 typesafe.decide
 ```
 
 - OpenAI、Anthropic 各自保留适用的模型、消息、服务地址和生成选项，不假定所有参数都通用。
 - 本地模型不要求 API Key，配置重点是模型选择、下载状态与运行选项。
 - TypeSafe AI 的 Jev 是决策模型：输入状态与类型化问题，输出决策和概率等信息，不强行适配文本生成接口。类型正确不等于判断正确。
-- 凭据由宿主管理，流程引用凭据或连接配置；不把密钥作为普通工程文件、模型上下文或默认 trace 内容。具体凭据存储机制待实现。
+- 2026-10-09：远程连接改为步骤 inputs 中的 apiKey、baseURL、model，支持变量引用；直接填写的值随流程保存和导出，运行时传入可避免把密钥存为默认值。
 - 两端支持同一工具时，应保持名称与契约一致；不支持或配置缺失时明确报错，不静默换模型或转为付费调用。
 
 需要统一三种文本生成时，用户可创建接收供应商和消息的子流程，在分支中调用对应工具，将返回值映射成自己的统一输出。调用这个子流程就相当于一个统一节点，不需要平台再维护一套供应商切换机制。可提供示例预设，但不承诺换供应商后能力和效果一致。
@@ -94,8 +94,12 @@ typesafe.decide
 
 ## 7. 实现状态与后续阅读
 
-2026-10-01 实现更新：共享 `agent-plan-ai` 包已提供 `openai.generate`、`anthropic.generate`、`local.generate` 单次文本调用，CLI 与 Editor 注册使用；远程使用 LangChain，本地使用 Transformers.js。Editor 有模型设置、简单调用表单、下载进度和取消。详见 [当前 AI 调用契约](../agent-plan-ai/README.md)，该文档优先描述已实现参数，不把本文其他概念字段当成 API。
+2026-10-01 实现更新：共享 `agent-plan-ai` 包已提供 `llm.openai`、`llm.anthropic`、`llm.local` 单次文本调用，CLI 与 Editor 注册使用；远程使用 LangChain，本地使用 Transformers.js。Editor 有模型设置、简单调用表单、下载进度和取消。详见 [当前 AI 调用契约](../agent-plan-ai/README.md)，该文档优先描述已实现参数，不把本文其他概念字段当成 API。
 
 流程工具桥接、工具调用消息、Agent 循环预设、预设展示元数据、专用提示词模板节点和 Jev 接入仍未实现。Editor 也尚未加载外部 imports。本地已验证桌面浏览器与 Node CPU 的中文生成；手机和真实付费 API 尚未实测。
 
 实施时先核实 [宿主函数](../agent-plan-core/docs/functions.md)、[子流程](../agent-plan-core/docs/subflows.md) 和 [Runtime](../agent-plan-core/docs/runtime.md) 的公开契约，明确需要补充的能力；不要从规划文档推断当前 API 已存在。
+
+## 已实现：工具接口与参数分组（2026-10-09）
+
+共享工具包现已提供 `ToolDefinition` 输入输出接口，包含说明、类型提示、运行默认值、预填值和内联折叠组。Editor 从定义生成表单；LLM 的连接设置按节点填写，生成选项、输出格式和运行信息默认折叠。此接口仅组织和描述已有调用能力，不实现工具循环或新的预设引擎。协议见 [分组与工具接口](../agent-plan-core/docs/groups-and-tools.md)。

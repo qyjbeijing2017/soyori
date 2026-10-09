@@ -1,6 +1,7 @@
 import type { JsonValue, Step } from "agent-plan-core";
 import { tr } from "./i18n.ts";
 export const stepNames: Record<Step["type"], string> = {
+  group: "步骤分组",
   set: "设置",
   append: "追加",
   template: "文本模板",
@@ -25,13 +26,14 @@ export function stepCategory(
   type: Step["type"],
 ): "call" | "control" | "data" | "text" | "math" | "logic" {
   if (type === "call") return "call";
-  if (type === "if" || type === "while") return "control";
+  if (type === "if" || type === "while" || type === "group") return "control";
   if (type === "set" || type === "append") return "data";
   if (type === "template") return "text";
   if (["add", "subtract", "multiply", "divide"].includes(type)) return "math";
   return "logic";
 }
 export function stepTitle(step: Step): string {
+  if (step.type === "group") return step.name;
   if (step.type !== "call") return tr(stepNames[step.type]);
   return `${tr("调用")} ${step.target || tr("未选择工具")}`;
 }
@@ -62,6 +64,7 @@ function brief(value: JsonValue, depth = 0): string {
   return String(value);
 }
 export function stepSummary(step: Step): string {
+  if (step.type === "group") return `${step.name} { ${step.steps.length} }`;
   if (step.type === "if" || step.type === "while") return `${step.type} (${brief(step.condition)})`;
   if (step.type === "set") return `${step.field} = ${brief(step.value)}`;
   if (step.type === "append") return `${step.field}.push(${brief(step.value)})`;
@@ -98,6 +101,7 @@ export function stepSummary(step: Step): string {
 // Empty destinations are editor drafts; Core validates them when applied.
 const emptyDestination = "" as `$${string}`;
 export function newStep(type: Step["type"]): Step {
+  if (type === "group") return { type, name: tr("步骤分组"), steps: [], collapsed: false };
   if (type === "set" || type === "append") return { type, field: emptyDestination, value: "" };
   if (type === "template") return { type, template: "", output: emptyDestination };
   if (type === "and" || type === "or") return { type, inputs: [""], output: emptyDestination };
@@ -117,6 +121,8 @@ export function replaceStep(steps: Step[], path: string, replacement: Step): Ste
         then: step.then.map((s, i) => visit(s, `${current}.then[${i}]`)),
         ...(step.else ? { else: step.else.map((s, i) => visit(s, `${current}.else[${i}]`)) } : {}),
       };
+    if (step.type === "group")
+      return { ...step, steps: step.steps.map((s, i) => visit(s, `${current}.steps[${i}]`)) };
     if (step.type === "while")
       return { ...step, body: step.body.map((s, i) => visit(s, `${current}.body[${i}]`)) };
     return step;
@@ -135,6 +141,8 @@ export function removeStep(steps: Step[], path: string, prefix = "steps"): Step[
           ...(step.else ? { else: removeStep(step.else, path, `${current}.else`) } : {}),
         },
       ];
+    if (step.type === "group")
+      return [{ ...step, steps: removeStep(step.steps, path, `${current}.steps`) }];
     if (step.type === "while")
       return [{ ...step, body: removeStep(step.body, path, `${current}.body`) }];
     return [step];

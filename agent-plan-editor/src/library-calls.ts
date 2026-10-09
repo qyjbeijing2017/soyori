@@ -15,8 +15,13 @@ export interface CallChoice {
   source: string;
   flow?: FlowDefinition;
   unavailable?: boolean;
+  current?: boolean;
 }
-export function libraryChoices(flow: FlowDefinition, documents: FlowDocument[]): CallChoice[] {
+export function libraryChoices(
+  flow: FlowDefinition,
+  documents: FlowDocument[],
+  currentDocumentId?: string,
+): CallChoice[] {
   const choices: CallChoice[] = [];
   const used = new Set([...Object.keys(tools), ...Object.keys(flow.imports ?? {})]);
   for (const [alias, source] of Object.entries(flow.imports ?? {})) {
@@ -39,7 +44,11 @@ export function libraryChoices(flow: FlowDefinition, documents: FlowDocument[]):
     used.add(alias);
     choices.push({ alias, label: alias, source, flow: doc.flow });
   }
-  return choices;
+  return choices.map((choice) =>
+    currentDocumentId && choice.source === `library:${currentDocumentId}`
+      ? { ...choice, current: true }
+      : choice,
+  );
 }
 export function bindLibraryCalls(flow: FlowDefinition, choices: CallChoice[]): FlowDefinition {
   const imports = { ...flow.imports };
@@ -64,6 +73,7 @@ export function bindLibraryCalls(flow: FlowDefinition, choices: CallChoice[]): F
         visit(step.else ?? []);
       }
       if (step.type === "while") visit(step.body);
+      if (step.type === "group") visit(step.steps);
     }
   };
   visit(flow.steps);
@@ -113,6 +123,7 @@ export function migrateCallTargets(flow: FlowDefinition): FlowDefinition {
         visit(step.else ?? []);
       }
       if (step.type === "while") visit(step.body);
+      if (step.type === "group") visit(step.steps);
     }
   };
   visit(copy.steps);

@@ -1,23 +1,25 @@
 # Agent Plan AI 工具
 
-Editor 与 CLI 共用的单次文本模型调用：`openai.generate`、`anthropic.generate`、`local.generate`。Core 没有引入模型依赖。
+Editor 与 CLI 共用的单次文本模型调用：`llm.openai`、`llm.anthropic`、`llm.local`。Core 没有引入模型依赖。
 
 远程接入使用 LangChain 的 OpenAI/Anthropic 集成（MIT），本地使用 Transformers.js（Apache-2.0）。不引入 LangGraph，不实现 Agent 工具循环、工具自动执行、多模态或 Jev。
 
 ## 输入与输出
 
-每次填写 `prompt` 或 `messages` 之一。`messages` 为非空数组，每项是 `{ "role": "system|user|assistant", "content": "文字" }`。不支持 tool 消息或内容块，不自动保存对话。
+统一填写 `input`：非空字符串作为一条 user 消息，或传入非空消息数组，每项是 `{ "role": "system|user|assistant", "content": "文字" }`。不支持 tool 消息或内容块，不自动保存对话。
 
 | 参数 | 说明 |
 | --- | --- |
-| `prompt` / `messages` | 提示词或完整多轮文本消息 |
-| `model` | 可覆盖远程默认模型；本地当前只支持 LFM2.5-350M-ONNX |
-| `maxTokens` | 正整数；远程默认 512、最多 32768；本地默认 128、最多 512。供应商可能有更严格限制 |
+| `input` | 非空字符串，或完整多轮文本消息数组 |
+| `model` | 远程必填；本地当前只支持 LFM2.5-350M-ONNX |
+| `baseURL` / `apiKey` | 远程步骤连接参数，支持变量引用；baseURL 省略使用官方服务，apiKey 必填 |
+| `outputFormat` / `jsonSchema` | 远程输出格式：默认 text；json 模式必须提供 JSON Schema 对象 |
+| `maxTokens` | 正整数；远程默认 4096、最多 32768；本地默认 512、最多 512。供应商可能有更严格限制；本地输入加最大输出仍须不超过 2048 token |
 | `temperature` | 可选 0–1；远程省略则不发送，本地省略使用确定性解码。部分远程模型不接受此参数 |
 
-未知参数报错。密钥和服务地址不从流程 inputs 接收，避免凭据写入工程或流程改变密钥发送目的地。
+未知参数报错。每个远程调用独立读取 inputs 中的连接配置，不再读取设置页或 CLI 供应商环境变量。直接填写的密钥会随流程保存和导出；可以引用运行时输入变量，避免把密钥作为默认值保存。显式开启 trace 值采集时也应注意输入内容。
 
-返回 `{ text, model, content, finishReason, usage }` 普通对象。`content` 保留供应商内容块，`usage` 来自供应商；本地目前不计算用量或推断结束原因，两者为 `null`。`outputs: { "text": "$answer" }` 只保存文字；`output` 保存整个结果。达到输出上限可能截断回复。
+三种模型工具统一返回 `{ result, finishReason, usage }`。文本模式 result 是字符串，远程 JSON 模式是解析后的 JSON 值；不再返回 text、json、model、content。usage 来自供应商；本地 finishReason 和 usage 均为 null。`outputs: { "result": "$answer" }` 保存业务结果，`output` 保存整个返回对象。
 
 ## CLI
 
@@ -27,16 +29,11 @@ Editor 与 CLI 共用的单次文本模型调用：`openai.generate`、`anthropi
 # 无需 API Key；首次下载、CPU 推理也计入总超时
 pnpm cli run examples/ai-local.json --json --timeout 10m
 
-$env:OPENAI_API_KEY = '<你的密钥>'
-$env:OPENAI_MODEL = '<服务提供的模型 ID>'
-pnpm cli run examples/ai-openai.json --json --timeout 3m
-
-$env:ANTHROPIC_API_KEY = '<你的密钥>'
-$env:ANTHROPIC_MODEL = '<服务提供的模型 ID>'
-pnpm cli run examples/ai-anthropic.json --json --timeout 3m
+pnpm cli run examples/ai-openai.json --input connection.json --json --timeout 3m
+pnpm cli run examples/ai-anthropic.json --input connection.json --json --timeout 3m
 ```
 
-可选 `OPENAI_BASE_URL`（兼容服务的 `/v1` 地址）、`ANTHROPIC_BASE_URL`（服务根地址）。URL 只接受 HTTP(S)，不含用户信息、查询串或片段。默认使用官方地址。模型 ID 由用户指定，不自动替换。
+connection.json 通过 apiKey、model、baseURL 字段提供连接信息。OpenAI baseURL 为兼容服务的 /v1 地址；Anthropic 为服务根地址。URL 仅接受 HTTP(S)，不含用户名、密码、查询串或片段。
 
 本地缓存默认在用户主目录 `.cache/agent-plan/models`，可用 `AGENT_PLAN_MODEL_CACHE` 指定。每次 CLI 运行有独立进程，流程中的多次调用复用模型；进程退出后释放内存，下次从文件缓存加载。`validate` 不加载模型或发送请求。进度写 stderr，`--json` 的 stdout 保持机器协议。AI 工具名不允许被 `--functions` 覆盖。
 
@@ -48,7 +45,7 @@ Tokenizer（分词器）负责文字与 token 的转换，和模型权重一起�
 
 运行 `pnpm editor`，Agent 页面直接对话；在 Library 打开流程进入 Editor，添加调用步骤并选择本地/OpenAI/Anthropic 工具。提示词、消息数组、对象参数及输出映射均通过结构化表单编辑，不需要手写 JSON。
 
-“AI 设置”只在当前页面保存密钥、服务地址和默认模型；不落本地存储、不写进流程，刷新后清除。远程请求由浏览器直连所选地址，跨域许可取决于服务；库不会绕过 CORS。取消通过 AbortSignal 停止请求，不保证远端已停止处理。
+远程连接配置已移到调用步骤，设置页面仅保留本地模型选项。API 请求由浏览器直连指定服务，服务需支持 CORS。停止通过 AbortSignal 取消请求。
 
 本地调用先勾选允许下载，模型运行在 Web Worker 中，进度展示在结果区。“取消 AI 调用”终止本地 Worker，之后可重新运行；“释放本地模型内存”保留下载缓存。普通“暂停”仍仅在步骤之间生效。本地单次加载加生成上限 10 分钟。
 
@@ -71,3 +68,34 @@ Tokenizer（分词器）负责文字与 token 的转换，和模型权重一起�
 `pnpm --filter agent-plan-ai test` 使用本地 HTTP 模拟服务验证真实 LangChain 请求转换、输出、错误脱敏和取消，不消费付费 API。CLI 另有子进程集成测试。默认自动测试不下载模型，真实推理使用上面的示例。
 
 2026-10-01 已在当前 Windows Node CPU 与桌面 Chromium 生产构建中验证本地中文生成。手机实机及真实付费供应商账号尚未验证；模拟协议测试不是线上模型质量或全设备兼容保证。
+
+## JSON 输出
+
+远程调用设置 outputFormat: json，并传入 jsonSchema（JSON Schema 对象）。OpenAI 发送 response_format.json_schema（strict: true），Anthropic 发送 output_config.format。选择支持结构化输出的模型和服务；Schema 采用服务支持的子集，接口拒绝时直接报错，不降级为提示词约束。成功后 result 保存 JSON.parse 的结果；拒绝、截断或非法 JSON 报错，不修复或自动重试。Schema 约束由供应商执行，宿主校验 JSON 语法及完成状态。
+
+```yaml
+type: call
+target: llm.openai
+inputs:
+  baseURL: $baseURL
+  apiKey: $apiKey
+  model: $model
+  input: 请返回包含 ok=true 的 JSON 对象
+  outputFormat: json
+  jsonSchema:
+    type: object
+    properties:
+      ok: { type: boolean }
+    required: [ok]
+    additionalProperties: false
+outputs:
+  result: $answer
+```
+
+本地 LFM 当前适配未接入 JSON 约束。Transformers.js 4.3 已提供实验性的 @huggingface/transformers-structured-output 扩展，官方以 LFM2.5-350M 演示 logits_processor 约束解码；这证明存在接入路径，不代表当前项目已完成 Node/WebGPU 实测。见 [官方发布说明](https://github.com/huggingface/transformers.js/releases/tag/4.3.0)。
+
+### 工具接口元数据
+
+导出 `AI_TOOL_DEFINITIONS` 和 `TOKEN_TOOL_DEFINITIONS`；`createAiTools` / `createTokenTools` 的每个函数同时提供 `.definition`。接口包含 inputs、outputs、说明、值类型、必填提示、defaultValue（运行默认值）、initial（Editor 原始预填操作数）和内联 group。Editor 直接消费此接口。LLM 的生成选项、JSON 输出设置与运行信息默认折叠；调用 inputs 仍是平铺对象。
+
+Editor 的 LLM 参数将必填项放在外层：本地仅 input；远程为 input、model、apiKey。其他参数统一收进默认折叠的“高级设置”，包含可选的服务地址、生成参数及远程 JSON 输出配置。本地模型固定为 LFM2.5-350M，不提供模型选择输入。

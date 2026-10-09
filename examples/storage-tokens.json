@@ -17,7 +17,7 @@
     {
       "type": "call",
       "target": "tokens.count",
-      "inputs": { "text": "$text", "mode": "estimate" },
+      "inputs": { "input": "$text", "mode": "estimate" },
       "output": "$count"
     },
     {

@@ -1,4 +1,5 @@
 import type { FlowDefinition } from "agent-plan-core";
+import { fieldDefinitions, withFieldDefinitions } from "agent-plan-core";
 import { stringify } from "yaml";
 import { formatState } from "./format-state.ts";
 
@@ -10,14 +11,16 @@ export function formatChatOutput(value: unknown): string {
 }
 
 export function canChat(flow: FlowDefinition) {
-  return Boolean(flow.fields.chatOut?.output);
+  return Boolean(fieldDefinitions(flow.fields).chatOut?.output);
 }
 
 /** Adapt existing conversations without deleting their steps or user variables. */
 export function upgradeDefaultChat(flow: FlowDefinition): FlowDefinition {
   if (canChat(flow)) return flow;
-  const legacyText = flow.fields.text?.input && flow.fields.text?.output;
-  const legacyPair = flow.fields.prompt?.input && flow.fields.answer?.output;
+  const legacyText =
+    fieldDefinitions(flow.fields).text?.input && fieldDefinitions(flow.fields).text?.output;
+  const legacyPair =
+    fieldDefinitions(flow.fields).prompt?.input && fieldDefinitions(flow.fields).answer?.output;
   if (!legacyText && !legacyPair) return flow;
   const enabled = enableChat(flow);
   return {
@@ -31,14 +34,19 @@ export function upgradeDefaultChat(flow: FlowDefinition): FlowDefinition {
 }
 
 export function enableChat(flow: FlowDefinition): FlowDefinition {
-  if (canChat(flow) && flow.fields.chatIn?.input && flow.fields.threadId?.input) return flow;
+  if (
+    canChat(flow) &&
+    fieldDefinitions(flow.fields).chatIn?.input &&
+    fieldDefinitions(flow.fields).threadId?.input
+  )
+    return flow;
   return {
     ...flow,
-    fields: {
-      ...flow.fields,
-      chatIn: { ...flow.fields.chatIn, input: true },
-      threadId: { ...flow.fields.threadId, input: true },
-      chatOut: { ...flow.fields.chatOut, output: true },
-    },
+    fields: withFieldDefinitions(flow.fields, {
+      ...fieldDefinitions(flow.fields),
+      chatIn: { ...fieldDefinitions(flow.fields).chatIn, input: true },
+      threadId: { ...fieldDefinitions(flow.fields).threadId, input: true },
+      chatOut: { ...fieldDefinitions(flow.fields).chatOut, output: true },
+    }),
   };
 }

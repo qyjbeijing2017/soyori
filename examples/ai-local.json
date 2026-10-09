@@ -9,9 +9,9 @@
   "steps": [
     {
       "type": "call",
-      "target": "local.generate",
-      "inputs": { "prompt": "$prompt", "maxTokens": 64 },
-      "outputs": { "text": "$answer" }
+      "target": "llm.local",
+      "inputs": { "input": "$prompt", "maxTokens": 64 },
+      "outputs": { "result": "$answer" }
     }
   ]
 }

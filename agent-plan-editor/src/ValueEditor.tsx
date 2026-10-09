@@ -34,10 +34,14 @@ export function AutoValueInput({
   disabled = false,
   validate,
   suggest = false,
+  placeholder,
+  emptyStringAsBlank = false,
 }: {
   value: unknown;
   onChange: (value: JsonValue | undefined) => void;
   label: string;
+  placeholder?: string;
+  emptyStringAsBlank?: boolean;
   suggest?: boolean;
   allowUnset?: boolean;
   disabled?: boolean;
@@ -46,7 +50,7 @@ export function AutoValueInput({
   let formatted = "";
   let unsupported = false;
   try {
-    formatted = formatValue(value);
+    formatted = emptyStringAsBlank && value === "" ? "" : formatValue(value);
   } catch {
     unsupported = true;
     formatted = tr("此值不是 JSON 数据，请在工具中处理");
@@ -72,7 +76,7 @@ export function AutoValueInput({
           const next = inferValue(source, allowUnset);
           validate?.(next);
           onChange(next);
-          lastSent.current = formatValue(next);
+          lastSent.current = emptyStringAsBlank && next === "" ? "" : formatValue(next);
           setError("");
           input.current?.setCustomValidity("");
         }}
@@ -85,7 +89,7 @@ export function AutoValueInput({
         styles={{ input: { minHeight: 0, lineHeight: "22px", paddingTop: 10, paddingBottom: 10 } }}
         value={text}
         disabled={disabled || unsupported}
-        placeholder={allowUnset ? tr("未设置") : tr("输入值")}
+        placeholder={placeholder ?? (allowUnset ? tr("未设置") : tr("输入值"))}
         onChange={(e) => {
           const source = e.target.value;
           setText(source);
@@ -93,7 +97,7 @@ export function AutoValueInput({
             const next = inferValue(source, allowUnset);
             validate?.(next);
             onChange(next);
-            lastSent.current = formatValue(next);
+            lastSent.current = emptyStringAsBlank && next === "" ? "" : formatValue(next);
             setError("");
             e.target.setCustomValidity("");
           } catch (cause) {
@@ -118,12 +122,14 @@ export function ValueEditor({
   label = tr("值"),
   literal = false,
   validate,
+  emptyStringAsBlank = false,
 }: {
   value: JsonValue;
   onChange: (value: JsonValue) => void;
   label?: string;
   literal?: boolean;
   validate?: (value: JsonValue | undefined) => void;
+  emptyStringAsBlank?: boolean;
 }) {
   return (
     <div className="parameter-row">
@@ -144,6 +150,7 @@ export function ValueEditor({
         />
       ) : (
         <AutoValueInput
+          emptyStringAsBlank={emptyStringAsBlank}
           suggest={!validate}
           label={label}
           value={value}

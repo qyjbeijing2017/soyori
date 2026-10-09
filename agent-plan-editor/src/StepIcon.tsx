@@ -3,6 +3,7 @@ import { stepCategory } from "./step-model";
 import { Icon, type IconName } from "./ui";
 
 const stepIcons: Record<Step["type"], IconName> = {
+  group: "flow",
   set: "nodeSet",
   append: "nodeAppend",
   template: "nodeConcat",
