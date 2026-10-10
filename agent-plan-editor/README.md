@@ -37,7 +37,7 @@ Agent 的内置入口与首次 Library 模板使用简单的 hello Agent Plan �
 
 已注册 `llm.local`、`llm.openai`、`llm.anthropic`、`storage.read/write/delete/list`、`tokens.count`。在 Editor 添加调用步骤，选择工具名称后编辑参数。使用方法见 [AI 工具](../agent-plan-ai/README.md) 和 [存储与计数](../docs/storage-and-tokens.md)。
 
-模型调用仍复用共享工具；本地模型在 Worker 中运行。停止调用无法回滚之前已发生的存储或外部副作用。外部子流程加载、浏览器 runScript、通用工具加载和 Agent 工具循环仍未实现。当前的 Agent 对话页运行用户流程，不是操作编辑器的内置助手。
+模型调用仍复用共享工具；本地模型在 Worker 中运行。停止调用无法回滚之前已发生的存储或外部副作用。外部子流程加载、浏览器 script.run、通用工具加载和 Agent 工具循环仍未实现。当前的 Agent 对话页运行用户流程，不是操作编辑器的内置助手。
 
 ## 验证
 
@@ -154,3 +154,17 @@ Editor 调用目标统一搜索内置工具和 Library 流程，不再选择调�
 拖拽落位以当前可见目标占位为终点，动画完成后才应用结构移动，不依赖排序前的位置 ID。分组与循环卡片中部可直接接收步骤，条件节点使用各分支作为明确接收区；接收区的高度在拖动期间保持稳定。
 
 默认流程统一为本地模型记忆对话，新建、首次初始化和固定内置入口复用 src/example.json。无需 API Key；首次使用需下载模型。上下文独立存储于 memory/<threadId>，超过 768 token 触发摘要压缩（最多 256 token），回复最多 512 token。超长输入仍可能超过模型 2048 token 限制。Editor 调试时请填写 chatIn 和独立的 threadId。
+
+LLM 高级设置支持 tools 名称数组，输出新增 toolCalls/message；tools.execute 已加入调用选择器，按顺序执行并保留各调用结果。静态工具名称自动绑定 Library 导入。参见 [工具调用](../docs/tool-calling.md)。
+
+## 文件工作区与脚本
+
+Library 支持任意文件、文件夹和 ZIP 导入导出；只有经 Core 校验的 JSON/YAML 才作为流程。
+普通文本文件可编辑，其他文件保留原始字节供下载。script.run 仅接受 code 源码及 input 参数，通过 import 引用工作区/HTTPS 文件。脚本直接读取全局 input，调用 result(value) 设置输出，未设置返回 null；使用独立 Worker 执行。
+路径和动态导入边界见 [脚本与工作区](../docs/scripts-and-workspace.md)。
+
+### 编辑组件
+
+文件库采用 SVAR React File Manager 2.6（MIT），保留原生工具栏、目录树、新建/上传菜单、视图切换和小屏响应式行为，适配现有 IndexedDB 文件接口。桌面双击文件夹进入，手机轻点进入或返回上级；双击流程打开表单，双击文本文件打开 CodeMirror 源码编辑器；目录支持下载为 `.agentp.zip`。只有该后缀的工程包上传时自动解压，普通 ZIP 原样保存。复制、剪切/粘贴、改名、删除使用原生交互；路径引用仍需用户手动更新。原生图标字体由 SVAR 官方 CDN 加载。
+
+CodeMirror 6（MIT）复用于 script.run 的 code 和文件源码，提供行号、高亮、缩进、括号补全、语法诊断、input/result 与相对模块路径补全，以及全屏编辑。Acorn（MIT）负责 JavaScript 语法诊断。浏览器标准 textarea 不具备这些能力，采用现成组件避免自行维护编辑器与文件管理交互。依赖为 ESM，已在本项目 Node 24 / React 19 的类型检查及生产构建中验证；SVAR core 固定 2.6.0，与文件管理器保持同一 Locale context 实例。

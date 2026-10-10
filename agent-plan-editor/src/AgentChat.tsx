@@ -2,7 +2,12 @@ import { Button, Modal, Textarea, TextInput, UnstyledButton } from "@mantine/cor
 import { useEffect, useRef, useState } from "react";
 import type { AiSettings, BrowserAiHost } from "./ai-host";
 import { formatChatOutput } from "./chat-contract";
-import { type ChatMessage, newThread, type ThreadBook, threadFlow } from "./chat-threads";
+import {
+  type ChatMessage,
+  prepareThreadForSend,
+  type ThreadBook,
+  threadFlow,
+} from "./chat-threads";
 import { tr } from "./i18n";
 import { canChat, type FlowDocument } from "./library";
 import { loadLibraryGraph } from "./library-calls";
@@ -61,8 +66,7 @@ export function AgentChat({
   }, [messages, progress]);
   async function send() {
     if (lock.current || loading || !book || !prompt.trim()) return;
-    const thread = book.threads.find((t) => t.id === book.activeId) ?? newThread(doc.id);
-    const currentBook = book.threads.length ? book : { activeId: thread.id, threads: [thread] };
+    const { thread, book: currentBook } = prepareThreadForSend(book, doc.id);
     const question = prompt.trim();
     const prior = messages;
     lock.current = true;
@@ -88,10 +92,17 @@ export function AgentChat({
       await onBookChange(pendingBook);
       inputSaved = true;
       abort.current.signal.throwIfAborted();
+      const graph = loadLibraryGraph({ ...doc, flow: threadFlow(doc.flow, thread) }, documents);
       const session = createSession(
-        loadLibraryGraph({ ...doc, flow: threadFlow(doc.flow, thread) }, documents),
+        graph,
         { chatIn: question, threadId: thread.id },
-        aiHost.tools(settings, abort.current.signal, setProgress),
+        aiHost.tools(
+          settings,
+          abort.current.signal,
+          setProgress,
+          graph,
+          () => session.runtime.getStack().at(-1)?.source,
+        ),
       );
       let steps = 0;
       while (!["completed", "failed"].includes(session.runtime.getState().status)) {

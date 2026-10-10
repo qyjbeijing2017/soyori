@@ -20,6 +20,13 @@ export function newThread(docId: string): ChatThread {
   const id = crypto.randomUUID();
   return { id, title: "新对话", messages: [], flowId: docId };
 }
+/** Allocate a thread only when sending; an empty activeId represents a new-chat draft. */
+export function prepareThreadForSend(book: ThreadBook, docId: string) {
+  const active = book.threads.find((thread) => thread.id === book.activeId);
+  if (active) return { thread: active, book };
+  const thread = newThread(docId);
+  return { thread, book: { activeId: thread.id, threads: [thread, ...book.threads] } };
+}
 export function threadFlow(flow: FlowDefinition, thread: ChatThread): FlowDefinition {
   return {
     ...flow,
@@ -56,7 +63,8 @@ export function readThreadBook(value: unknown): ThreadBook {
         validMessages(t.messages),
     ) ||
     new Set(book.threads.map((t) => t.id)).size !== book.threads.length ||
-    (book.threads.length ? !book.threads.some((t) => t.id === book.activeId) : book.activeId !== "")
+    typeof book.activeId !== "string" ||
+    (book.activeId !== "" && !book.threads.some((t) => t.id === book.activeId))
   )
     throw Error("会话记录损坏，无法读取。");
   return book;
@@ -67,8 +75,9 @@ export function removeThread(book: ThreadBook, id: string): ThreadBook {
   const threads = book.threads.filter((thread) => thread.id !== id);
   return {
     threads,
-    activeId: threads.some((thread) => thread.id === book.activeId)
-      ? book.activeId
-      : (threads[0]?.id ?? ""),
+    activeId:
+      book.activeId === "" || threads.some((thread) => thread.id === book.activeId)
+        ? book.activeId
+        : (threads[0]?.id ?? ""),
   };
 }

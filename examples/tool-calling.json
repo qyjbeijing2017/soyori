@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "name": "本地工具调用示例",
+  "description": "模型请求列出存储键，执行一批工具并输出结果。首次运行需要下载本地模型。",
+  "fields": {
+    "chatIn": {
+      "input": true,
+      "initial": "请使用工具列出已保存的存储键。"
+    },
+    "chatOut": {
+      "output": true
+    },
+    "tools": {
+      "initial": ["storage.list"]
+    },
+    "messages": {
+      "initial": []
+    },
+    "message": {},
+    "toolCalls": {},
+    "results": {
+      "output": true
+    }
+  },
+  "steps": [
+    {
+      "type": "append",
+      "field": "$messages",
+      "value": {
+        "role": "user",
+        "content": "$chatIn"
+      }
+    },
+    {
+      "type": "call",
+      "target": "llm.local",
+      "inputs": {
+        "input": "$messages",
+        "tools": "$tools"
+      },
+      "outputs": {
+        "result": "$chatOut",
+        "toolCalls": "$toolCalls",
+        "message": "$message"
+      }
+    },
+    {
+      "type": "append",
+      "field": "$messages",
+      "value": "$message"
+    },
+    {
+      "type": "if",
+      "condition": "$toolCalls.length",
+      "then": [
+        {
+          "type": "call",
+          "target": "tools.execute",
+          "inputs": {
+            "calls": "$toolCalls"
+          },
+          "outputs": {
+            "results": "$results"
+          }
+        }
+      ]
+    }
+  ]
+}

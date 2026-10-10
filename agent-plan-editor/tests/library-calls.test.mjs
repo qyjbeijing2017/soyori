@@ -15,6 +15,21 @@ const doc = (id, name, steps = [], fields = {}) => ({
   flow: { schemaVersion: 1, name, fields, steps },
 });
 
+test("model and executor tool lists bind imported Library flows including variable defaults", () => {
+  const child = doc("tool-id", "my.lookup");
+  for (const value of [["my.lookup"], "$tools"]) {
+    const root = doc(
+      "root",
+      "root",
+      [{ type: "call", target: "llm.local", inputs: { input: "hi", tools: value } }],
+      { tools: { initial: ["my.lookup"] } },
+    );
+    const bound = bindLibraryCalls(root.flow, libraryChoices(root.flow, [child]));
+    assert.equal(bound.imports["my.lookup"], "library:tool-id");
+    assert.equal(root.flow.imports, undefined);
+  }
+});
+
 test("Library choices bind stable imports, survive renames and run through Core", async () => {
   const child = doc(
     "child-id",

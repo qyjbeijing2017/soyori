@@ -99,3 +99,6 @@ outputs:
 导出 `AI_TOOL_DEFINITIONS` 和 `TOKEN_TOOL_DEFINITIONS`；`createAiTools` / `createTokenTools` 的每个函数同时提供 `.definition`。接口包含 inputs、outputs、说明、值类型、必填提示、defaultValue（运行默认值）、initial（Editor 原始预填操作数）和内联 group。Editor 直接消费此接口。LLM 的生成选项、JSON 输出设置与运行信息默认折叠；调用 inputs 仍是平铺对象。
 
 Editor 的 LLM 参数将必填项放在外层：本地仅 input；远程为 input、model、apiKey。其他参数统一收进默认折叠的“高级设置”，包含可选的服务地址、生成参数及远程 JSON 输出配置。本地模型固定为 LFM2.5-350M，不提供模型选择输入。
+
+## 工具调用（2026-10-09）
+三种模型均支持 tools 调用名数组，新增 toolCalls 和完整 message 输出。tools.execute 顺序执行请求，仅返回 results；tools 限制可选，默认留空不额外限制。消息与记忆编排交由独立工具。说明可选，函数接口自动生成参数结构，导入流程通过 Core 执行。详细约定与限制见 [工具调用](../docs/tool-calling.md)，可导入 [示例](../examples/tool-calling.yaml)。

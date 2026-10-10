@@ -1,7 +1,15 @@
-import { createAiTools, type GenerateInput, type GenerateResult } from "agent-plan-ai";
+import {
+  createAiTools,
+  createToolExecutionTools,
+  createToolRegistry,
+  type GenerateInput,
+  type GenerateResult,
+} from "agent-plan-ai";
 import { createTokenTools } from "agent-plan-ai/tokens";
+import type { LoadedFlow, RuntimeFunction } from "agent-plan-core";
 import { createStorageTools } from "agent-plan-storage";
 import { createBrowserStorage } from "agent-plan-storage/browser";
+import { createBrowserScriptTools } from "./script-host";
 
 export interface AiSettings {
   allowLocalDownload: boolean;
@@ -15,8 +23,17 @@ export class BrowserAiHost {
   private pending = false;
   private cancelPending?: () => void;
 
-  tools(settings: AiSettings, signal: AbortSignal, progress: (message: string) => void) {
-    return {
+  tools(
+    settings: AiSettings,
+    signal: AbortSignal,
+    progress: (message: string) => void,
+    graph?: LoadedFlow,
+    activeSource?: () => string | undefined,
+  ) {
+    const registry: Record<string, RuntimeFunction> = {};
+    const scope = createToolRegistry(registry, graph, activeSource, signal);
+    Object.assign(registry, {
+      ...createBrowserScriptTools(() => scope.source() ?? graph?.source, signal),
       ...createStorageTools(createBrowserStorage()),
       ...createTokenTools({
         browser: true,
@@ -27,6 +44,7 @@ export class BrowserAiHost {
         },
       }),
       ...createAiTools({
+        registry: scope.registry,
         browser: true,
         signal,
         local: (input) => {
@@ -35,7 +53,9 @@ export class BrowserAiHost {
           return this.generate(input, signal, progress);
         },
       }),
-    };
+      ...createToolExecutionTools({ registry: scope.registry, signal }),
+    });
+    return registry;
   }
 
   private generate(

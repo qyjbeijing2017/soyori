@@ -3,6 +3,7 @@ import type { JsonValue, Step } from "agent-plan-core";
 import { fieldDefinitions } from "agent-plan-core";
 import { useContext, useEffect, useId, useState } from "react";
 import { CallChoices } from "./CallChoices";
+import { CodeEditor } from "./CodeEditor";
 import {
   callOutputDestinations,
   callOutputNames,
@@ -11,6 +12,7 @@ import {
   callParameterPlaceholder,
   callTargetGroups,
   restrictCallInputs,
+  toolDefinitions,
   tools,
 } from "./call-tools";
 import { DescriptionInput } from "./DescriptionInput";
@@ -20,6 +22,7 @@ import { ParameterFields } from "./ParameterFields";
 import { StepIcon } from "./StepIcon";
 import { newStep, stepCategory, stepNames, stepSummary } from "./step-model";
 import { TemplateInput } from "./TemplateInput";
+import { ToolListInput } from "./ToolListInput";
 import { AutoValueInput, ValueEditor, ValueTypeTag } from "./ValueEditor";
 import { VariableInput } from "./VariableInput";
 
@@ -53,6 +56,7 @@ export function StepForm({
       : [];
   const outputDestinations =
     draft.type === "call" ? callOutputDestinations(draft, outputNames) : {};
+  const wholeReturn = draft.type === "call" && Boolean(toolDefinitions[draft.target]?.returns);
   const extraInputs =
     draft.type === "call" && callNames
       ? Object.keys(draft.inputs ?? {}).filter((name) => !callNames.includes(name))
@@ -109,7 +113,15 @@ export function StepForm({
             const mapped = Object.fromEntries(
               Object.entries(outputDestinations).filter(([, value]) => value.trim()),
             );
-            await onSave(Object.keys(mapped).length ? { ...base, outputs: mapped } : base);
+            await onSave(
+              wholeReturn
+                ? output
+                  ? { ...base, output }
+                  : base
+                : Object.keys(mapped).length
+                  ? { ...base, outputs: mapped }
+                  : base,
+            );
           } else await onSave(draft);
         } catch (cause) {
           setError(cause instanceof Error ? cause.message : String(cause));
@@ -292,36 +304,47 @@ export function StepForm({
                 key={`${draft.target}-inputs`}
                 translate={Object.hasOwn(tools, draft.target)}
                 entries={callParameterEntries(draft.target, "inputs", callFlow)}
-                renderField={({ name, required, valueType }) => (
-                  <div className="parameter-row" key={name}>
-                    <span className="parameter-name" title={name}>
-                      <span title={valueType}>
-                        {name}
-                        {required && <span className="required-marker"> *</span>}
+                renderField={({ name, required, valueType }) => {
+                  const Input =
+                    draft.target === "script.run" && name === "code"
+                      ? ScriptCodeInput
+                      : name === "tools" &&
+                          ["llm.local", "llm.openai", "llm.anthropic", "tools.execute"].includes(
+                            draft.target,
+                          )
+                        ? ToolListInput
+                        : AutoValueInput;
+                  return (
+                    <div className="parameter-row" key={name}>
+                      <span className="parameter-name" title={name}>
+                        <span title={valueType}>
+                          {name}
+                          {required && <span className="required-marker"> *</span>}
+                        </span>
+                        <ValueTypeTag value={draft.inputs?.[name]} />
                       </span>
-                      <ValueTypeTag value={draft.inputs?.[name]} />
-                    </span>
-                    <AutoValueInput
-                      label={name}
-                      value={draft.inputs?.[name]}
-                      placeholder={callParameterPlaceholder(draft.target, name, callFlow)}
-                      allowUnset
-                      suggest
-                      onChange={(value) => {
-                        const inputs = { ...draft.inputs };
-                        if (value === undefined) delete inputs[name];
-                        else
-                          Object.defineProperty(inputs, name, {
-                            value,
-                            enumerable: true,
-                            configurable: true,
-                            writable: true,
-                          });
-                        patch({ inputs });
-                      }}
-                    />
-                  </div>
-                )}
+                      <Input
+                        label={name}
+                        value={draft.inputs?.[name]}
+                        placeholder={callParameterPlaceholder(draft.target, name, callFlow)}
+                        allowUnset
+                        suggest
+                        onChange={(value) => {
+                          const inputs = { ...draft.inputs };
+                          if (value === undefined) delete inputs[name];
+                          else
+                            Object.defineProperty(inputs, name, {
+                              value,
+                              enumerable: true,
+                              configurable: true,
+                              writable: true,
+                            });
+                          patch({ inputs });
+                        }}
+                      />
+                    </div>
+                  );
+                }}
               />
               {callNames?.length === 0 && <p className="muted">{tr("此调用无需参数")}</p>}
               {extraInputs.length > 0 && (
@@ -361,7 +384,10 @@ export function StepForm({
                   </label>
                 )}
               />
-              {outputNames.length === 0 && <p className="muted">{tr("此调用没有输出变量")}</p>}
+              {wholeReturn && destination("output", draft.output ?? "", tr("保存返回值"))}
+              {!wholeReturn && outputNames.length === 0 && (
+                <p className="muted">{tr("此调用没有输出变量")}</p>
+              )}
             </section>
           </>
         )}
@@ -390,5 +416,24 @@ export function StepForm({
         </Button>
       </div>
     </form>
+  );
+}
+
+function ScriptCodeInput({
+  value,
+  onChange,
+  label,
+}: {
+  value: unknown;
+  onChange: (value: JsonValue | undefined) => void;
+  label: string;
+}) {
+  return (
+    <CodeEditor
+      script
+      label={label}
+      value={typeof value === "string" ? value : ""}
+      onChange={(value) => onChange(value || undefined)}
+    />
   );
 }

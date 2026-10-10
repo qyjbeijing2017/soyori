@@ -119,7 +119,13 @@ test("real LangChain adapters send vendor protocols and preserve text, content, 
     });
     assert.equal(result.result, "你好");
     assert.equal(result.usage.total_tokens, 6);
-    assert.deepEqual(Object.keys(result).sort(), ["finishReason", "result", "usage"]);
+    assert.deepEqual(Object.keys(result).sort(), [
+      "finishReason",
+      "message",
+      "result",
+      "toolCalls",
+      "usage",
+    ]);
     assert.doesNotThrow(() => JSON.stringify(result));
   }
   assert.equal(requests[0].headers.authorization, "Bearer test-secret");
@@ -144,7 +150,13 @@ test("real LangChain adapters send vendor protocols and preserve text, content, 
     };
     const result = await tools[name](input);
     assert.deepEqual(result.result, { ok: true });
-    assert.deepEqual(Object.keys(result).sort(), ["finishReason", "result", "usage"]);
+    assert.deepEqual(Object.keys(result).sort(), [
+      "finishReason",
+      "message",
+      "result",
+      "toolCalls",
+      "usage",
+    ]);
     const request = requests.at(-1);
     assert.equal(request.body.model, "second-model");
     if (name === "llm.openai") {

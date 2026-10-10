@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { newThread, removeThread } from "../src/chat-threads.ts";
+import { newThread, prepareThreadForSend, removeThread } from "../src/chat-threads.ts";
 import { createConversationStore } from "../src/conversation-store.ts";
 
 function memory() {
@@ -31,8 +31,13 @@ test("raw threads use independent shared keys and reload through the UI index", 
     repo = createConversationStore(storage, indexes);
   await indexes.write("threads/flow", { old: "ignored" });
   const book = await repo.load("flow");
-  const a = book.threads[0],
+  assert.deepEqual(book, { activeId: "", threads: [] });
+  const a = newThread("flow"),
     b = newThread("flow");
+  a.messages.push({ role: "user", content: "first" });
+  book.threads.push(a);
+  book.activeId = a.id;
+  await repo.save("flow", book);
   assert.equal(a.flowId, "flow");
   assert.equal(a.memoryKey, undefined);
   assert.ok(storage.values.has(`threads/${a.id}`));
@@ -64,11 +69,39 @@ test("concurrent loads do not create duplicate initial threads and failed writes
     repo = createConversationStore(storage, indexes);
   const [a, b] = await Promise.all([repo.load("flow"), repo.load("flow")]);
   assert.equal(a.activeId, b.activeId);
-  a.threads[0].messages.push({ role: "user", content: "pending" });
+  assert.deepEqual(a, { activeId: "", threads: [] });
+  assert.equal(storage.writes.length, 0);
+  assert.equal(indexes.writes.length, 0);
+  const pending = prepareThreadForSend(a, "flow");
+  pending.thread.messages.push({ role: "user", content: "pending" });
   storage.write = async () => {
     throw Error("quota");
   };
-  await assert.rejects(repo.save("flow", a), /quota/);
+  await assert.rejects(repo.save("flow", pending.book), /quota/);
   const loaded = await createConversationStore(storage, indexes).load("flow");
-  assert.equal(loaded.threads[0].messages.length, 0);
+  assert.deepEqual(loaded, { activeId: "", threads: [] });
+});
+
+test("new-chat drafts survive reload without adding threads; first send preserves existing history", async () => {
+  const storage = memory(),
+    indexes = memory(),
+    repo = createConversationStore(storage, indexes);
+  const previous = newThread("flow");
+  previous.messages.push({ role: "user", content: "old" });
+  await repo.save("flow", { activeId: previous.id, threads: [previous] });
+  storage.writes.length = 0;
+  const draft = { activeId: "", threads: [previous] };
+  await repo.save("flow", draft);
+  await repo.save("flow", draft);
+  assert.equal(storage.writes.length, 0);
+  const loaded = await createConversationStore(storage, indexes).load("flow");
+  assert.deepEqual(loaded, draft);
+  const pending = prepareThreadForSend(loaded, "flow");
+  pending.thread.messages.push({ role: "user", content: "hello" });
+  await repo.save("flow", pending.book);
+  assert.equal(pending.book.threads.length, 2);
+  assert.deepEqual(pending.book.threads[1], previous);
+  assert.equal(pending.book.activeId, pending.thread.id);
+  assert.equal(prepareThreadForSend(pending.book, "flow").thread.id, pending.thread.id);
+  assert.equal((await repo.load("flow")).threads[0].messages[0].content, "hello");
 });

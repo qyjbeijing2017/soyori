@@ -1,38 +1,53 @@
 import { type FlowDefinition, parseFlow, type Step } from "agent-plan-core";
 import { createBrowserStorage } from "agent-plan-storage/browser";
 import { stringify } from "yaml";
-import { tools } from "./call-tools";
-import { upgradeDefaultChat } from "./chat-contract";
-import example from "./example.json";
-import { tr } from "./i18n";
-import { migrateCallTargets } from "./library-calls";
+import { tools } from "./call-tools.ts";
+import { upgradeDefaultChat } from "./chat-contract.ts";
+import example from "./example.json" with { type: "json" };
+import { readFlowFile } from "./flow-files.ts";
+import { tr } from "./i18n.ts";
+import { migrateCallTargets } from "./library-calls.ts";
+import { listFiles, newFile, readFile, removeFile, writeFiles } from "./workspace-files.ts";
 
-export { canChat } from "./chat-contract";
+export { canChat } from "./chat-contract.ts";
 
 export interface FlowDocument {
   id: string;
   flow: FlowDefinition;
   updatedAt: string;
+  path?: string;
 }
 const storage = createBrowserStorage("agent-plan-library");
 export function makeDocument(flow: FlowDefinition, id: string = crypto.randomUUID()): FlowDocument {
   return { id, flow: parseFlow(flow), updatedAt: new Date().toISOString() };
 }
 let saveQueue: Promise<unknown> = Promise.resolve();
-export async function saveDocument(doc: FlowDocument) {
+export function flowFilename(name: string): string {
+  const stem = Array.from(name.trim())
+    .map((char) => (char.charCodeAt(0) < 32 || '<>:"/\\|?*'.includes(char) ? "_" : char))
+    .join("");
+  return `${stem || "flow"}.yaml`;
+}
+export async function saveDocument(doc: FlowDocument, directory = "") {
   const save = async () => {
     const name = doc.flow.name.trim();
     if (Object.hasOwn(tools, name)) throw Error(tr("流程名称不能与内置工具重名"));
     const valid = makeDocument({ ...doc.flow, name }, doc.id);
-    const { keys } = await storage.list("flows/");
-    for (const key of keys) {
-      if (key === `flows/${valid.id}`) continue;
-      const { value } = await storage.read(key);
-      const other = value as unknown as FlowDocument | null;
-      if (other?.flow?.name?.trim() === name)
+    for (const other of await loadFileDocuments()) {
+      if (other.id !== doc.id && other.flow.name.trim() === name)
         throw Error(tr("已存在名为「{{name}}」的流程，请使用其他名称。", { name }));
     }
-    await storage.write(`flows/${valid.id}`, valid);
+    const files = await listFiles();
+    const existing = files.find((file) => file.id === doc.id);
+    const path =
+      existing?.path ?? doc.path ?? `${directory ? `${directory}/` : ""}${flowFilename(name)}`;
+    const flow = portableFlow(valid.flow, files, path);
+    const content = new Blob([
+      /\.json$/i.test(path) ? JSON.stringify(flow, null, 2) : stringify(flow, { lineWidth: 0 }),
+    ]);
+    await writeFiles([{ ...newFile(path, content), id: doc.id }], Boolean(existing));
+    valid.flow = flow;
+    valid.path = path;
     return valid;
   };
   // Serialize the check and write, including concurrent tabs where Web Locks is available.
@@ -46,40 +61,110 @@ export async function saveDocument(doc: FlowDocument) {
   saveQueue = task;
   return task;
 }
-export async function loadLibrary(): Promise<FlowDocument[]> {
-  const { keys } = await storage.list("flows/");
-  if (!keys.length) {
-    const { found } = await storage.read("meta/initialized");
-    if (found) return [];
-    const initial = await saveDocument(makeDocument(parseFlow(example), "local-agent"));
-    await storage.write("meta/initialized", true);
-    return [initial];
-  }
+function portableFlow(
+  flow: FlowDefinition,
+  files: Awaited<ReturnType<typeof listFiles>>,
+  parent: string,
+) {
+  if (!flow.imports) return flow;
+  return {
+    ...flow,
+    imports: Object.fromEntries(
+      Object.entries(flow.imports).map(([alias, source]) => {
+        const file = source.startsWith("library:")
+          ? files.find((f) => f.id === source.slice(8))
+          : undefined;
+        const target =
+          file?.path ?? (source.startsWith("/") ? decodeURIComponent(source.slice(1)) : undefined);
+        if (!target) return [alias, source];
+        const from = parent.split("/").slice(0, -1),
+          to = target.split("/");
+        while (from.length && to.length && from[0] === to[0]) {
+          from.shift();
+          to.shift();
+        }
+        return [
+          alias,
+          `${from.length ? "../".repeat(from.length) : "./"}${to.map(encodeURIComponent).join("/")}`,
+        ];
+      }),
+    ),
+  };
+}
+async function loadFileDocuments(): Promise<FlowDocument[]> {
   const docs: FlowDocument[] = [];
-  for (const key of keys) {
-    const { value } = await storage.read(key);
-    const record = value as FlowDocument;
-    if (
-      !record ||
-      typeof record.id !== "string" ||
-      typeof record.updatedAt !== "string" ||
-      key !== `flows/${record.id}`
-    )
-      throw new Error("流程库记录损坏，请保留站点数据并检查。");
-    const migrated = migrateCallTargets(record.flow);
-    const flow = parseFlow(migrated);
-    const upgraded = upgradeDefaultChat(flow);
-    const loaded = { ...record, flow: upgraded };
-    // Migrate existing definitions without blocking access to legacy duplicate names.
-    if (upgraded !== flow || migrated !== record.flow) await storage.write(key, loaded);
-    docs.push(loaded);
+  for (const file of await listFiles()) {
+    if (file.kind !== "file" || !/\.(json|ya?ml)$/i.test(file.path)) continue;
+    try {
+      docs.push({
+        id: file.id,
+        path: file.path,
+        updatedAt: file.updatedAt,
+        flow: readFlowFile(await file.content.text(), file.path),
+      });
+    } catch {
+      /* Ordinary JSON/YAML and invalid flows remain available as files. */
+    }
   }
   return docs.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
+async function initializeWorkspace() {
+  const { found } = await storage.read("meta/workspace-migrated");
+  if (!found) {
+    const { keys } = await storage.list("flows/");
+    const migrated = [];
+    for (const key of keys) {
+      const { value } = await storage.read(key);
+      const record = value as unknown as FlowDocument;
+      const flow = upgradeDefaultChat(parseFlow(migrateCallTargets(record.flow)));
+      const path = `flows/${record.id}.yaml`;
+      if (!(await readFile(path)))
+        migrated.push({ ...newFile(path, new Blob([stringify(flow)])), id: record.id });
+    }
+    if (migrated.length) await writeFiles(migrated);
+    const files = await listFiles();
+    for (const doc of await loadFileDocuments()) {
+      const converted = portableFlow(doc.flow, files, doc.path!);
+      if (converted !== doc.flow) {
+        const file = files.find((f) => f.id === doc.id)!;
+        await writeFiles(
+          [
+            {
+              ...file,
+              content: new Blob([
+                /\.json$/i.test(file.path)
+                  ? JSON.stringify(converted, null, 2)
+                  : stringify(converted),
+              ]),
+            },
+          ],
+          true,
+        );
+      }
+    }
+    const initialized = await storage.read("meta/initialized");
+    if (!keys.length && !files.length && !initialized.found)
+      await saveDocument(makeDocument(parseFlow(example), "local-agent"));
+    await storage.write("meta/workspace-migrated", true);
+    await storage.write("meta/initialized", true);
+  }
+}
+let initialization: Promise<void> | undefined;
+export async function loadLibrary(): Promise<FlowDocument[]> {
+  initialization ??= (
+    globalThis.navigator?.locks
+      ? navigator.locks.request("agent-plan-workspace-init", initializeWorkspace)
+      : initializeWorkspace()
+  ).catch((error) => {
+    initialization = undefined;
+    throw error;
+  });
+  await initialization;
+  return loadFileDocuments();
+}
 export async function deleteDocument(id: string) {
-  // Persist before deleting so an intentionally empty library stays empty on reload.
-  await storage.write("meta/initialized", true);
-  await storage.delete(`flows/${id}`);
+  const file = (await listFiles()).find((file) => file.id === id);
+  if (file) await removeFile(file.path);
 }
 export function usesLocalModel(steps: Step[]): boolean {
   return steps.some((step) =>

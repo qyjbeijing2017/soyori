@@ -4,6 +4,8 @@ packages:
   - agent-plan-editor
   - agent-plan-ai
   - agent-plan-storage
+  - agent-plan-script
 allowBuilds:
+  esbuild: true
   onnxruntime-node: true
   protobufjs: false

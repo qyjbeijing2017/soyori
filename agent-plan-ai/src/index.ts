@@ -1,7 +1,21 @@
+import { AIMessage, HumanMessage, SystemMessage, ToolMessage } from "@langchain/core/messages";
 import { describeTools } from "agent-plan-core";
 import { AI_TOOL_DEFINITIONS } from "./definitions.js";
+import {
+  type ChatMessage,
+  parseCalls,
+  parseMessages,
+  type ResolvedTool,
+  resolveTools,
+  type ToolCall,
+  type ToolOptions,
+  toolNames,
+  wireName,
+} from "./tool-calling.js";
 
 export { AI_TOOL_DEFINITIONS, TOKEN_TOOL_DEFINITIONS } from "./definitions.js";
+export { createToolRegistry } from "./flow-tools.js";
+export { createToolExecutionTools, EXECUTION_TOOL_DEFINITIONS } from "./tool-calling.js";
 
 import { BASE_URLS, LOCAL_MAX_TOKENS, LOCAL_MODEL, REMOTE_MAX_TOKENS } from "./definitions.js";
 
@@ -13,10 +27,7 @@ export interface Connection {
   baseURL?: string | undefined;
   model?: string | undefined;
 }
-export interface Message {
-  role: "system" | "user" | "assistant";
-  content: string;
-}
+export type Message = ChatMessage;
 export interface GenerateInput extends Connection {
   messages: Message[];
   model?: string;
@@ -24,14 +35,18 @@ export interface GenerateInput extends Connection {
   temperature?: number;
   outputFormat?: "text" | "json";
   jsonSchema?: Record<string, unknown>;
+  tools?: string[];
+  toolDefinitions?: Omit<ResolvedTool, "run">[];
 }
 export interface GenerateResult {
   result: unknown;
   finishReason: string | null;
   usage: unknown;
+  toolCalls?: ToolCall[];
+  message?: Message;
 }
 export type LocalGenerate = (input: GenerateInput, signal?: AbortSignal) => Promise<GenerateResult>;
-export interface AiOptions {
+export interface AiOptions extends ToolOptions {
   local: LocalGenerate;
   signal?: AbortSignal;
   timeoutMs?: number;
@@ -39,7 +54,7 @@ export interface AiOptions {
 }
 
 export function parseInput(input: Record<string, unknown>, local = false): GenerateInput {
-  const allowed = new Set(["input", "model", "maxTokens", "temperature"]);
+  const allowed = new Set(["input", "model", "maxTokens", "temperature", "tools"]);
   if (!local)
     for (const key of ["apiKey", "baseURL", "outputFormat", "jsonSchema"]) allowed.add(key);
   for (const key of Object.keys(input)) {
@@ -74,19 +89,7 @@ export function parseInput(input: Record<string, unknown>, local = false): Gener
       throw new Error(
         "AI_INVALID_INPUT: input must be non-empty text or a non-empty message array.",
       );
-    messages = input.input.map((item: unknown) => {
-      if (!item || typeof item !== "object") throw new Error("AI_INVALID_INPUT: Invalid message.");
-      const m = item as Record<string, unknown>;
-      if (
-        !(["system", "user", "assistant"] as unknown[]).includes(m.role) ||
-        typeof m.content !== "string" ||
-        Object.keys(m).some((key) => key !== "role" && key !== "content")
-      )
-        throw new Error(
-          "AI_INVALID_INPUT: Only system/user/assistant text messages are supported.",
-        );
-      return { role: m.role as Message["role"], content: m.content };
-    });
+    messages = parseMessages(input.input);
   }
   if (input.model !== undefined && (typeof input.model !== "string" || !input.model.trim()))
     throw new Error("AI_INVALID_INPUT: model must be non-empty text.");
@@ -113,6 +116,7 @@ export function parseInput(input: Record<string, unknown>, local = false): Gener
   return {
     messages,
     maxTokens,
+    ...(input.tools === undefined ? {} : { tools: toolNames(input.tools) }),
     ...(input.model === undefined ? {} : { model: input.model as string }),
     ...(input.temperature === undefined ? {} : { temperature: input.temperature as number }),
     ...(input.apiKey === undefined ? {} : { apiKey: input.apiKey as string }),
@@ -127,10 +131,22 @@ export function parseInput(input: Record<string, unknown>, local = false): Gener
 }
 
 export function createAiTools(options: AiOptions) {
+  let modelCalls = 0;
+  function prepare(raw: Record<string, unknown>, local = false) {
+    if (options.signal?.aborted) throw Error("AI_CANCELLED: Model request cancelled.");
+    if (++modelCalls > 64) throw Error("AI_MODEL_BUDGET: At most 64 model calls per run.");
+    const input = parseInput(raw, local);
+    input.toolDefinitions = resolveTools(input.tools ?? [], options).map(
+      ({ run: _run, ...definition }) => definition,
+    );
+    if (input.tools?.length && input.outputFormat === "json")
+      throw Error("AI_TOOLS: JSON output and tool calling cannot be combined.");
+    return input;
+  }
   const remote =
     (provider: Provider) =>
     async (raw: Record<string, unknown>): Promise<GenerateResult> => {
-      const input = parseInput(raw);
+      const input = prepare(raw);
       const config = input;
       if (!config.apiKey?.trim())
         throw new Error(`AI_CONFIG: Specify ${provider} apiKey in the call inputs.`);
@@ -183,8 +199,36 @@ export function createAiTools(options: AiOptions) {
                   dangerouslyAllowBrowser: options.browser === true,
                 },
               });
-        const response = await llm.invoke(
-          input.messages.map(({ role, content }) => [role, content] as [Message["role"], string]),
+        const bound = input.toolDefinitions?.length
+          ? llm.bindTools(
+              input.toolDefinitions.map((t) => ({
+                type: "function" as const,
+                function: {
+                  name: t.name,
+                  ...(t.description ? { description: t.description } : {}),
+                  parameters: t.parameters,
+                },
+              })),
+            )
+          : llm;
+        const response = await bound.invoke(
+          input.messages.map((m) => {
+            if (m.role === "tool")
+              return new ToolMessage({ content: m.content as string, tool_call_id: m.toolCallId! });
+            if (m.role === "assistant")
+              return new AIMessage({
+                content: m.content as AIMessage["content"],
+                tool_calls: (m.toolCalls ?? []).map((c) => ({
+                  id: c.id,
+                  name: wireName(c.target),
+                  args: c.inputs,
+                  type: "tool_call" as const,
+                })),
+              });
+            return m.role === "system"
+              ? new SystemMessage(m.content as string)
+              : new HumanMessage(m.content as string);
+          }),
           {
             signal,
             ...(input.outputFormat === "json"
@@ -202,6 +246,16 @@ export function createAiTools(options: AiOptions) {
                   }
               : {}),
           },
+        );
+        if (response.invalid_tool_calls?.length)
+          throw Error("AI_TOOL_CALLS: Model returned malformed arguments.");
+        const toolCalls = parseCalls(
+          (response.tool_calls ?? []).map((call) => {
+            const tool = input.toolDefinitions?.find((t) => t.name === call.name);
+            if (!tool || !call.id)
+              throw Error("AI_TOOL_CALLS: Model returned an unknown tool or missing call ID.");
+            return { id: call.id, target: tool.target, inputs: call.args };
+          }),
         );
         let json: unknown = null;
         if (input.outputFormat === "json") {
@@ -224,9 +278,16 @@ export function createAiTools(options: AiOptions) {
                 "",
             ) || null,
           usage: response.usage_metadata ?? null,
+          toolCalls,
+          message: {
+            role: "assistant",
+            content: response.content as Message["content"],
+            ...(toolCalls.length ? { toolCalls } : {}),
+          },
         };
       } catch (error) {
-        if (error instanceof Error && error.message.startsWith("AI_JSON_OUTPUT:")) throw error;
+        if (error instanceof Error && /^(AI_JSON_OUTPUT|AI_TOOL_CALLS):/.test(error.message))
+          throw error;
         if (signal.aborted) throw new Error("AI_CANCELLED: Model request cancelled or timed out.");
         if (
           input.outputFormat === "json" &&
@@ -248,8 +309,17 @@ export function createAiTools(options: AiOptions) {
     {
       "llm.openai": remote("openai"),
       "llm.anthropic": remote("anthropic"),
-      "llm.local": (raw: Record<string, unknown>) =>
-        options.local(parseInput(raw, true), options.signal),
+      "llm.local": async (raw: Record<string, unknown>) => {
+        const result = await options.local(prepare(raw, true), options.signal);
+        return {
+          ...result,
+          toolCalls: result.toolCalls ?? [],
+          message: result.message ?? {
+            role: "assistant" as const,
+            content: String(result.result ?? ""),
+          },
+        };
+      },
     },
     AI_TOOL_DEFINITIONS,
   );

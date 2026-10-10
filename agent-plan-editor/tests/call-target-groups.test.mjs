@@ -39,8 +39,14 @@ test("call groups use target namespaces and identify the current document across
   assert.ok(
     groups.find((g) => g.group === "storage").items.some((i) => i.value === "storage.custom"),
   );
-  assert.equal(groups.find((g) => g.group === "全局").items[0].value, "Plain");
-  assert.equal(groups.find((g) => g.group === "全局").items[0].label, "Plain");
+  assert.equal(
+    groups.find((g) => g.group === "全局").items.find((i) => i.value === "Plain").value,
+    "Plain",
+  );
+  assert.equal(
+    groups.find((g) => g.group === "全局").items.find((i) => i.value === "Plain").label,
+    "Plain",
+  );
   assert.equal(
     groups.find((g) => g.group === "storage").items.find((i) => i.value === "storage.read").label,
     "read",

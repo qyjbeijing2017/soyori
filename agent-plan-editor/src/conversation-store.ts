@@ -1,5 +1,5 @@
 import type { Storage } from "agent-plan-storage";
-import { type ChatThread, newThread, readThreadBook, type ThreadBook } from "./chat-threads.ts";
+import { type ChatThread, readThreadBook, type ThreadBook } from "./chat-threads.ts";
 
 interface ThreadIndex {
   activeId: string;
@@ -13,7 +13,7 @@ function readIndex(value: unknown): ThreadIndex {
     !Array.isArray(index.threadIds) ||
     !index.threadIds.every((id) => typeof id === "string") ||
     new Set(index.threadIds).size !== index.threadIds.length ||
-    (index.threadIds.length ? !index.threadIds.includes(index.activeId) : index.activeId !== "")
+    (index.activeId !== "" && !index.threadIds.includes(index.activeId))
   )
     throw Error("Invalid conversation index");
   return index;
@@ -60,12 +60,7 @@ export function createConversationStore(storage: Storage, indexes: Storage) {
     load: (docId: string) =>
       serial(async (): Promise<ThreadBook> => {
         const saved = await indexes.read(`thread-index/${docId}`);
-        if (!saved.found) {
-          const thread = newThread(docId);
-          const book = { activeId: thread.id, threads: [thread] };
-          await save(docId, book);
-          return book;
-        }
+        if (!saved.found) return { activeId: "", threads: [] };
         const index = readIndex(saved.value);
         const threads: ChatThread[] = [];
         for (const id of index.threadIds) {
@@ -78,9 +73,10 @@ export function createConversationStore(storage: Storage, indexes: Storage) {
           snapshots.set(id, JSON.stringify(thread));
         }
         return {
-          activeId: threads.some((t) => t.id === index.activeId)
-            ? index.activeId
-            : (threads[0]?.id ?? ""),
+          activeId:
+            index.activeId === "" || threads.some((t) => t.id === index.activeId)
+              ? index.activeId
+              : (threads[0]?.id ?? ""),
           threads,
         };
       }),

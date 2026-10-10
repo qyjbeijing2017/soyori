@@ -1,5 +1,6 @@
 import {
   type FlowDefinition,
+  fieldDefinitions,
   type JsonValue,
   type LoadedFlow,
   parseFlow,
@@ -8,6 +9,7 @@ import {
 import { tools } from "./call-tools.ts";
 import { tr } from "./i18n.ts";
 import type { FlowDocument } from "./library";
+import { workspaceURL } from "./workspace-files.ts";
 
 export interface CallChoice {
   alias: string;
@@ -25,7 +27,17 @@ export function libraryChoices(
   const choices: CallChoice[] = [];
   const used = new Set([...Object.keys(tools), ...Object.keys(flow.imports ?? {})]);
   for (const [alias, source] of Object.entries(flow.imports ?? {})) {
-    const doc = documents.find((d) => `library:${d.id}` === source);
+    const doc = documents.find(
+      (d) =>
+        `library:${d.id}` === source ||
+        (d.path &&
+          new URL(
+            source,
+            documents.find((d) => d.id === currentDocumentId)?.path
+              ? workspaceURL(documents.find((d) => d.id === currentDocumentId)!.path!)
+              : "workspace:/flow.yaml",
+          ).href === workspaceURL(d.path)),
+    );
     choices.push({
       alias,
       source,
@@ -37,23 +49,55 @@ export function libraryChoices(
     });
   }
   for (const doc of documents) {
-    const source = `library:${doc.id}`;
-    if (choices.some((c) => c.source === source) || Object.hasOwn(tools, doc.flow.name)) continue;
+    const source = doc.path
+      ? workspaceURL(doc.path).slice("workspace:".length)
+      : `library:${doc.id}`;
+    if (
+      choices.some((c) => c.source === source || (c.flow && c.flow === doc.flow)) ||
+      Object.hasOwn(tools, doc.flow.name)
+    )
+      continue;
     let alias = doc.flow.name;
     for (let suffix = 2; used.has(alias); suffix++) alias = `${doc.flow.name} (${suffix})`;
     used.add(alias);
     choices.push({ alias, label: alias, source, flow: doc.flow });
   }
   return choices.map((choice) =>
-    currentDocumentId && choice.source === `library:${currentDocumentId}`
+    currentDocumentId &&
+    (choice.source === `library:${currentDocumentId}` ||
+      choice.flow === documents.find((d) => d.id === currentDocumentId)?.flow)
       ? { ...choice, current: true }
       : choice,
   );
 }
 export function bindLibraryCalls(flow: FlowDefinition, choices: CallChoice[]): FlowDefinition {
   const imports = { ...flow.imports };
+  const fields = fieldDefinitions(flow.fields ?? {});
+  const bind = (name: string) => {
+    if (Object.hasOwn(imports, name) || Object.hasOwn(tools, name)) return;
+    const choice = choices.find((c) => c.alias === name && !c.unavailable);
+    if (choice)
+      Object.defineProperty(imports, name, {
+        value: choice.source,
+        enumerable: true,
+        configurable: true,
+        writable: true,
+      });
+  };
   const visit = (steps: Step[]) => {
     for (const step of steps) {
+      if (
+        step.type === "call" &&
+        (step.target.startsWith("llm.") || step.target === "tools.execute")
+      ) {
+        const value = step.inputs?.tools;
+        const names =
+          typeof value === "string" && /^\$[A-Za-z_][A-Za-z0-9_]*$/.test(value)
+            ? fields[value.slice(1)]?.initial
+            : value;
+        if (Array.isArray(names))
+          for (const name of names) if (typeof name === "string") bind(name);
+      }
       if (
         step.type === "call" &&
         !Object.hasOwn(imports, step.target) &&
@@ -91,12 +135,20 @@ export function loadLibraryGraph(root: FlowDocument, documents: FlowDocument[]):
     if (!doc) throw Error(tr("被调用的流程已不存在：{{name}}", { name: id }));
     if (cache.size >= 256) throw Error(tr("流程依赖超过 256 个"));
     const imports = new Map<string, LoadedFlow>();
-    const node = { definition: parseFlow(doc.flow), imports, source: `library:${id}` };
+    const node = {
+      definition: parseFlow(doc.flow),
+      imports,
+      source: doc.path ? workspaceURL(doc.path) : `library:${id}`,
+    };
     cache.set(id, node);
     for (const [alias, source] of Object.entries(node.definition.imports ?? {})) {
-      if (!source.startsWith("library:"))
-        throw Error(tr("浏览器暂不支持外部流程：{{name}}", { name: source }));
-      imports.set(alias, load(source.slice(8)));
+      const target = source.startsWith("library:")
+        ? source.slice(8)
+        : documents.find(
+            (d) => d.path && workspaceURL(d.path) === new URL(source, node.source).href,
+          )?.id;
+      if (!target) throw Error(tr("浏览器暂不支持外部流程：{{name}}", { name: source }));
+      imports.set(alias, load(target));
     }
     return node;
   };

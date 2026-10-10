@@ -10,18 +10,18 @@
 body {
   margin: 0;
 }
-button:where(:not([class*="mantine-"])),
-input:where(:not([class*="mantine-"])),
-textarea:where(:not([class*="mantine-"])),
-select:where(:not([class*="mantine-"])) {
+button:where(:not([class*="mantine-"], [class*="wx-"])),
+input:where(:not([class*="mantine-"], [class*="wx-"])),
+textarea:where(:not([class*="mantine-"], [class*="wx-"])),
+select:where(:not([class*="mantine-"], [class*="wx-"])) {
   font: inherit;
 }
-button:where(:not([class*="mantine-"])),
+button:where(:not([class*="mantine-"], [class*="wx-"])),
 summary,
-select:where(:not([class*="mantine-"])) {
+select:where(:not([class*="mantine-"], [class*="wx-"])) {
   cursor: pointer;
 }
-button:where(:not([class*="mantine-"])) {
+button:where(:not([class*="mantine-"], [class*="wx-"])) {
   border: 1px solid #d7e1db;
   background: white;
   color: #35554d;
@@ -29,20 +29,20 @@ button:where(:not([class*="mantine-"])) {
   border-radius: 10px;
   padding: 9px 16px;
 }
-button:where(:not([class*="mantine-"])):hover:not(:disabled) {
+button:where(:not([class*="mantine-"], [class*="wx-"])):hover:not(:disabled) {
   background: #eef5f0;
   border-color: #8cafa1;
 }
-button:where(:not([class*="mantine-"])):disabled {
+button:where(:not([class*="mantine-"], [class*="wx-"])):disabled {
   opacity: 0.45;
   cursor: default;
 }
-button:where(:not([class*="mantine-"])).primary {
+button:where(:not([class*="mantine-"], [class*="wx-"])).primary {
   background: #17685b;
   color: white;
   border-color: #17685b;
 }
-button:where(:not([class*="mantine-"])).primary:hover {
+button:where(:not([class*="mantine-"], [class*="wx-"])).primary:hover {
   background: #12564b;
 }
 :focus-visible {
@@ -201,7 +201,7 @@ h3 {
   gap: 8px;
   margin-top: 48px;
 }
-.app-nav :where(nav) button:where(:not([class*="mantine-"])) {
+.app-nav :where(nav) button:where(:not([class*="mantine-"], [class*="wx-"])) {
   display: flex;
   gap: 13px;
   align-items: center;
@@ -211,7 +211,7 @@ h3 {
   padding: 12px 14px;
   font-weight: 650;
 }
-.app-nav :where(nav) button:where(:not([class*="mantine-"])).active {
+.app-nav :where(nav) button:where(:not([class*="mantine-"], [class*="wx-"])).active {
   background: #fff;
   border-color: #dce6df;
   color: #17685b;
@@ -308,9 +308,9 @@ label {
   font-size: 13px;
   font-weight: 550;
 }
-input:where(:not([class*="mantine-"])):not([type="checkbox"]),
-textarea:where(:not([class*="mantine-"])),
-select:where(:not([class*="mantine-"])) {
+input:where(:not([class*="mantine-"], [class*="wx-"])):not([type="checkbox"]),
+textarea:where(:not([class*="mantine-"], [class*="wx-"])),
+select:where(:not([class*="mantine-"], [class*="wx-"])) {
   width: 100%;
   min-width: 0;
   border: 1px solid #dbe4dd;
@@ -319,7 +319,7 @@ select:where(:not([class*="mantine-"])) {
   color: #28473d;
   padding: 10px 12px;
 }
-textarea:where(:not([class*="mantine-"])) {
+textarea:where(:not([class*="mantine-"], [class*="wx-"])) {
   resize: vertical;
   line-height: 1.6;
 }
@@ -330,7 +330,7 @@ textarea:where(:not([class*="mantine-"])) {
   font-weight: 400;
   min-height: 44px;
 }
-.check input:where(:not([class*="mantine-"])) {
+.check input:where(:not([class*="mantine-"], [class*="wx-"])) {
   width: 16px;
   height: 16px;
   accent-color: #17685b;
@@ -389,7 +389,7 @@ textarea:where(:not([class*="mantine-"])) {
 .chat-heading .muted {
   font-size: 11px;
 }
-.chat-heading button:where(:not([class*="mantine-"])) {
+.chat-heading button:where(:not([class*="mantine-"], [class*="wx-"])) {
   font-size: 12px;
   padding: 8px 10px;
 }
@@ -434,7 +434,7 @@ textarea:where(:not([class*="mantine-"])) {
   flex-wrap: wrap;
   justify-content: center;
 }
-.suggestions button:where(:not([class*="mantine-"])) {
+.suggestions button:where(:not([class*="mantine-"], [class*="wx-"])) {
   font-size: 12px;
   border-radius: 22px;
   padding: 10px 20px;
@@ -452,14 +452,14 @@ textarea:where(:not([class*="mantine-"])) {
   border-radius: 18px;
   box-shadow: 0 7px 30px #1c422506;
 }
-.composer textarea:where(:not([class*="mantine-"])) {
+.composer textarea:where(:not([class*="mantine-"], [class*="wx-"])) {
   border: 0;
   padding: 5px 7px;
   background: transparent;
   max-height: 180px;
   resize: none;
 }
-.composer button:where(:not([class*="mantine-"])) {
+.composer button:where(:not([class*="mantine-"], [class*="wx-"])) {
   flex-shrink: 0;
   border-radius: 12px;
 }
@@ -524,7 +524,7 @@ textarea:where(:not([class*="mantine-"])) {
   font-size: 13px;
   color: #839084;
 }
-.library-filter input:where(:not([class*="mantine-"])) {
+.library-filter input:where(:not([class*="mantine-"], [class*="wx-"])) {
   width: 240px;
   background: #f3f6f1;
 }
@@ -600,7 +600,7 @@ textarea:where(:not([class*="mantine-"])) {
   right: 30px;
   z-index: 1;
 }
-.editor-settings button:where(:not([class*="mantine-"])) {
+.editor-settings button:where(:not([class*="mantine-"], [class*="wx-"])) {
   font-size: 12px;
 }
 .save-state {
@@ -620,7 +620,7 @@ textarea:where(:not([class*="mantine-"])) {
   font-size: 12px;
   color: #839382;
 }
-.editor-toolbar button:where(:not([class*="mantine-"])) {
+.editor-toolbar button:where(:not([class*="mantine-"], [class*="wx-"])) {
   font-size: 12px;
 }
 .editor-grid {
@@ -651,7 +651,7 @@ textarea:where(:not([class*="mantine-"])) {
   background: white;
   z-index: 1;
 }
-.inspector-tabs button:where(:not([class*="mantine-"])) {
+.inspector-tabs button:where(:not([class*="mantine-"], [class*="wx-"])) {
   flex: 1;
   border: 0;
   background: none;
@@ -709,12 +709,12 @@ textarea:where(:not([class*="mantine-"])) {
   gap: 8px;
   align-items: end;
 }
-.inline-fields > input:where(:not([class*="mantine-"])),
+.inline-fields > input:where(:not([class*="mantine-"], [class*="wx-"])),
 .inline-fields > label {
   flex: 1;
   min-width: 0;
 }
-.inline-fields button:where(:not([class*="mantine-"])) {
+.inline-fields button:where(:not([class*="mantine-"], [class*="wx-"])) {
   font-size: 11px;
   flex-shrink: 0;
 }
@@ -814,7 +814,7 @@ textarea:where(:not([class*="mantine-"])) {
     margin: 0;
     gap: 3px;
   }
-  .app-nav :where(nav) button:where(:not([class*="mantine-"])) {
+  .app-nav :where(nav) button:where(:not([class*="mantine-"], [class*="wx-"])) {
     gap: 0;
     padding: 8px 14px;
     font-size: 12px;
@@ -841,7 +841,7 @@ textarea:where(:not([class*="mantine-"])) {
   .actions {
     width: auto;
   }
-  .actions button:where(:not([class*="mantine-"])) {
+  .actions button:where(:not([class*="mantine-"], [class*="wx-"])) {
     flex: initial;
   }
   .chat-page {
@@ -859,7 +859,7 @@ textarea:where(:not([class*="mantine-"])) {
     justify-content: flex-end;
     gap: 4px;
   }
-  .chat-heading button:where(:not([class*="mantine-"])) {
+  .chat-heading button:where(:not([class*="mantine-"], [class*="wx-"])) {
     font-size: 11px;
   }
   .chat-empty {
@@ -881,7 +881,7 @@ textarea:where(:not([class*="mantine-"])) {
     margin-top: 12px;
     gap: 7px;
   }
-  .suggestions button:where(:not([class*="mantine-"])) {
+  .suggestions button:where(:not([class*="mantine-"], [class*="wx-"])) {
     padding: 8px 12px;
   }
   .composer-wrap {
@@ -893,7 +893,7 @@ textarea:where(:not([class*="mantine-"])) {
   .model-hint {
     font-size: 10px;
   }
-  .composer textarea:where(:not([class*="mantine-"])) {
+  .composer textarea:where(:not([class*="mantine-"], [class*="wx-"])) {
     font-size: 16px;
   }
   .chat-message {
@@ -908,11 +908,11 @@ textarea:where(:not([class*="mantine-"])) {
   .library-page .actions {
     width: 100%;
   }
-  :where(.library-page) .actions > button:where(:not([class*="mantine-"])) {
+  :where(.library-page) .actions > button:where(:not([class*="mantine-"], [class*="wx-"])) {
     flex: 1;
     font-size: 12px;
   }
-  .library-filter input:where(:not([class*="mantine-"])) {
+  .library-filter input:where(:not([class*="mantine-"], [class*="wx-"])) {
     width: 190px;
   }
   .flow-cards {
@@ -935,7 +935,7 @@ textarea:where(:not([class*="mantine-"])) {
   .editor-toolbar .actions {
     width: 100%;
   }
-  .editor-toolbar button:where(:not([class*="mantine-"])) {
+  .editor-toolbar button:where(:not([class*="mantine-"], [class*="wx-"])) {
     flex: 1;
     padding: 8px;
     font-size: 11px;
@@ -1012,7 +1012,7 @@ textarea:where(:not([class*="mantine-"])) {
   font-size: 12px;
   flex-shrink: 0;
 }
-.thread-picker select:where(:not([class*="mantine-"])) {
+.thread-picker select:where(:not([class*="mantine-"], [class*="wx-"])) {
   width: auto;
   min-width: 0;
   max-width: 320px;
@@ -1065,7 +1065,7 @@ textarea:where(:not([class*="mantine-"])) {
   padding: 4px 0;
   gap: 4px;
 }
-.thread-picker select:where(:not([class*="mantine-"])) {
+.thread-picker select:where(:not([class*="mantine-"], [class*="wx-"])) {
   border: 0;
   background: transparent;
   color: #75877f;
@@ -1185,7 +1185,7 @@ textarea:where(:not([class*="mantine-"])) {
 .auto-value {
   min-width: 0;
 }
-.auto-value textarea:where(:not([class*="mantine-"])) {
+.auto-value textarea:where(:not([class*="mantine-"], [class*="wx-"])) {
   display: block;
   width: 100%;
   min-height: 44px;
@@ -1194,7 +1194,7 @@ textarea:where(:not([class*="mantine-"])) {
   resize: vertical;
   font-size: 13px;
 }
-.auto-value textarea:where(:not([class*="mantine-"]))[aria-invalid="true"] {
+.auto-value textarea:where(:not([class*="mantine-"], [class*="wx-"]))[aria-invalid="true"] {
   border-color: #b9594b;
 }
 .auto-value small {
@@ -1227,7 +1227,7 @@ textarea:where(:not([class*="mantine-"])) {
 .parameter-with-action .parameter-row {
   flex: 1;
 }
-.parameter-with-action > button:where(:not([class*="mantine-"])) {
+.parameter-with-action > button:where(:not([class*="mantine-"], [class*="wx-"])) {
   margin-top: 12px;
   opacity: 0.65;
 }
@@ -1237,7 +1237,7 @@ textarea:where(:not([class*="mantine-"])) {
   gap: 4px;
   margin-bottom: 14px;
 }
-.parameter-add input:where(:not([class*="mantine-"])) {
+.parameter-add input:where(:not([class*="mantine-"], [class*="wx-"])) {
   min-width: 0;
   max-width: 180px;
   font-size: 12px;
@@ -1500,9 +1500,15 @@ textarea:where(:not([class*="mantine-"])) {
   margin: 0;
 }
 .workspace-main .library-page {
-  max-width: 1200px;
-  margin: auto;
-  padding: 20px 24px;
+  max-width: none;
+  width: 100%;
+  height: calc(100dvh - 72px);
+  margin: 0;
+  padding: 8px 12px 12px;
+}
+.workspace-main .library-page > .mantine-Stack-root {
+  height: 100%;
+  min-height: 0;
 }
 .workspace-main .page-heading {
   margin: 0 0 18px;
@@ -1695,7 +1701,8 @@ textarea:where(:not([class*="mantine-"])) {
     padding: 0 12px max(12px, env(safe-area-inset-bottom));
   }
   .workspace-main .library-page {
-    padding: 12px;
+    height: calc(100dvh - 64px);
+    padding: 4px 4px max(4px, env(safe-area-inset-bottom));
   }
   .workspace-main .compact-editor {
     padding: 12px 8px 104px;
@@ -2396,6 +2403,7 @@ textarea:where(:not([class*="mantine-"])) {
 }
 .description-editor {
   min-width: 0;
+  position: relative;
 }
 .description-editor .mantine-Textarea-root,
 .description-preview {
@@ -2416,11 +2424,30 @@ textarea:where(:not([class*="mantine-"])) {
 }
 .description-editor .description-preview .markdown-content {
   min-height: 80px;
-  padding: 10px 12px;
+  padding: 10px 12px 36px;
+  border: 1px solid #dce6e1;
+  border-radius: var(--mantine-radius-md);
 }
-.description-editor > button {
-  display: block;
-  margin: 6px 0 0 auto;
+.description-preview-toggle {
+  position: absolute;
+  right: 20px;
+  bottom: 4px;
+  min-height: 28px;
+  padding: 4px 2px;
+  font-size: 12px;
+  font-weight: 400;
+  color: #596c65;
+  background: transparent;
+  text-underline-offset: 3px;
+}
+.description-preview-toggle:hover {
+  color: var(--mantine-color-brand-7);
+  background: transparent;
+  text-decoration: underline;
+}
+.description-preview-toggle:focus-visible {
+  outline: 2px solid var(--mantine-color-brand-7);
+  outline-offset: 2px;
 }
 
 /* Shared, inline groups in runtime fields, steps and tool interfaces. */
@@ -2660,4 +2687,72 @@ textarea:where(:not([class*="mantine-"])) {
   height: 100%;
   min-height: 0;
   margin: 0;
+}
+
+.workspace-file-row {
+  padding: 8px 12px;
+  border-bottom: 1px solid #dce6e1;
+}
+
+/* Keep SVAR's native toolbar, sidebar, views and responsive behavior. */
+.workspace-browser {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+.workspace-browser > .wx-willow-theme {
+  height: 100%;
+  --wx-color-primary: #17685b;
+  --wx-color-primary-selected: #d7eee5;
+  --wx-color-secondary-hover: #edf8f4;
+  --wx-color-font: #213b38;
+  --wx-color-font-alt: #608078;
+  --wx-background-alt: #f3f7f4;
+  --wx-background-hover: #edf5f0;
+  --wx-border-color: #dce6e1;
+  --wx-border-medium: 1px solid #dce6e1;
+  --wx-font-family: Inter, "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+  --wx-fm-background: #f3f7f4;
+  --wx-fm-select-background: #e0eee7;
+  --wx-fm-grid-border: 1px solid #e3ebe6;
+  --wx-fm-grid-header-color: #f3f7f4;
+  --wx-table-header-background: #f3f7f4;
+  --wx-fm-button-font-color: #608078;
+  --wx-fm-box-shadow: 0 1px 3px #213b3810;
+}
+.code-editor {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid #cbd8d2;
+  border-radius: 10px;
+  overflow: hidden;
+  background: white;
+}
+.code-editor:focus-within {
+  border-color: #176c5f;
+}
+.code-editor-toolbar {
+  padding: 5px 10px;
+  border-bottom: 1px solid #edf1ee;
+}
+.code-editor-surface {
+  min-width: 0;
+}
+.code-editor .cm-tooltip {
+  z-index: 500;
+}
+
+.workspace-browser .wx-toolbar .wx-name {
+  white-space: nowrap;
+}
+
+/* Match the native menu's icon size, color and label column, including hover. */
+.wx-icon.workspace-chat-menu-icon {
+  display: inline-block;
+  width: var(--wx-icon-size);
+  height: var(--wx-icon-size);
+  flex: 0 0 var(--wx-icon-size);
+  background: currentColor;
+  mask: url("./assets/chat-menu.svg") center / contain no-repeat;
 }

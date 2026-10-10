@@ -5,6 +5,7 @@ export { TOKEN_TOOL_DEFINITIONS } from "./definitions.js";
 
 import type { PreTrainedTokenizer } from "@huggingface/transformers";
 import { LOCAL_MODEL, parseInput } from "./index.js";
+import { localMessages } from "./local-tools.js";
 
 export function createTokenTools(
   options: { cacheDir?: string; browser?: boolean; beforeLoad?: () => void } = {},
@@ -38,7 +39,7 @@ export function createTokenTools(
           : undefined;
         const mode = input.mode ?? "local";
         if (mode === "estimate") {
-          const text = messages ? messages.map((m) => m.content).join("") : (input.input as string);
+          const text = messages ? JSON.stringify(messages) : (input.input as string);
           // Explicit heuristic, not a provider tokenizer or billing count.
           const tokens =
             new TextEncoder().encode(text).length + (messages ? messages.length * 16 + 16 : 0);
@@ -48,7 +49,7 @@ export function createTokenTools(
         const t = await load();
         options.beforeLoad?.();
         if (messages) {
-          const prompt = t.apply_chat_template(messages, {
+          const prompt = t.apply_chat_template(localMessages({ messages, maxTokens: 1 }), {
             tokenize: false,
             add_generation_prompt: true,
           });

@@ -1,5 +1,6 @@
 import type { TextGenerationPipeline } from "@huggingface/transformers";
 import { type GenerateInput, type GenerateResult, LOCAL_MODEL } from "./index.js";
+import { localMessages, localResult } from "./local-tools.js";
 
 export interface LocalOptions {
   device: "cpu" | "webgpu";
@@ -42,7 +43,7 @@ export function createLocalModel(options: LocalOptions) {
         signal?.throwIfAborted();
         const generator = await load();
         signal?.throwIfAborted();
-        const prompt = generator.tokenizer.apply_chat_template(input.messages, {
+        const prompt = generator.tokenizer.apply_chat_template(localMessages(input), {
           tokenize: false,
           add_generation_prompt: true,
         });
@@ -54,6 +55,7 @@ export function createLocalModel(options: LocalOptions) {
         const result = await generator(prompt, {
           max_new_tokens: input.maxTokens,
           return_full_text: false,
+          skip_special_tokens: !input.toolDefinitions?.length,
           do_sample: (input.temperature ?? 0) > 0,
           ...(input.temperature ? { temperature: input.temperature, top_k: 50 } : {}),
           repetition_penalty: 1.05,
@@ -62,11 +64,7 @@ export function createLocalModel(options: LocalOptions) {
         const item = result[0];
         if (!item || !("generated_text" in item) || typeof item.generated_text !== "string")
           throw new Error("AI_LOCAL: Unexpected generation result.");
-        return {
-          result: item.generated_text,
-          finishReason: null,
-          usage: null,
-        };
+        return localResult(item.generated_text, input);
       } finally {
         busy = false;
       }

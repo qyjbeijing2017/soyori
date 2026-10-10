@@ -1,8 +1,35 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { toolParameters } from "agent-plan-core";
-import { AI_TOOL_DEFINITIONS, createAiTools, parseInput } from "../dist/index.js";
+import {
+  AI_TOOL_DEFINITIONS,
+  createAiTools,
+  EXECUTION_TOOL_DEFINITIONS,
+  parseInput,
+} from "../dist/index.js";
 import { createTokenTools, TOKEN_TOOL_DEFINITIONS } from "../dist/tokens.js";
+
+test("executor keeps calls visible and folds its allowlist without accepting conversation input", () => {
+  const definition = EXECUTION_TOOL_DEFINITIONS["tools.execute"];
+  assert.deepEqual(
+    definition.inputs.filter((e) => e.type !== "group").map((e) => e.name),
+    ["calls"],
+  );
+  const group = definition.inputs.find((e) => e.type === "group");
+  assert.equal(group.name, "高级设置");
+  assert.equal(group.collapsed, true);
+  assert.deepEqual(
+    toolParameters(definition.inputs).map((e) => e.name),
+    ["calls", "tools"],
+  );
+  assert.deepEqual(
+    definition.outputs.map((e) => e.name),
+    ["results"],
+  );
+  const tools = toolParameters(definition.inputs).find((p) => p.name === "tools");
+  assert.equal(tools.required, undefined);
+  assert.equal(tools.initial, undefined);
+});
 
 test("registered tools expose package interfaces without loading models; documented token defaults match runtime", () => {
   const tools = createAiTools({
@@ -20,7 +47,7 @@ test("registered tools expose package interfaces without loading models; documen
     );
     assert.deepEqual(
       toolParameters(fn.definition.outputs).map((p) => p.name),
-      ["result", "finishReason", "usage"],
+      ["result", "toolCalls", "message", "finishReason", "usage"],
     );
   }
   const tokens = createTokenTools({
@@ -49,8 +76,8 @@ test("LLM required inputs stay outside one advanced group and local has no model
     assert.deepEqual(
       groups[0].fields.map((entry) => entry.name),
       local
-        ? ["maxTokens", "temperature"]
-        : ["baseURL", "maxTokens", "temperature", "outputFormat", "jsonSchema"],
+        ? ["tools", "maxTokens", "temperature"]
+        : ["tools", "baseURL", "maxTokens", "temperature", "outputFormat", "jsonSchema"],
     );
     assert.equal(
       toolParameters(definition.inputs).some((entry) => entry.name === "model"),

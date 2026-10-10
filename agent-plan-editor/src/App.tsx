@@ -1,31 +1,28 @@
 import { Button, Modal, NativeSelect, TextInput, UnstyledButton } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { parseFlow } from "agent-plan-core";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AgentChat } from "./AgentChat";
 import { AiSettings } from "./AiSettings";
 import { BrowserAiHost, initialAiSettings } from "./ai-host";
-import { newThread, removeThread, type ThreadBook } from "./chat-threads";
+import { removeThread, type ThreadBook } from "./chat-threads";
 import { loadConversations, saveConversations } from "./conversations";
 import { DescriptionInput } from "./DescriptionInput";
 import example from "./example.json";
 import { FlowEditor } from "./FlowEditor";
-import { readFlowFile } from "./flow-files";
 import { tr } from "./i18n";
 import {
   canChat,
   deleteDocument,
-  downloadDocument,
   type FlowDocument,
   loadLibrary,
   makeDocument,
   saveDocument,
 } from "./library";
-import { MarkdownText } from "./MarkdownText";
 import { NavigationDrawer } from "./NavigationDrawer";
-
-import { EllipsisText, Icon, IconButton } from "./ui";
+import { Icon, IconButton } from "./ui";
+import { WorkspaceLibrary } from "./WorkspaceLibrary";
 
 type Page = "agent" | "library" | "editor";
 export function App() {
@@ -34,7 +31,21 @@ export function App() {
   const mobile = useMediaQuery("(max-width: 48em)");
   const [page, setPage] = useState<Page>("agent");
   const [documents, setDocuments] = useState<FlowDocument[]>([]);
-  const [agentSelected, setAgentSelected] = useState("builtin-local-agent");
+  const [libraryRevision, setLibraryRevision] = useState(0);
+  const [agentSelected, setAgentSelected] = useState(() => {
+    try {
+      return localStorage.getItem("agent-plan-selected-agent") || "builtin-local-agent";
+    } catch {
+      return "builtin-local-agent";
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem("agent-plan-selected-agent", agentSelected);
+    } catch {
+      /* Keep the selection in memory when browser storage is unavailable. */
+    }
+  }, [agentSelected]);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [books, setBooks] = useState<Record<string, ThreadBook>>({});
   const [threadSaving, setThreadSaving] = useState(false);
@@ -61,11 +72,10 @@ export function App() {
   const [threadDeleteError, setThreadDeleteError] = useState("");
   const [rename, setRename] = useState<FlowDocument | null>(null);
   const [creating, setCreating] = useState(false);
+  const [creationDirectory, setCreationDirectory] = useState("");
   const [metadataError, setMetadataError] = useState("");
   const [deleting, setDeleting] = useState<FlowDocument | null>(null);
   const [deleteError, setDeleteError] = useState("");
-  const [search, setSearch] = useState("");
-  const upload = useRef<HTMLInputElement>(null);
   const doc = documents.find((entry) => entry.id === selected);
   const agentDoc = chatDocs.find((entry) => entry.id === agentSelected) ?? chatDocs[0];
   const chatIds = chatDocs.map((d) => d.id).join("|");
@@ -90,15 +100,12 @@ export function App() {
     setBooks((current) => ({ ...current, [docId]: book }));
   }
   async function chooseThread(docId: string, id?: string) {
-    if (busy || threadSaving || !books[docId]) return;
+    const target = chatDocs.find((entry) => entry.id === docId);
+    if (busy || threadSaving || !target) return;
     setThreadSaving(true);
     try {
-      const book = books[docId],
-        fresh = id ? null : newThread(docId);
-      await updateBook(docId, {
-        activeId: id ?? fresh!.id,
-        threads: fresh ? [fresh, ...book.threads] : book.threads,
-      });
+      const book = books[docId] ?? (await loadConversations(target));
+      await updateBook(docId, { ...book, activeId: id ?? "" });
       setAgentSelected(docId);
       setPage("agent");
       if (mobile) setDrawerOpen(false);
@@ -128,19 +135,20 @@ export function App() {
       host.dispose();
     };
   }, [host]);
-  async function persist(next: FlowDocument) {
+  async function persist(next: FlowDocument, directory = "") {
     setSaving(true);
     setError("");
     try {
-      const saved = await saveDocument(next);
+      const saved = await saveDocument(next, directory);
       setDocuments((docs) => [saved, ...docs.filter((entry) => entry.id !== saved.id)]);
     } finally {
       setSaving(false);
     }
   }
-  function create() {
+  function create(directory = "") {
     const next = makeDocument(parseFlow(structuredClone(example)));
     next.flow.name = "";
+    setCreationDirectory(directory);
     setMetadataError("");
     setCreating(true);
     setRename(next);
@@ -150,33 +158,6 @@ export function App() {
     setRename(null);
     setCreating(false);
     setMetadataError("");
-  }
-  async function importFiles(files: FileList | null) {
-    if (!files?.length) return;
-    setSaving(true);
-    setError("");
-    try {
-      const incoming: FlowDocument[] = [];
-      for (const file of Array.from(files)) {
-        if (file.size > 5 * 1024 * 1024)
-          throw Error(tr("{{name}} 超过 5 MB，无法导入。", { name: file.name }));
-        const text = (await file.text()).replace(/^\uFEFF/, "");
-        try {
-          incoming.push(makeDocument(readFlowFile(text, file.name)));
-        } catch (cause) {
-          throw Error(`${file.name}：${cause instanceof Error ? cause.message : String(cause)}`);
-        }
-      }
-      for (const item of incoming) {
-        const saved = await saveDocument(item);
-        setDocuments((docs) => [saved, ...docs]);
-      }
-    } catch (cause) {
-      setError(String(cause));
-    } finally {
-      setSaving(false);
-      if (upload.current) upload.current.value = "";
-    }
   }
   return (
     <div
@@ -321,130 +302,30 @@ export function App() {
                   </div>
                 )}
                 {page === "library" && (
-                  <section className="library-page">
-                    <div className="library-toolbar">
-                      <TextInput
-                        type="search"
-                        aria-label={tr("搜索流程")}
-                        placeholder={tr("搜索流程…")}
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                      />
-                      <span className="library-count">
-                        {tr("{{count}} 个流程", { count: documents.length })}
-                      </span>
-                      <input
-                        ref={upload}
-                        hidden
-                        type="file"
-                        multiple
-                        accept=".json,.yaml,.yml"
-                        aria-label={tr("上传流程文件")}
-                        onChange={(e) => void importFiles(e.target.files)}
-                      />
-                      <Button
-                        className="library-tool"
-                        variant="subtle"
-                        aria-label={tr("↑ 上传流程")}
-                        disabled={saving}
-                        onClick={() => upload.current?.click()}
-                      >
-                        <Icon name="upload" />
-                        <span>{tr("上传流程")}</span>
-                      </Button>
-                      <Button
-                        className="library-tool"
-                        aria-label={tr("＋ 新建流程")}
-                        variant="subtle"
-                        disabled={saving || loading}
-                        onClick={create}
-                      >
-                        <Icon name="plus" />
-                        <span>{tr("新建流程")}</span>
-                      </Button>
-                    </div>
-                    <div className="flow-cards">
-                      {documents
-                        .filter((entry) =>
-                          entry.flow.name.toLowerCase().includes(search.toLowerCase()),
-                        )
-                        .map((entry) => (
-                          <article className="flow-library-card" key={entry.id}>
-                            <UnstyledButton
-                              className="card-open"
-                              aria-label={tr("编辑流程 {{name}}", { name: entry.flow.name })}
-                              disabled={saving}
-                              onClick={() => {
-                                setSelected(entry.id);
-                                setPage("editor");
-                              }}
-                            />
-                            <div className="card-name-row">
-                              <span className="flow-symbol">
-                                <Icon name={canChat(entry.flow) ? "chat" : "flow"} />
-                              </span>
-                              <h2>
-                                <EllipsisText text={entry.flow.name} />
-                              </h2>
-                              <span className="tag">
-                                {canChat(entry.flow) ? tr("对话 Agent") : tr("流程")}
-                              </span>
-                            </div>
-                            <MarkdownText
-                              className="card-description"
-                              source={entry.flow.description || ""}
-                            />
-                            <div className="card-top">
-                              <div className="card-icon-actions">
-                                <IconButton
-                                  icon="edit"
-                                  label={tr("名称与说明")}
-                                  disabled={saving}
-                                  onClick={() => setRename(entry)}
-                                />
-                                {canChat(entry.flow) && (
-                                  <IconButton
-                                    icon="chat"
-                                    label={tr("对话")}
-                                    disabled={saving}
-                                    onClick={() => {
-                                      setAgentSelected(entry.id);
-                                      setPage("agent");
-                                    }}
-                                  />
-                                )}
-                                <IconButton
-                                  icon="download"
-                                  label={tr("下载 YAML")}
-                                  onClick={() => downloadDocument(entry)}
-                                />
-                                <IconButton
-                                  icon="delete"
-                                  label={tr("删除流程")}
-                                  disabled={saving || busy}
-                                  onClick={() => {
-                                    setDeleteError("");
-                                    setDeleting(entry);
-                                  }}
-                                />
-                              </div>
-                            </div>
-                          </article>
-                        ))}
-                    </div>
-                    {!documents.filter((entry) =>
-                      entry.flow.name.toLowerCase().includes(search.toLowerCase()),
-                    ).length && (
-                      <p className="empty-panel">
-                        {tr("没有匹配的流程。试试其他名称，或上传一个流程文件。")}
-                      </p>
-                    )}
-                  </section>
+                  <WorkspaceLibrary
+                    documents={documents}
+                    disabled={saving || busy || threadSaving}
+                    onNewChat={(id) => void chooseThread(id)}
+                    onRefresh={async () => {
+                      const docs = await loadLibrary();
+                      setDocuments(docs);
+                      setSelected((id) =>
+                        docs.some((doc) => doc.id === id) ? id : (docs[0]?.id ?? ""),
+                      );
+                      setLibraryRevision((value) => value + 1);
+                    }}
+                    onCreate={create}
+                    onEdit={(id) => {
+                      setSelected(id);
+                      setPage("editor");
+                    }}
+                    onMetadata={setRename}
+                  />
                 )}
                 {doc && (
                   <div hidden={page !== "editor"}>
                     <FlowEditor
-                      key={`editor:${doc.id}`}
+                      key={`editor:${doc.id}:${libraryRevision}`}
                       doc={doc}
                       documents={documents}
                       aiHost={host}
@@ -579,7 +460,10 @@ export function App() {
               if (!name || saving) return;
               setMetadataError("");
               try {
-                await persist({ ...rename, flow: { ...rename.flow, name, description } });
+                await persist(
+                  { ...rename, flow: { ...rename.flow, name, description } },
+                  creating ? creationDirectory : "",
+                );
                 if (creating) {
                   setSelected(rename.id);
                   setPage("editor");

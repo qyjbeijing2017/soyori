@@ -34,6 +34,11 @@ function llm(name: string, local: boolean): ToolDefinition {
       },
     );
   const advanced: ParameterEntry[] = [];
+  advanced.push({
+    name: "tools",
+    valueType: "string[]",
+    description: "允许模型请求的调用名列表，说明可选。",
+  });
   if (!local)
     advanced.push({
       name: "baseURL",
@@ -78,6 +83,12 @@ function llm(name: string, local: boolean): ToolDefinition {
     inputs,
     outputs: [
       { name: "result", valueType: "string | JSON", description: "文本或解析后的 JSON 结果。" },
+      { name: "toolCalls", valueType: "JSON", description: "工具请求列表；没有请求时为 []。" },
+      {
+        name: "message",
+        valueType: "JSON",
+        description: "本轮完整模型消息，继续调用前追加到上下文。",
+      },
       {
         type: "group",
         name: "运行信息",

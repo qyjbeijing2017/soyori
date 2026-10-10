@@ -1,0 +1,17 @@
+schemaVersion: 1
+name: Script workspace example
+fields:
+  chatIn:
+    input: true
+    initial: hello
+  chatOut:
+    output: true
+steps:
+  - type: call
+    target: script.run
+    inputs:
+      code: |
+        import './scripts/main.js';
+      input:
+        text: $chatIn
+    output: $chatOut

@@ -31,8 +31,5 @@ test("token estimates explicitly identify uncertainty and never load a model", a
     ["input", "mode"],
   );
   await assert.rejects(count({ input: "a", mode: "unknown" }), /mode must/);
-  await assert.rejects(
-    count({ input: [{ role: "tool", content: "a" }] }),
-    /system\/user\/assistant/,
-  );
+  await assert.rejects(count({ input: [{ role: "tool", content: "a" }] }), /Invalid tool message/);
 });
