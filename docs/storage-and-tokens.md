@@ -89,7 +89,7 @@ pnpm cli storage delete demo/memory --storage-dir ./.agent-plan/storage
 
 ## token 计数
 
-- `mode: "local"`（默认）：使用当前 LFM2.5-350M tokenizer 实际计算，仅下载/读取 tokenizer 文件，不加载模型权重、不要求 WebGPU。字符串 input 统计裸文本且不添加特殊 token；消息数组 input 使用与本地生成一致的聊天模板及生成前缀。返回 `method: "tokenizer"` 和固定模型 ID。浏览器需要先允许本地下载。
+- `mode: "local"`（默认）：使用当前 Qwen3-1.7B tokenizer 实际计算，仅下载/读取 tokenizer 文件，不加载模型权重、不要求 WebGPU。字符串 input 统计裸文本且不添加特殊 token；消息数组 input 使用与本地生成一致的聊天模板及生成前缀。返回 `method: "tokenizer"` 和固定模型 ID。浏览器需要先允许本地下载。
 - `mode: "estimate"`：不联网，以 UTF-8 字节数加消息开销估算，返回 `method: "estimate", model: null`。适合初步测试，可能明显高估，且不是所有供应商 token 数的严格上界，不能用于计费或保证远程请求不超限。
 - input 接受字符串（含空字符串）或非空消息数组。消息数组仅支持 system/user/assistant 的文本消息，与目前生成工具保持一致；不再提供 text/messages 两个入口。
 - 计数只包含输入。流程应另行预留输出预算与安全余量；当前本地模型输入加输出限制为 2048 tokens。远程供应商的精确计数 API 尚未接入。
@@ -108,3 +108,7 @@ pnpm cli storage delete demo/memory --storage-dir ./.agent-plan/storage
   outputs:
     tokens: $tokenCount
 ```
+
+## 记忆工具（2026-10-10）
+
+默认本地对话采用七个外层步骤，包含显式工具循环且内部变量展开，三个 memory 工具统一组装用户、模型和工具结果消息；读取和保存复用 storage，不做摘要压缩或自动裁剪。详见 [记忆工具](memory-tools.md)。

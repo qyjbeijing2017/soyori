@@ -109,3 +109,5 @@ CLI 同样先在 [agent-plan-cli](https://github.com/qyjbeijing2017/agent-plan-c
 `pnpm verify` 运行 Biome、类型检查及所有测试；`pnpm format` 统一格式。Biome 对流程协议的 `then` 属性和测试中的故意稀疏数组做例外配置，其他使用推荐检查。
 
 GitHub Actions 在 Windows 和 Linux 上验证总仓库固定的两个子模块提交。私有子仓库分别需要只读部署密钥，其私钥存储为总仓库 Actions secrets `CORE_READ_KEY` 和 `CLI_READ_KEY`；不需要个人访问令牌或子仓库写权限。来自不提供 secrets 的 fork PR 无法检出私有子模块。
+
+开发说明：[助手与浏览器运行](docs/editor-assistant.md)、[基础工具](docs/basic-tools.md)、[记忆工具](docs/memory-tools.md)、[模型工具调用](docs/tool-calling.md)。

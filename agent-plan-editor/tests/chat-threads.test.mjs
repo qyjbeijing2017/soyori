@@ -58,3 +58,28 @@ test("YAML message display metadata persists and legacy Markdown messages remain
   thread.messages[1].format = "html";
   assert.throws(() => readThreadBook(book));
 });
+
+test("a background reply preserves a new draft, other deletions, and the selected conversation", async () => {
+  const { updateThread, removeThread } = await import("../src/chat-threads.ts");
+  const running = newThread("agent"),
+    other = newThread("agent"),
+    deleted = newThread("agent");
+  const original = { activeId: running.id, threads: [running, other, deleted] };
+  const reply = { ...running, messages: [{ role: "assistant", content: "finished" }] };
+  const switched = removeThread({ ...original, activeId: other.id }, deleted.id);
+  const completed = updateThread(switched, reply);
+  assert.equal(completed.activeId, other.id);
+  assert.deepEqual(
+    completed.threads.map((t) => t.id),
+    [running.id, other.id],
+  );
+  assert.equal(completed.threads[0].messages[0].content, "finished");
+  assert.equal(updateThread({ ...switched, activeId: "" }, reply).activeId, "");
+  const removedRunning = removeThread(switched, running.id);
+  assert.equal(updateThread(removedRunning, reply), removedRunning);
+  const draft = newThread("agent");
+  const created = updateThread(switched, draft, true);
+  assert.equal(created.activeId, draft.id);
+  assert.equal(created.threads[0], draft);
+  assert.equal(original.threads[0].messages.length, 0);
+});

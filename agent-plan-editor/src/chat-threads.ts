@@ -81,3 +81,15 @@ export function removeThread(book: ThreadBook, id: string): ThreadBook {
         : (threads[0]?.id ?? ""),
   };
 }
+
+/** Update one transcript without restoring an old selection or other deleted threads. */
+export function updateThread(book: ThreadBook, thread: ChatThread, activate = false): ThreadBook {
+  const found = book.threads.some((item) => item.id === thread.id);
+  if (!found && !activate) return book;
+  return {
+    activeId: activate ? thread.id : book.activeId,
+    threads: found
+      ? book.threads.map((item) => (item.id === thread.id ? thread : item))
+      : [thread, ...book.threads],
+  };
+}

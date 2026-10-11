@@ -1,3 +1,7 @@
+import { createPreview, type ModelEvent } from "./stream.js";
+
+export type { ModelEvent } from "./stream.js";
+
 import { AIMessage, HumanMessage, SystemMessage, ToolMessage } from "@langchain/core/messages";
 import { describeTools } from "agent-plan-core";
 import { AI_TOOL_DEFINITIONS } from "./definitions.js";
@@ -15,11 +19,12 @@ import {
 
 export { AI_TOOL_DEFINITIONS, TOKEN_TOOL_DEFINITIONS } from "./definitions.js";
 export { createToolRegistry } from "./flow-tools.js";
+export { createMemoryTools, MEMORY_TOOL_DEFINITIONS } from "./memory.js";
 export { createToolExecutionTools, EXECUTION_TOOL_DEFINITIONS } from "./tool-calling.js";
 
 import { BASE_URLS, LOCAL_MAX_TOKENS, LOCAL_MODEL, REMOTE_MAX_TOKENS } from "./definitions.js";
 
-export { LOCAL_MODEL } from "./definitions.js";
+export { LOCAL_MODEL, LOCAL_REVISION } from "./definitions.js";
 export const AI_TOOLS = ["llm.openai", "llm.anthropic", "llm.local"] as const;
 export type Provider = "openai" | "anthropic";
 export interface Connection {
@@ -51,6 +56,7 @@ export interface AiOptions extends ToolOptions {
   signal?: AbortSignal;
   timeoutMs?: number;
   browser?: boolean;
+  stream?: (event: ModelEvent) => void;
 }
 
 export function parseInput(input: Record<string, unknown>, local = false): GenerateInput {
@@ -176,7 +182,9 @@ export function createAiTools(options: AiOptions) {
       ]);
       try {
         signal.throwIfAborted();
+        const preview = createPreview(options.stream);
         const common = {
+          streaming: Boolean(options.stream),
           model,
           apiKey: config.apiKey,
           maxTokens: input.maxTokens,
@@ -231,6 +239,17 @@ export function createAiTools(options: AiOptions) {
           }),
           {
             signal,
+            ...(options.stream
+              ? {
+                  callbacks: [
+                    {
+                      handleLLMNewToken: (token: string) => {
+                        if (!signal.aborted) preview(token);
+                      },
+                    },
+                  ],
+                }
+              : {}),
             ...(input.outputFormat === "json"
               ? provider === "openai"
                 ? {

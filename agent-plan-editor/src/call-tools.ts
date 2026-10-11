@@ -1,6 +1,7 @@
 import {
   AI_TOOL_DEFINITIONS,
   EXECUTION_TOOL_DEFINITIONS,
+  MEMORY_TOOL_DEFINITIONS,
   TOKEN_TOOL_DEFINITIONS,
 } from "agent-plan-ai";
 import type { FlowDefinition, JsonValue } from "agent-plan-core";
@@ -13,6 +14,7 @@ import {
 } from "agent-plan-core";
 import { SCRIPT_TOOL_DEFINITION } from "agent-plan-script";
 import { STORAGE_TOOL_DEFINITIONS } from "agent-plan-storage";
+import { BASIC_TOOL_DEFINITIONS } from "agent-plan-tools";
 import { tr } from "./i18n.ts";
 import type { CallChoice } from "./library-calls.ts";
 
@@ -46,9 +48,11 @@ export function callTargetGroups(choices: CallChoice[], target: string) {
 
 export const toolDefinitions: Record<string, ToolDefinition> = {
   "script.run": SCRIPT_TOOL_DEFINITION,
+  ...BASIC_TOOL_DEFINITIONS,
   ...AI_TOOL_DEFINITIONS,
   ...TOKEN_TOOL_DEFINITIONS,
   ...STORAGE_TOOL_DEFINITIONS,
+  ...MEMORY_TOOL_DEFINITIONS,
   ...EXECUTION_TOOL_DEFINITIONS,
 };
 export const tools: Record<string, Record<string, JsonValue>> = Object.fromEntries(

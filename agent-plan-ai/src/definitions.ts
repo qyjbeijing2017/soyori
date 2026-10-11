@@ -1,6 +1,7 @@
 import type { ParameterEntry, ToolDefinition } from "agent-plan-core";
 
-export const LOCAL_MODEL = "LiquidAI/LFM2.5-350M-ONNX";
+export const LOCAL_MODEL = "onnx-community/Qwen3-1.7B-ONNX";
+export const LOCAL_REVISION = "b85539623180ae64303f37373d942cb0595ca44d";
 export const LOCAL_MAX_TOKENS = 512;
 export const REMOTE_MAX_TOKENS = 4096;
 export const BASE_URLS = {

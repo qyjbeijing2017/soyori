@@ -7,7 +7,7 @@ import {
   useCombobox,
 } from "@mantine/core";
 import { useMergedRef } from "@mantine/hooks";
-import { createContext, forwardRef, useContext, useEffect, useRef } from "react";
+import { createContext, forwardRef, useContext, useEffect, useRef, useState } from "react";
 import { tr } from "./i18n";
 import { fieldReference, normalizeReference, variableQuery } from "./variable-reference";
 
@@ -21,15 +21,28 @@ export const VariableInput = forwardRef<
     onValue: (value: string) => void;
   }
 >(function VariableInput(
-  { suggest = false, destination = false, onValue, onChange, onFocus, onBlur, value, ...props },
+  {
+    suggest = false,
+    destination = false,
+    onValue,
+    onChange,
+    onFocus,
+    onBlur,
+    value,
+    onCompositionStart,
+    onCompositionEnd,
+    ...props
+  },
   ref,
 ) {
   const names = useContext(VariableNames);
+  const [draftText, setDraftText] = useState(String(value ?? props.defaultValue ?? ""));
+  const composingRef = useRef(false);
   const input = useRef<HTMLTextAreaElement>(null);
   const destinationInput = useRef<HTMLInputElement>(null);
   const mergedRef = useMergedRef(ref, input);
   const combobox = useCombobox({ onDropdownClose: () => combobox.resetSelectedOption() });
-  const text = String(value ?? "");
+  const text = String(value ?? draftText);
   const error = destination && normalizeReference(text) === null ? tr("输入的变量名不合法") : "";
   useEffect(() => {
     if (destination) destinationInput.current?.setCustomValidity(error);
@@ -41,7 +54,21 @@ export const VariableInput = forwardRef<
       : names.filter((name) => name.toLocaleLowerCase().includes(query.toLocaleLowerCase()));
   const candidate = query ? normalizeReference(text) : null;
   const create = matches.length === 0 && candidate;
-  const visible = suggest && query !== null && (matches.length > 0 || Boolean(create));
+  const visible =
+    !composingRef.current && suggest && query !== null && (matches.length > 0 || Boolean(create));
+  function updateDropdown(source: string) {
+    const nextQuery = variableQuery(source);
+    const hasOptions =
+      nextQuery !== null &&
+      (names.some((name) => name.toLocaleLowerCase().includes(nextQuery.toLocaleLowerCase())) ||
+        Boolean(nextQuery && normalizeReference(source)));
+    if (suggest && !composingRef.current && hasOptions) {
+      combobox.resetSelectedOption();
+      combobox.openDropdown();
+    } else if (combobox.dropdownOpened) {
+      combobox.closeDropdown();
+    }
+  }
   function choose(next: string) {
     onValue(next);
     combobox.closeDropdown();
@@ -62,13 +89,12 @@ export const VariableInput = forwardRef<
             leftSectionWidth={28}
             leftSectionPointerEvents="none"
             error={error || props.error}
-            onFocus={() => combobox.openDropdown()}
+            onFocus={() => updateDropdown(text)}
             onBlur={() => combobox.closeDropdown()}
             onChange={(event) => {
               const source = event.currentTarget.value;
               onValue(source ? (source.startsWith("$") ? source : `$${source}`) : "");
-              combobox.resetSelectedOption();
-              combobox.openDropdown();
+              updateDropdown(source ? (source.startsWith("$") ? source : `$${source}`) : "");
             }}
           />
         ) : (
@@ -82,12 +108,26 @@ export const VariableInput = forwardRef<
             error={error || props.error}
             onFocus={(event) => {
               onFocus?.(event);
-              combobox.openDropdown();
+              updateDropdown(event.currentTarget.value);
+            }}
+            onCompositionStart={(event) => {
+              composingRef.current = true;
+              if (combobox.dropdownOpened) combobox.closeDropdown();
+              onCompositionStart?.(event);
+            }}
+            onCompositionEnd={(event) => {
+              composingRef.current = false;
+              onCompositionEnd?.(event);
             }}
             onChange={(event) => {
+              if (value === undefined) setDraftText(event.currentTarget.value);
               onChange?.(event);
-              combobox.resetSelectedOption();
-              combobox.openDropdown();
+              if (
+                composingRef.current ||
+                ("isComposing" in event.nativeEvent && event.nativeEvent.isComposing)
+              )
+                return;
+              updateDropdown(event.currentTarget.value);
             }}
             onBlur={(event) => {
               combobox.closeDropdown();

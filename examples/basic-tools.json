@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "name": "基础工具示例",
+  "fields": {
+    "time": {
+      "output": true
+    },
+    "value": {
+      "output": true
+    },
+    "text": {
+      "output": true
+    },
+    "items": {
+      "output": true
+    }
+  },
+  "steps": [
+    {
+      "type": "call",
+      "target": "time.now",
+      "inputs": {
+        "timeZone": "Asia/Shanghai"
+      },
+      "outputs": {
+        "date": "$time.date",
+        "time": "$time.time"
+      }
+    },
+    {
+      "type": "call",
+      "target": "math.clamp",
+      "inputs": {
+        "value": 42,
+        "min": 0,
+        "max": 10
+      },
+      "outputs": {
+        "result": "$value"
+      }
+    },
+    {
+      "type": "call",
+      "target": "text.replace",
+      "inputs": {
+        "text": "hello world",
+        "search": "world",
+        "replacement": "Agent"
+      },
+      "outputs": {
+        "result": "$text"
+      }
+    },
+    {
+      "type": "call",
+      "target": "array.concat",
+      "inputs": {
+        "arrays": [[1, 2], [3]]
+      },
+      "outputs": {
+        "result": "$items"
+      }
+    }
+  ]
+}

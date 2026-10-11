@@ -1,0 +1,19 @@
+schemaVersion: 1
+name: HTTP 请求示例
+fields:
+  url:
+    input: true
+    initial: https://example.com/
+  body:
+    output: true
+  status:
+    output: true
+steps:
+  - type: call
+    target: web.fetch
+    inputs:
+      url: $url
+      method: GET
+    outputs:
+      body: $body
+      status: $status

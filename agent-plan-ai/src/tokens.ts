@@ -4,8 +4,9 @@ import { TOKEN_TOOL_DEFINITIONS } from "./definitions.js";
 export { TOKEN_TOOL_DEFINITIONS } from "./definitions.js";
 
 import type { PreTrainedTokenizer } from "@huggingface/transformers";
+import { LOCAL_REVISION } from "./definitions.js";
 import { LOCAL_MODEL, parseInput } from "./index.js";
-import { localMessages } from "./local-tools.js";
+import { localMessages, localTemplateOptions } from "./local-tools.js";
 
 export function createTokenTools(
   options: { cacheDir?: string; browser?: boolean; beforeLoad?: () => void } = {},
@@ -18,7 +19,7 @@ export function createTokenTools(
         const { AutoTokenizer, env } = await import("@huggingface/transformers");
         if (options.cacheDir) env.cacheDir = options.cacheDir;
         if (options.browser) env.allowLocalModels = false;
-        return AutoTokenizer.from_pretrained(LOCAL_MODEL);
+        return AutoTokenizer.from_pretrained(LOCAL_MODEL, { revision: LOCAL_REVISION });
       })();
       tokenizer.catch(() => {
         tokenizer = undefined;
@@ -49,10 +50,8 @@ export function createTokenTools(
         const t = await load();
         options.beforeLoad?.();
         if (messages) {
-          const prompt = t.apply_chat_template(localMessages({ messages, maxTokens: 1 }), {
-            tokenize: false,
-            add_generation_prompt: true,
-          });
+          const input = { messages, maxTokens: 1 };
+          const prompt = t.apply_chat_template(localMessages(input), localTemplateOptions(input));
           if (typeof prompt !== "string")
             throw new Error("TOKENS_TEMPLATE: Invalid chat template.");
           return { tokens: t(prompt).input_ids.size, method: "tokenizer", model: LOCAL_MODEL };

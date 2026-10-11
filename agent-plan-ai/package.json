@@ -18,7 +18,8 @@
     "@langchain/anthropic": "1.5.11",
     "@langchain/core": "1.2.13",
     "@langchain/openai": "1.6.0",
-    "agent-plan-core": "workspace:*"
+    "agent-plan-core": "workspace:*",
+    "agent-plan-storage": "workspace:*"
   },
   "devDependencies": {
     "typescript": "7.0.2"

@@ -1,0 +1,146 @@
+const DB_NAME = "agent-plan-model-downloads";
+export const DOWNLOAD_CHUNK_BYTES = 4 * 1024 * 1024;
+
+export interface FileProgress {
+  url: string;
+  size: number;
+  offset: number;
+}
+function request<T>(value: IDBRequest<T>) {
+  return new Promise<T>((resolve, reject) => {
+    value.onsuccess = () => resolve(value.result);
+    value.onerror = () => reject(value.error);
+  });
+}
+function complete(tx: IDBTransaction) {
+  return new Promise<void>((resolve, reject) => {
+    tx.oncomplete = () => resolve();
+    tx.onerror = tx.onabort = () => reject(tx.error ?? Error("Download storage aborted."));
+  });
+}
+export class ModelDownloadStore {
+  private database?: Promise<IDBDatabase>;
+  private open() {
+    this.database ??= new Promise((resolve, reject) => {
+      const r = indexedDB.open(DB_NAME, 1);
+      r.onupgradeneeded = () => {
+        r.result.createObjectStore("files", { keyPath: "url" });
+        r.result.createObjectStore("chunks");
+      };
+      r.onerror = () => reject(r.error);
+      r.onsuccess = () => resolve(r.result);
+    });
+    return this.database;
+  }
+  async progress(url: string): Promise<FileProgress | undefined> {
+    const db = await this.open();
+    return request(db.transaction("files").objectStore("files").get(url));
+  }
+  async append(file: FileProgress, bytes: Uint8Array) {
+    const db = await this.open();
+    const tx = db.transaction(["files", "chunks"], "readwrite");
+    const done = complete(tx);
+    tx.objectStore("chunks").put(bytes, [file.url, file.offset]);
+    tx.objectStore("files").put({ ...file, offset: file.offset + bytes.length });
+    await done;
+  }
+  async chunk(url: string, offset: number): Promise<Uint8Array | undefined> {
+    const db = await this.open();
+    return request(db.transaction("chunks").objectStore("chunks").get([url, offset]));
+  }
+  async clear(url: string) {
+    const db = await this.open();
+    const tx = db.transaction(["files", "chunks"], "readwrite");
+    const done = complete(tx);
+    tx.objectStore("files").delete(url);
+    tx.objectStore("chunks").delete(IDBKeyRange.bound([url, 0], [url, Number.MAX_SAFE_INTEGER]));
+    await done;
+  }
+  async promote(file: FileProgress, cache: Cache, signal: AbortSignal) {
+    let offset = 0;
+    const stream = new ReadableStream<Uint8Array>({
+      pull: async (controller) => {
+        try {
+          signal.throwIfAborted();
+          if (offset === file.size) return controller.close();
+          const bytes = await this.chunk(file.url, offset);
+          if (!bytes?.length || offset + bytes.length > file.size)
+            throw Error("Download chunks are incomplete.");
+          offset += bytes.length;
+          controller.enqueue(bytes);
+        } catch (cause) {
+          controller.error(cause);
+        }
+      },
+    });
+    await cache.put(
+      file.url,
+      new Response(stream, {
+        headers: { "content-length": String(file.size) },
+      }),
+    );
+    await this.clear(file.url);
+  }
+}
+
+/** Immutable revision URLs prevent mixing chunks from different model versions. */
+export async function downloadFile(
+  file: { url: string; size: number },
+  store: ModelDownloadStore,
+  cache: Cache,
+  signal: AbortSignal,
+  fetcher: typeof fetch,
+  onProgress: (offset: number) => void,
+) {
+  if (await cache.match(file.url)) return onProgress(file.size);
+  let saved = await store.progress(file.url);
+  if (saved && saved.size !== file.size) {
+    await store.clear(file.url);
+    saved = undefined;
+  }
+  let offset = saved?.offset ?? 0;
+  onProgress(offset);
+  while (offset < file.size) {
+    signal.throwIfAborted();
+    const end = Math.min(offset + DOWNLOAD_CHUNK_BYTES, file.size) - 1;
+    const response = await fetcher(file.url, {
+      headers: { Range: `bytes=${offset}-${end}` },
+      signal,
+    });
+    const wholeSmallFile =
+      response.status === 200 && offset === 0 && file.size <= DOWNLOAD_CHUNK_BYTES;
+    if (response.status !== 206 && !wholeSmallFile) {
+      await response.body?.cancel();
+      throw Error("下载服务器未提供分段响应，暂时无法断点续传。");
+    }
+    const expected = `bytes ${offset}-${end}/${file.size}`;
+    if (!wholeSmallFile && response.headers.get("content-range") !== expected) {
+      await response.body?.cancel();
+      throw Error("下载文件范围或版本不匹配，请稍后重试。");
+    }
+    const reader = response.body?.getReader();
+    if (!reader) throw Error("下载响应为空。");
+    const bytes = new Uint8Array(end - offset + 1);
+    let received = 0;
+    try {
+      while (true) {
+        const item = await reader.read();
+        if (item.done) break;
+        if (received + item.value.length > bytes.length) throw Error("下载分块长度异常。");
+        bytes.set(item.value, received);
+        received += item.value.length;
+        onProgress(offset + received);
+      }
+      signal.throwIfAborted();
+      if (received !== bytes.length) throw Error("下载分块不完整，请重试。");
+      await store.append({ ...file, offset }, bytes);
+      offset += received;
+      onProgress(offset);
+    } finally {
+      await reader.cancel().catch(() => {});
+      reader.releaseLock();
+    }
+  }
+  signal.throwIfAborted();
+  await store.promote({ ...file, offset }, cache, signal);
+}

@@ -8,6 +8,7 @@
       "!!**/.git",
       "!!**/tmp",
       "!!**/temp",
+      "!!**/output",
       "!!**/.agent-plan/storage",
       "!!**/.playwright-cli"
     ]

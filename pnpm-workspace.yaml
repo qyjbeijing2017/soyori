@@ -5,6 +5,7 @@ packages:
   - agent-plan-ai
   - agent-plan-storage
   - agent-plan-script
+  - agent-plan-tools
 allowBuilds:
   esbuild: true
   onnxruntime-node: true

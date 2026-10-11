@@ -29,6 +29,9 @@ importers:
       agent-plan-core:
         specifier: workspace:*
         version: link:../agent-plan-core
+      agent-plan-storage:
+        specifier: workspace:*
+        version: link:../agent-plan-storage
     devDependencies:
       typescript:
         specifier: 7.0.2
@@ -48,6 +51,9 @@ importers:
       agent-plan-storage:
         specifier: workspace:*
         version: link:../agent-plan-storage
+      agent-plan-tools:
+        specifier: workspace:*
+        version: link:../agent-plan-tools
       commander:
         specifier: 15.0.0
         version: 15.0.0
@@ -143,6 +149,9 @@ importers:
       agent-plan-storage:
         specifier: workspace:*
         version: link:../agent-plan-storage
+      agent-plan-tools:
+        specifier: workspace:*
+        version: link:../agent-plan-tools
       esbuild-wasm:
         specifier: 0.25.12
         version: 0.25.12
@@ -152,6 +161,9 @@ importers:
       i18next:
         specifier: 26.4.2
         version: 26.4.2(typescript@7.0.2)
+      onnxruntime-web:
+        specifier: 1.31.0-dev.20260914-8d85527a0
+        version: 1.31.0-dev.20260914-8d85527a0
       react:
         specifier: 19.3.0
         version: 19.3.0
@@ -215,6 +227,16 @@ importers:
       '@types/node':
         specifier: 24.19.0
         version: 24.19.0
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+
+  agent-plan-tools:
+    dependencies:
+      agent-plan-core:
+        specifier: workspace:*
+        version: link:../agent-plan-core
+    devDependencies:
       typescript:
         specifier: 7.0.2
         version: 7.0.2

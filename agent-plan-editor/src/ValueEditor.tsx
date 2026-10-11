@@ -55,56 +55,77 @@ export function AutoValueInput({
     unsupported = true;
     formatted = tr("此值不是 JSON 数据，请在工具中处理");
   }
-  const [text, setText] = useState(formatted);
   const [error, setError] = useState("");
+  // Updating textarea.defaultValue during an IME session can reset its preedit buffer.
+  // Keep the mount value stable; external edits are applied through the guarded effect.
+  const initialText = useRef(formatted);
   const lastSent = useRef(formatted);
+  const composing = useRef(false);
   const input = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
-    if (formatted !== lastSent.current) {
-      setText(formatted);
+    if (!composing.current && formatted !== lastSent.current) {
+      if (input.current) input.current.value = formatted;
       lastSent.current = formatted;
       setError("");
       input.current?.setCustomValidity("");
     }
   }, [formatted]);
+  function commit(element: HTMLTextAreaElement) {
+    const source = element.value;
+    try {
+      const next = inferValue(source, allowUnset);
+      validate?.(next);
+      lastSent.current = emptyStringAsBlank && next === "" ? "" : formatValue(next);
+      onChange(next);
+      setError("");
+      element.setCustomValidity("");
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : String(cause);
+      setError(message);
+      element.setCustomValidity(message);
+    }
+  }
   return (
     <div className="auto-value">
       <VariableInput
         suggest={suggest}
         onValue={(source) => {
-          setText(source);
+          if (input.current) input.current.value = source;
           const next = inferValue(source, allowUnset);
           validate?.(next);
-          onChange(next);
           lastSent.current = emptyStringAsBlank && next === "" ? "" : formatValue(next);
+          onChange(next);
           setError("");
           input.current?.setCustomValidity("");
         }}
         ref={input}
         aria-label={label}
         aria-invalid={Boolean(error)}
-        autosize
-        minRows={1}
-        maxRows={8}
-        styles={{ input: { minHeight: 0, lineHeight: "22px", paddingTop: 10, paddingBottom: 10 } }}
-        value={text}
+        autosize={false}
+        rows={1}
+        styles={{
+          input: {
+            minHeight: 44,
+            maxHeight: 200,
+            fieldSizing: "content",
+            lineHeight: "22px",
+            paddingTop: 10,
+            paddingBottom: 10,
+          },
+        }}
+        defaultValue={initialText.current}
         disabled={disabled || unsupported}
         placeholder={placeholder ?? (allowUnset ? tr("未设置") : tr("输入值"))}
+        onCompositionStart={() => {
+          composing.current = true;
+        }}
+        onCompositionEnd={(e) => {
+          composing.current = false;
+          commit(e.currentTarget);
+        }}
         onChange={(e) => {
-          const source = e.target.value;
-          setText(source);
-          try {
-            const next = inferValue(source, allowUnset);
-            validate?.(next);
-            onChange(next);
-            lastSent.current = emptyStringAsBlank && next === "" ? "" : formatValue(next);
-            setError("");
-            e.target.setCustomValidity("");
-          } catch (cause) {
-            const message = cause instanceof Error ? cause.message : String(cause);
-            setError(message);
-            e.target.setCustomValidity(message);
-          }
+          if (!composing.current && !("isComposing" in e.nativeEvent && e.nativeEvent.isComposing))
+            commit(e.currentTarget);
         }}
       />
       {(error || unsupported) && (

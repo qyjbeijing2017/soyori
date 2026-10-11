@@ -11,7 +11,23 @@
 - `message` 是完整 assistant 消息，包含供应商内容块及工具请求。应整体追加到上下文，不用 `result` 重建；供应商内容块不保证跨供应商通用。
 - 工具调用与 `outputFormat: json` 暂不同时使用。
 
-内部为调用名生成稳定的供应商兼容名称；用户输入与输出仍使用原调用名。本地模型采用官方支持的 JSON 工具提示方式，接受严格 JSON 请求数组或带工具标记的 JSON 块；不执行 Python/JavaScript 文本，不自动修复非法参数。解析失败会明确报错。这是模型生成能力，不是受约束解码，也不保证每次正确选择工具。
+内部为调用名生成稳定的供应商兼容名称；用户输入与输出仍使用原调用名。本地 Qwen 使用官方 Hermes 模板，tools 和历史 tool_calls 交给模板处理，enable_thinking=false。生成的 `<tool_call>{"name":"...","arguments":{...}}</tool_call>` 严格解析为通用 toolCalls；不执行文本，不自动修复非法参数，残缺或未知调用明确报错。不保证模型每次正确选择工具。此前 LFM 格式仅属于历史测试，不再用于当前本地适配。
+
+## 历史 LFM 对照记录（不作为当前 Qwen 使用说明）
+
+以下原生 Python 风格语法及 List of tools 提示属于旧 LFM 对照，当前 Qwen 使用上文 Hermes JSON 模板。
+
+原生格式仅允许调用名、关键字参数和 JSON 兼容字面量；字符串可用单双引号，支持列表、字符串键字典、有限数值、True/False/None（也接受 JSON 布尔/null）。拒绝位置参数、表达式、属性访问、嵌套函数调用、展开参数、重复键及原型访问键。最多 32 个调用、65536 字符、4096 个参数值、32 层嵌套。解析完成后仍检查工具是否在本次定义中，实际执行复用 tools.execute 的参数校验和预算。
+
+本地提示使用 `List of tools:` 结构，工具说明带原调用名，并要求输出定义中的精确编码名称。工具定义和调用格式置于 system 消息开头，流程设置的系统提示接在后面，不修改原始消息。2026-10-10 浏览器 q4f16 对照：同一 350M 模型、相同时间问题，简短提示前置时不调用，后置时生成正确的 Asia/Shanghai 时间调用；完整默认提示前置、后置都可能仅输出文字。因此该顺序修正不代表复杂默认流程已可靠。执行记录中的实际 toolCalls 和工具执行事件才是调用证据。
+
+同日换回 LiquidAI/LFM2.5-350M-ONNX（revision d11593fd9eb408e322667926656598896c2d5ff9），保留 JSON 工具模板修正；新对话询问北京时间、随后明确要求调用 time.now，两轮均未出现工具执行事件，模型仍编造日期。因此本次回退未解决工具调用行为问题。
+
+后续固定模型、q4f16、贪心解码及工具定义进行对照，旧提示格式也未解决完整系统提示下的不调用；不带流程系统提示时可以生成调用，但仍可能编造 IANA 时区。使用工具定义前置和简短时间提示，真实工具返回 Asia/Shanghai 的 22:55:17，后续模型回复却引用 UTC 的 14:55。这区分了模型未生成调用、参数错误、结果解读错误，不能统一归因于解析器或 CORS。增加联网说明的精简提示也未通过时间/新闻调用测试；默认示例仍需进一步验证。
+
+再次切换 1.2B-Instruct（revision 10f72e70abf67ac0fd7ebf15bc5854726891d864），工具提示前置、q4f16、贪心解码，四项浏览器测试：完整默认提示的北京时间与新闻问题均未调用且编造内容；简短时间提示输出 `<|tool_call_start|>[tool_time_now_6269290e(timeZone="Asia/Shanghai")]<|tool_call_end|>`，时区正确但为 Python 风格，当前严格 JSON 解析明确拒绝；完整提示中明确给出同源可访问 JSON URL 也未调用 web.fetch。因此不能宣称更换模型后准确率已改善；该小样本是当前组合诊断，不是模型整体准确率评测。
+
+补充原生调用解析后，保留原先 JSON 提示：简短时间提示的真实调用得到 Asia/Shanghai 23:10:57，模型随后正确回答 23:10（晚上 11 点）。仅要求原生格式的提示未改善调用行为，因此未采用。完整默认提示的时间、新闻、同源 JSON 读取仍未主动调用；简短网页读取提示也未调用 web.fetch。格式适配已通过时间工具完整往返，不代表默认 Agent 的工具选择已可靠。
 
 ## tools.execute
 
@@ -22,7 +38,7 @@
 返回：
 
 - `results`：逐项 `{ id, target, result }` 或 `{ id, target, error: { message } }`。执行异常使用不包含原始凭据或堆栈的通用错误；非 JSON 返回值记为该项失败，单独的 undefined 返回值变为 null。
-仅提供 results 输出，不提供 message/messages。结果转模型消息、上下文拼接、记忆存储与压缩属于后续独立的记忆编排工具；当前不在执行器里实现。LLM 自身的完整 message 输出保留，用来表示模型响应。
+仅提供 results 输出，不提供 message/messages。消息组装由 memory.addTools 和 memory.addAssistant 完成，持久化复用 storage；详见 [消息组装](memory-tools.md)。LLM 自身的完整 message 输出保留，用来表示模型响应。
 
 普通工具失败不影响其他请求。显式限制列表外的请求整批拒绝，尚未执行任何请求。取消或预算耗尽停止启动后续调用，保留已完成结果并为未执行请求返回错误；已执行的外部副作用不回滚。不承诺强制终止不支持取消的宿主函数。CLI 整体超时仍由父进程终止隔离进程。
 
@@ -34,9 +50,9 @@
 
 两端注册同名接口。Editor 的 LLM「高级设置」提供 tools，调用目标列表提供 tools.execute。工具列表可直接输入名称数组，或引用保存名称数组的变量。选择当前 Library 流程时，静态名称列表（含根变量初值）自动绑定 imports；动态计算的名称必须已在 imports 中声明。CLI 使用导入别名，宿主函数模块可使用 Core 的 describeTools 提供接口。
 
-单批调用可导入示例：[tool-calling.yaml](../examples/tool-calling.yaml)。示例展示模型请求和工具执行，只输出执行结果，暂不拼接上下文继续调用模型。现有默认本地记忆流程未接入工具执行。压缩含工具请求的历史时，不能仅删除关联消息的一半。
+单批调用可导入示例：[tool-calling.yaml](../examples/tool-calling.yaml)。示例展示模型请求和工具执行，只输出执行结果，暂不拼接上下文继续调用模型。默认本地记忆流程已接入工具循环，通过 memory 工具组装消息。压缩含工具请求的历史时，不能仅删除关联消息的一半。
 
 本地模型依然遵守项目当前的 2048 token 输入输出总预算（包括工具定义提示），与模型官方最大上下文不是同一个限制。
 
-参考：[LFM 官方工具用法](https://huggingface.co/LiquidAI/LFM2.5-350M#tool-use)、[LangChain 工具调用](https://reference.langchain.com/javascript/langchain-anthropic/ChatAnthropic)。
+参考：[LFM 官方工具用法](https://huggingface.co/LiquidAI/LFM2.5-1.2B-Instruct#tool-use)、[LangChain 工具调用](https://reference.langchain.com/javascript/langchain-anthropic/ChatAnthropic)。
 

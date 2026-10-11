@@ -32,6 +32,7 @@ export function FlowEditor({
   settings,
   onBusy,
   saving,
+  executionBusy = false,
 }: {
   doc: FlowDocument;
   documents: FlowDocument[];
@@ -40,6 +41,7 @@ export function FlowEditor({
   settings: AiSettings;
   onBusy: (busy: boolean) => void;
   saving: boolean;
+  executionBusy?: boolean;
 }) {
   const [flow, setFlow] = useState(doc.flow);
   const [valuesOpen, setValuesOpen] = useState(true);
@@ -130,7 +132,7 @@ export function FlowEditor({
     }
   }
   async function execute(single: boolean) {
-    if (running.current) return;
+    if (running.current || executionBusy) return;
     const invalid = Array.from(
       variablesPanel.current?.querySelectorAll("textarea,input") ?? [],
     ).find((element) => !(element as HTMLInputElement).checkValidity()) as
@@ -425,7 +427,7 @@ export function FlowEditor({
               </Button>
               <Button
                 aria-label={tr("下一步")}
-                disabled={locked}
+                disabled={locked || executionBusy}
                 onClick={() => void execute(true)}
               >
                 <Icon name="next" />
@@ -457,7 +459,7 @@ export function FlowEditor({
                 <Button
                   variant="filled"
                   aria-label={tr("运行测试")}
-                  disabled={locked}
+                  disabled={locked || executionBusy}
                   onClick={() => void execute(false)}
                 >
                   <Icon name="play" />

@@ -4,9 +4,9 @@
   "type": "module",
   "packageManager": "pnpm@11.25.0",
   "scripts": {
-    "editor": "pnpm --filter agent-plan-core build && pnpm --filter agent-plan-ai build && pnpm --filter agent-plan-storage build && pnpm --filter agent-plan-script build && pnpm --filter agent-plan-editor dev",
+    "editor": "pnpm --filter agent-plan-core build && pnpm --filter agent-plan-ai build && pnpm --filter agent-plan-storage build && pnpm --filter agent-plan-script build && pnpm --filter agent-plan-tools build && pnpm --filter agent-plan-editor dev",
     "build": "pnpm -r --if-present build",
-    "typecheck": "pnpm --filter agent-plan-core build && pnpm --filter agent-plan-ai build && pnpm --filter agent-plan-storage build && pnpm --filter agent-plan-script build && pnpm -r --if-present typecheck",
+    "typecheck": "pnpm --filter agent-plan-core build && pnpm --filter agent-plan-ai build && pnpm --filter agent-plan-storage build && pnpm --filter agent-plan-script build && pnpm --filter agent-plan-tools build && pnpm -r --if-present typecheck",
     "test": "pnpm -r --if-present test",
     "cli": "node agent-plan-cli/dist/index.js",
     "lint": "biome lint .",

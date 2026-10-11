@@ -1,9 +1,28 @@
-import { Button, Modal, Textarea, TextInput, UnstyledButton } from "@mantine/core";
-import { useEffect, useRef, useState } from "react";
+import {
+  Button,
+  Drawer,
+  Loader,
+  Modal,
+  Switch,
+  Textarea,
+  TextInput,
+  UnstyledButton,
+} from "@mantine/core";
+import { useMediaQuery } from "@mantine/hooks";
+import { createRuntime } from "agent-plan-core";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { AiSettings, BrowserAiHost } from "./ai-host";
 import { formatChatOutput } from "./chat-contract";
 import {
+  appendExecution,
+  type ChatExecution,
+  executionSummary,
+  observeChatTools,
+  retainExecutions,
+} from "./chat-execution";
+import {
   type ChatMessage,
+  type ChatThread,
   prepareThreadForSend,
   type ThreadBook,
   threadFlow,
@@ -12,7 +31,6 @@ import { tr } from "./i18n";
 import { canChat, type FlowDocument } from "./library";
 import { loadLibraryGraph } from "./library-calls";
 import { MarkdownText } from "./MarkdownText";
-import { createSession } from "./session";
 import { Icon } from "./ui";
 
 export function AgentChat({
@@ -22,7 +40,8 @@ export function AgentChat({
   settings,
   onBusy,
   book,
-  onBookChange,
+  onThreadChange,
+  executionBusy,
   onLibrary,
   flows,
   onSelectFlow,
@@ -31,15 +50,24 @@ export function AgentChat({
   documents: FlowDocument[];
   aiHost: BrowserAiHost;
   settings: AiSettings;
-  onBusy: (value: boolean) => void;
+  onBusy: (value: boolean, threadId?: string) => void;
+  executionBusy: boolean;
   book: ThreadBook | null;
-  onBookChange: (book: ThreadBook) => Promise<void>;
+  onThreadChange: (thread: ChatThread, activate?: boolean) => Promise<void>;
   onLibrary: () => void;
   flows: FlowDocument[];
   onSelectFlow: (id: string) => void;
 }) {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [prompt, setPrompt] = useState("");
+  const [runs, setRuns] = useState<ChatExecution[]>([]);
+  const [selectedRun, setSelectedRun] = useState<string | null>(null);
+  const [snapshots, setSnapshots] = useState(false);
+  const mobile = useMediaQuery("(max-width: 640px)");
+  const inspected = runs.find((run) => run.id === selectedRun);
+  const [transcripts, setTranscripts] = useState<Record<string, ChatMessage[]>>({});
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const draftKey = book?.activeId ?? "";
+  const prompt = drafts[draftKey] ?? "";
+  const setPrompt = (value: string) => setDrafts((current) => ({ ...current, [draftKey]: value }));
   const [choosing, setChoosing] = useState(false);
   const [query, setQuery] = useState("");
   const choices = flows.filter(
@@ -50,69 +78,131 @@ export function AgentChat({
   const [busy, setBusy] = useState(false);
   const lock = useRef(false);
   const loading = !book;
-  const [error, setError] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const error = errors[draftKey] ?? "";
+  const [runningThread, setRunningThread] = useState<string | null>(null);
+  const [preview, setPreview] = useState("");
+  const model = useSyncExternalStore(aiHost.subscribe, aiHost.getSnapshot);
   const [progress, setProgress] = useState("");
+  const download = useSyncExternalStore(aiHost.downloads.subscribe, aiHost.downloads.getSnapshot);
+  const downloading = ["downloading", "paused"].includes(download.status);
   const abort = useRef<AbortController | null>(null);
   const bottom = useRef<HTMLDivElement>(null);
   const activeThread = book?.threads.find((t) => t.id === book.activeId);
-  useEffect(() => {
-    setMessages(activeThread?.messages ?? []);
-    setPrompt("");
-    setError("");
-  }, [activeThread]);
+  const messages = activeThread ? (transcripts[activeThread.id] ?? activeThread.messages) : [];
+  const viewBusy = busy && runningThread === activeThread?.id;
+  const setMessagesFor = (id: string, value: ChatMessage[]) =>
+    setTranscripts((current) => ({ ...current, [id]: value }));
+  const setErrorFor = (id: string, value: string) =>
+    setErrors((current) => ({ ...current, [id]: value }));
   useEffect(() => () => abort.current?.abort(), []);
   useEffect(() => {
-    if (messages.length || progress) bottom.current?.scrollIntoView({ block: "nearest" });
-  }, [messages, progress]);
+    if (messages.length || (viewBusy && (progress || preview)))
+      bottom.current?.scrollIntoView({ block: "nearest" });
+  }, [messages, progress, preview, viewBusy]);
   async function send() {
-    if (lock.current || loading || !book || !prompt.trim()) return;
-    const { thread, book: currentBook } = prepareThreadForSend(book, doc.id);
+    if (lock.current || executionBusy || loading || !book || !prompt.trim()) return;
+    const { thread } = prepareThreadForSend(book, doc.id);
     const question = prompt.trim();
     const prior = messages;
     lock.current = true;
     setBusy(true);
-    onBusy(true);
-    setError("");
+    setRunningThread(thread.id);
+    onBusy(true, thread.id);
+    setErrorFor(thread.id, "");
+    setPreview("");
     setProgress(tr("正在准备回答…"));
-    setMessages([...prior, { role: "user", content: question }]);
+    setMessagesFor(thread.id, [...prior, { role: "user", content: question }]);
     setPrompt("");
     abort.current = new AbortController();
+    const run: ChatExecution = {
+      id: crypto.randomUUID(),
+      threadId: thread.id,
+      messageIndex: prior.length + 1,
+      status: "running",
+      snapshots,
+      entries: [],
+      dropped: 0,
+    };
+    const publish = () =>
+      setRuns((current) =>
+        retainExecutions([
+          ...current.filter((item) => item.id !== run.id),
+          { ...run, entries: [...run.entries] },
+        ]),
+      );
+    publish();
     let inputSaved = false;
     const incoming: ChatMessage[] = [...prior, { role: "user", content: question }];
-    const pendingBook = {
-      ...currentBook,
-      threads: currentBook.threads.map((t) =>
-        t.id === thread.id
-          ? { ...t, messages: incoming, title: t.messages.length ? t.title : question.slice(0, 24) }
-          : t,
-      ),
+    const pendingThread = {
+      ...thread,
+      messages: incoming,
+      title: thread.messages.length ? thread.title : question.slice(0, 24),
     };
     try {
       // Make this turn's original input available to storage.read before executing the flow.
-      await onBookChange(pendingBook);
+      await onThreadChange(pendingThread, true);
       inputSaved = true;
       abort.current.signal.throwIfAborted();
       const graph = loadLibraryGraph({ ...doc, flow: threadFlow(doc.flow, thread) }, documents);
-      const session = createSession(
+      const runtime = createRuntime(
         graph,
         { chatIn: question, threadId: thread.id },
-        aiHost.tools(
-          settings,
-          abort.current.signal,
-          setProgress,
-          graph,
-          () => session.runtime.getStack().at(-1)?.source,
-        ),
+        {
+          functions: observeChatTools(
+            aiHost.tools(
+              settings,
+              abort.current.signal,
+              setProgress,
+              graph,
+              () => runtime.getStack().at(-1)?.source,
+              (event) => {
+                if (abort.current?.signal.aborted) return;
+                if (event.type === "start") setPreview("");
+                else if (event.type === "text") setPreview(event.text);
+                else {
+                  appendExecution(run, {
+                    label: "llm.metrics",
+                    status: "completed",
+                    ms: 0,
+                    output: executionSummary(event.values),
+                  });
+                  publish();
+                }
+              },
+            ),
+            run,
+            publish,
+          ),
+        },
       );
       let steps = 0;
-      while (!["completed", "failed"].includes(session.runtime.getState().status)) {
+      while (!["completed", "failed"].includes(runtime.getState().status)) {
         abort.current.signal.throwIfAborted();
         if (++steps > 2000) throw Error(tr("本次对话超过 2000 步，请到 Editor 检查循环。"));
-        await session.step();
+        const before = run.snapshots
+          ? executionSummary(runtime.getState().fields, 4000)
+          : undefined;
+        const started = performance.now();
+        const result = await runtime.step();
+        if (result.event) {
+          appendExecution(run, {
+            label: `${result.event.flowName} · ${result.event.path} · ${result.event.type}`,
+            status: result.event.error ? "failed" : "completed",
+            ms: Math.round(performance.now() - started),
+            ...(result.event.error ? { error: executionSummary(result.event.error) } : {}),
+            ...(run.snapshots
+              ? { before, after: executionSummary(result.state.fields, 4000) }
+              : {}),
+          });
+          publish();
+        }
         await new Promise((resolve) => setTimeout(resolve, 0));
       }
-      const state = session.runtime.getState();
+      const state = runtime.getState();
       if (state.error) throw Error(state.error.message);
+      run.status = "completed";
+      publish();
       const answer = formatChatOutput(state.output?.chatOut);
       const next: ChatMessage[] = [
         ...prior,
@@ -123,35 +213,113 @@ export function AgentChat({
           ...(typeof state.output?.chatOut === "string" ? {} : { format: "yaml" as const }),
         },
       ];
-      setMessages(next);
-      const updated = {
-        ...currentBook,
-        threads: currentBook.threads.map((t) =>
-          t.id === thread.id
-            ? { ...t, messages: next, title: t.messages.length ? t.title : question.slice(0, 24) }
-            : t,
-        ),
-      };
+      setMessagesFor(thread.id, next);
       try {
-        await onBookChange(updated);
+        await onThreadChange({ ...pendingThread, messages: next });
       } catch {
-        setError(tr("回答已生成，但对话记录保存失败。请检查浏览器存储空间。"));
+        setErrorFor(thread.id, tr("回答已生成，但对话记录保存失败。请检查浏览器存储空间。"));
       }
     } catch (cause) {
+      run.status = "failed";
+      appendExecution(run, {
+        label: tr("运行失败"),
+        status: "failed",
+        ms: 0,
+        error: String(cause).slice(0, 2000),
+      });
+      publish();
       if (!inputSaved) {
-        setMessages(prior);
+        setMessagesFor(thread.id, prior);
         setPrompt(question);
       }
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setErrorFor(
+        inputSaved ? thread.id : draftKey,
+        cause instanceof Error ? cause.message : String(cause),
+      );
     } finally {
       lock.current = false;
       setBusy(false);
+      setRunningThread(null);
       onBusy(false);
       setProgress("");
+      setPreview("");
     }
   }
   return (
     <section className="chat-page">
+      <Drawer
+        opened={selectedRun !== null}
+        onClose={() => setSelectedRun(null)}
+        title={tr("执行记录")}
+        position="right"
+        size={mobile ? "100%" : "lg"}
+      >
+        <Switch
+          label={tr("记录变量快照")}
+          checked={snapshots}
+          onChange={(event) => setSnapshots(event.currentTarget.checked)}
+        />
+        <p className="muted">{tr("仅对后续运行生效，会增加内存占用。")}</p>
+        <Button
+          variant="subtle"
+          disabled={busy}
+          onClick={() => {
+            setRuns([]);
+            setSelectedRun(null);
+          }}
+        >
+          {tr("清空记录")}
+        </Button>
+        <p className="muted">
+          {tr("仅保存在内存中，刷新后清除；最多保留 8 轮，总文本约 512 KB。")}
+        </p>
+        {inspected && (
+          <>
+            <p>
+              {tr(
+                inspected.status === "running"
+                  ? "执行中"
+                  : inspected.status === "failed"
+                    ? "运行失败"
+                    : "执行完成",
+              )}
+            </p>
+            {inspected.dropped > 0 && <p>{tr("较早的步骤记录已截断")}</p>}
+            {inspected.entries.map((entry) => (
+              <details className="execution-entry" key={entry.id}>
+                <summary>
+                  {entry.label} ·{" "}
+                  {tr(
+                    entry.status === "running"
+                      ? "执行中"
+                      : entry.status === "failed"
+                        ? "失败"
+                        : "完成",
+                  )}{" "}
+                  · {entry.ms} ms
+                </summary>
+                {entry.error && <pre className="error">{entry.error}</pre>}
+                {[
+                  [tr("输入"), entry.input],
+                  [tr("输出"), entry.output],
+                  [tr("执行前快照"), entry.before],
+                  [tr("执行后快照"), entry.after],
+                ].map(
+                  ([label, value]) =>
+                    value && (
+                      <details key={label}>
+                        <summary>{label}</summary>
+                        <pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
+                          {value}
+                        </pre>
+                      </details>
+                    ),
+                )}
+              </details>
+            ))}
+          </>
+        )}
+      </Drawer>
       <Modal
         opened={choosing}
         onClose={() => setChoosing(false)}
@@ -174,7 +342,7 @@ export function AgentChat({
               key={entry.id}
               className={`agent-choice ${entry.id === doc.id ? "selected-agent" : ""}`}
               aria-current={entry.id === doc.id ? "true" : undefined}
-              disabled={busy || loading}
+              disabled={loading}
               onClick={() => {
                 setChoosing(false);
                 onSelectFlow(entry.id);
@@ -198,7 +366,7 @@ export function AgentChat({
       ) : (
         <>
           <div className="chat-scroll" aria-live="polite">
-            {!messages.length && !busy && (
+            {!messages.length && !viewBusy && (
               <div className="chat-empty">
                 <img
                   src={`${import.meta.env.BASE_URL}brand/agent-plan-logo.png`}
@@ -216,16 +384,59 @@ export function AgentChat({
                   {message.role === "user" ? tr("你") : doc.flow.name}
                 </span>
                 <MarkdownText source={message.content} format={message.format} />
+                {message.role === "assistant" &&
+                  runs
+                    .filter((run) => run.threadId === activeThread?.id && run.messageIndex === i)
+                    .map((run) => (
+                      <Button
+                        key={run.id}
+                        variant="subtle"
+                        size="compact-xs"
+                        onClick={() => setSelectedRun(run.id)}
+                      >
+                        {tr("执行记录")}
+                      </Button>
+                    ))}
               </article>
             ))}
-            {busy && (
+            {viewBusy && preview && (
+              <article className="chat-message assistant">
+                <span className="message-author">{doc.flow.name}</span>
+                <MarkdownText source={preview} />
+              </article>
+            )}
+            {viewBusy && (
               <p className="chat-progress" role="status">
-                {progress || tr("处理中…")}
+                {model.status === "initializing" &&
+                  progress === "正在初始化本地模型，可能需要几分钟，请耐心等待。" && (
+                    <Loader
+                      size="sm"
+                      style={{ display: "inline-block", verticalAlign: "middle", marginRight: 8 }}
+                    />
+                  )}
+                {progress ? tr(progress) : tr("处理中…")}
               </p>
             )}
+            {runs
+              .filter((run) => run.threadId === activeThread?.id && run.status !== "completed")
+              .map((run) => (
+                <Button
+                  key={run.id}
+                  variant="subtle"
+                  size="compact-xs"
+                  onClick={() => setSelectedRun(run.id)}
+                >
+                  {tr("执行记录")}
+                </Button>
+              ))}
             <div ref={bottom} />
           </div>
           <div className="composer-wrap">
+            {executionBusy && !viewBusy && (
+              <p className="muted" role="status">
+                {tr("另一会话正在运行，完成后可发送。")}
+              </p>
+            )}
             {error && (
               <div role="alert" className="error">
                 {error}
@@ -245,7 +456,7 @@ export function AgentChat({
                 maxRows={8}
                 styles={{ input: { border: 0, background: "transparent" } }}
                 value={prompt}
-                disabled={busy || loading}
+                disabled={viewBusy || loading}
                 placeholder={tr("给 Agent 发消息…")}
                 onChange={(e) => setPrompt(e.target.value)}
                 onKeyDown={(e) => {
@@ -259,7 +470,7 @@ export function AgentChat({
                 <Button
                   className="agent-picker"
                   variant="subtle"
-                  disabled={busy || loading}
+                  disabled={loading}
                   aria-label={tr("选择对话流程")}
                   onClick={() => {
                     setQuery("");
@@ -268,11 +479,14 @@ export function AgentChat({
                 >
                   <span className="agent-picker-name">{doc.flow.name}</span>
                 </Button>
-                {busy ? (
+                {viewBusy || downloading ? (
                   <Button
                     type="button"
                     aria-label={tr("停止")}
-                    onClick={() => abort.current?.abort()}
+                    onClick={() => {
+                      abort.current?.abort();
+                      aiHost.dispose();
+                    }}
                   >
                     <Icon name="stop" />
                   </Button>
@@ -282,7 +496,7 @@ export function AgentChat({
                     className="primary"
                     type="submit"
                     aria-label={tr("发送消息")}
-                    disabled={loading || !prompt.trim()}
+                    disabled={executionBusy || loading || !prompt.trim()}
                   >
                     <Icon name="send" />
                   </Button>

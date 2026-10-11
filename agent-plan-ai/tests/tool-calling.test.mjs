@@ -4,7 +4,7 @@ import test from "node:test";
 import { describeTools, parseFlow } from "agent-plan-core";
 import { createAiTools, createToolExecutionTools, createToolRegistry } from "../dist/index.js";
 import { localMessages, localResult } from "../dist/local-tools.js";
-import { parseMessages, resolveTools, wireName } from "../dist/tool-calling.js";
+import { resolveTools, wireName } from "../dist/tool-calling.js";
 
 function registry() {
   return describeTools(
@@ -142,7 +142,7 @@ test("execution budgets persist across batches; cancellation preserves completed
   await execute({ calls: batch, tools: ["demo.echo"] });
   await assert.rejects(execute({ calls, tools: ["demo.echo"] }), /BUDGET/);
 });
-test("local tool prompting and JSON parsing preserve requests without evaluating code", () => {
+test("Qwen Hermes calls and history preserve requests and reject malformed calls", () => {
   const input = {
     messages: [{ role: "user", content: "echo" }],
     maxTokens: 100,
@@ -150,32 +150,40 @@ test("local tool prompting and JSON parsing preserve requests without evaluating
       { target: "demo.echo", name: wireName("demo.echo"), parameters: { type: "object" } },
     ],
   };
-  assert.match(localMessages(input)[0].content, /never Python/);
+  assert.deepEqual(localMessages(input), input.messages);
   const result = localResult(
-    `<|tool_call_start|>[{"name":"${wireName("demo.echo")}","arguments":{"text":"hi"}}]<|tool_call_end|><|im_end|>`,
+    `before<tool_call>{"name":"${wireName("demo.echo")}","arguments":{"text":"hi"}}</tool_call><|im_end|>`,
     input,
   );
+  assert.equal(result.result, "before");
   assert.equal(result.toolCalls[0].target, "demo.echo");
   assert.deepEqual(result.toolCalls[0].inputs, { text: "hi" });
   assert.equal(result.message.toolCalls[0].id, result.toolCalls[0].id);
-  assert.equal(
-    localResult(JSON.stringify([{ name: wireName("demo.echo"), arguments: { text: "hi" } }]), input)
-      .toolCalls[0].target,
-    "demo.echo",
-  );
-  assert.throws(() => localResult("<|tool_call_start|>[evil()]<|tool_call_end|>", input), /JSON/);
-  assert.throws(() => localResult("<|tool_call_start|>[", input), /Incomplete/);
+  const history = localMessages({
+    ...input,
+    messages: [
+      result.message,
+      { role: "tool", content: '{"result":"hi"}', toolCallId: result.toolCalls[0].id },
+    ],
+  });
+  assert.deepEqual(history[0].tool_calls[0].function, {
+    name: wireName("demo.echo"),
+    arguments: { text: "hi" },
+  });
+  assert.equal(history[1].role, "tool");
+  assert.throws(() => localResult("<tool_call>evil()</tool_call>", input), /Invalid/);
+  assert.throws(() => localResult("<tool_call>{", input), /Incomplete/);
   assert.throws(
-    () =>
-      localResult('<|tool_call_start|>[{"name":"unknown","arguments":{}}]<|tool_call_end|>', input),
+    () => localResult('<tool_call>{"name":"unknown","arguments":{}}</tool_call>', input),
     /Unknown/,
   );
   assert.deepEqual(localResult("hello", input).toolCalls, []);
   assert.equal(localResult('["ordinary", "answer"]', input).result, '["ordinary", "answer"]');
-  assert.throws(
-    () => parseMessages([{ role: "user", content: "hi", toolCalls: [] }]),
-    /Invalid tool/,
+  const two = localResult(
+    `<tool_call>{"name":"${wireName("demo.echo")}","arguments":{}}</tool_call><tool_call>{"name":"${wireName("demo.echo")}","arguments":{}}</tool_call>`,
+    input,
   );
+  assert.equal(two.toolCalls.length, 2);
 });
 test("imported flow tools use Core and preserve literal arguments and scope", async () => {
   const child = {

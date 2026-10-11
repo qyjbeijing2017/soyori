@@ -1,12 +1,14 @@
 import { Button, Modal, NativeSelect, TextInput, UnstyledButton } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { parseFlow } from "agent-plan-core";
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AgentChat } from "./AgentChat";
 import { AiSettings } from "./AiSettings";
-import { BrowserAiHost, initialAiSettings } from "./ai-host";
-import { removeThread, type ThreadBook } from "./chat-threads";
+import { BrowserAiHost } from "./ai-host";
+import { loadAiSettings, saveAiSettings } from "./ai-settings";
+import { assistantFlow } from "./assistant-flow";
+import { removeThread, type ThreadBook, updateThread } from "./chat-threads";
 import { loadConversations, saveConversations } from "./conversations";
 import { DescriptionInput } from "./DescriptionInput";
 import example from "./example.json";
@@ -20,6 +22,7 @@ import {
   makeDocument,
   saveDocument,
 } from "./library";
+import { ModelDownloadProgress } from "./ModelDownloadProgress";
 import { NavigationDrawer } from "./NavigationDrawer";
 import { Icon, IconButton } from "./ui";
 import { WorkspaceLibrary } from "./WorkspaceLibrary";
@@ -48,21 +51,47 @@ export function App() {
   }, [agentSelected]);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [books, setBooks] = useState<Record<string, ThreadBook>>({});
+  const booksRef = useRef(books);
+  const bookQueue = useRef<Promise<void>>(Promise.resolve());
+  const [runningThreads, setRunningThreads] = useState<Record<string, string>>({});
+  const [editorBusy, setEditorBusy] = useState(false);
+  const busy = editorBusy || Object.keys(runningThreads).length > 0;
   const [threadSaving, setThreadSaving] = useState(false);
-  const [builtin] = useState(() =>
-    makeDocument(parseFlow(structuredClone(example)), "builtin-local-agent"),
-  );
+  const [settings, setSettings] = useState(loadAiSettings);
+  const builtin = makeDocument(assistantFlow(settings), "builtin-local-agent");
   const chatDocs = [
-    { ...builtin, flow: { ...builtin.flow, name: tr("本地 Agent") } },
+    { ...builtin, flow: { ...builtin.flow, name: tr("AgentPlan助手") } },
     ...documents.filter((d) => canChat(d.flow)),
   ];
   const [selected, setSelected] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [settings, setSettings] = useState(initialAiSettings);
+  useEffect(() => {
+    try {
+      saveAiSettings(settings);
+    } catch {
+      /* Keep settings in memory when storage is unavailable. */
+    }
+  }, [settings]);
   const [host] = useState(() => new BrowserAiHost());
+  useEffect(() => {
+    void host.downloads.restore().catch(() => {});
+    return () => host.dispose();
+  }, [host]);
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        "agent-plan-background-initialization",
+        String(settings.backgroundInitialization),
+      );
+    } catch {
+      /* Keep settings in memory if storage is unavailable. */
+    }
+    if (settings.backgroundInitialization && settings.allowLocalDownload)
+      void host.initialize().catch(() => {});
+    else host.cancelInitialization();
+  }, [host, settings.backgroundInitialization, settings.allowLocalDownload]);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [threadDelete, setThreadDelete] = useState<{
     docId: string;
@@ -86,7 +115,10 @@ export function App() {
       chatDocs.map(async (entry) => [entry.id, await loadConversations(entry)] as const),
     )
       .then((entries) => {
-        if (active) setBooks((current) => ({ ...Object.fromEntries(entries), ...current }));
+        if (active) {
+          booksRef.current = { ...Object.fromEntries(entries), ...booksRef.current };
+          setBooks(booksRef.current);
+        }
       })
       .catch((cause) => {
         if (active) setError(String(cause));
@@ -95,17 +127,27 @@ export function App() {
       active = false;
     };
   }, [chatIds]);
-  async function updateBook(docId: string, book: ThreadBook) {
-    await saveConversations(docId, book);
-    setBooks((current) => ({ ...current, [docId]: book }));
+  function updateBook(docId: string, change: (book: ThreadBook) => ThreadBook) {
+    const task = bookQueue.current.then(async () => {
+      const current = booksRef.current[docId];
+      if (!current) throw new Error(tr("会话记录尚未加载。"));
+      const next = change(current);
+      await saveConversations(docId, next);
+      booksRef.current = { ...booksRef.current, [docId]: next };
+      setBooks(booksRef.current);
+    });
+    bookQueue.current = task.catch(() => {});
+    return task;
   }
   async function chooseThread(docId: string, id?: string) {
     const target = chatDocs.find((entry) => entry.id === docId);
-    if (busy || threadSaving || !target) return;
+    if (threadSaving || !target) return;
     setThreadSaving(true);
     try {
-      const book = books[docId] ?? (await loadConversations(target));
-      await updateBook(docId, { ...book, activeId: id ?? "" });
+      await updateBook(docId, (book) => ({
+        ...book,
+        activeId: id && book.threads.some((thread) => thread.id === id) ? id : "",
+      }));
       setAgentSelected(docId);
       setPage("agent");
       if (mobile) setDrawerOpen(false);
@@ -146,7 +188,7 @@ export function App() {
     }
   }
   function create(directory = "") {
-    const next = makeDocument(parseFlow(structuredClone(example)));
+    const next = makeDocument(parseFlow({ ...structuredClone(example), description: "" }));
     next.flow.name = "";
     setCreationDirectory(directory);
     setMetadataError("");
@@ -182,7 +224,7 @@ export function App() {
           <Button
             className="new-thread"
             leftSection={<Icon name="plus" />}
-            disabled={busy || threadSaving || !books[agentDoc.id]}
+            disabled={threadSaving || !books[agentDoc.id]}
             onClick={() => void chooseThread(agentDoc.id)}
           >
             {tr("新对话")}
@@ -197,18 +239,26 @@ export function App() {
                   <UnstyledButton
                     type="button"
                     className="thread-item"
-                    disabled={busy || threadSaving}
+                    disabled={threadSaving}
                     onClick={() => void chooseThread(entry.id, thread.id)}
                   >
                     <span>{thread.messages.length ? thread.title : tr("新对话")}</span>
-                    <small>{entry.flow.name}</small>
+                    <small>
+                      {entry.flow.name}
+                      {runningThreads[entry.id] === thread.id ? ` · ${tr("运行中")}` : ""}
+                    </small>
                   </UnstyledButton>
                   <IconButton
                     icon="delete"
+                    title={
+                      runningThreads[entry.id] === thread.id
+                        ? tr("请先停止此会话，再删除。")
+                        : undefined
+                    }
                     label={tr("删除对话 {{name}}", {
                       name: thread.messages.length ? thread.title : tr("新对话"),
                     })}
-                    disabled={busy || threadSaving}
+                    disabled={runningThreads[entry.id] === thread.id || threadSaving}
                     onClick={() => {
                       setThreadDeleteError("");
                       setThreadDelete({
@@ -254,7 +304,7 @@ export function App() {
                   aria-label={tr({ agent: "对话", library: "流程库", editor: "编辑器" }[id])}
                   title={tr({ agent: "对话", library: "流程库", editor: "编辑器" }[id])}
                   className="navigation-tab"
-                  disabled={busy || saving || (id === "editor" && !doc)}
+                  disabled={saving || (id === "editor" && !doc)}
                   onClick={() => setPage(id)}
                 >
                   <Icon name={id === "agent" ? "chat" : id === "library" ? "flow" : "edit"} />
@@ -266,6 +316,7 @@ export function App() {
             </nav>
             <div className="toolbar-side" aria-hidden="true" />
           </header>
+          <ModelDownloadProgress manager={host.downloads} />
           <main className={`page-content page-${page}`}>
             {error && (
               <div className="global-error" role="alert">
@@ -284,23 +335,35 @@ export function App() {
               <div className="loading-state">{tr("正在打开你的工作空间…")}</div>
             ) : (
               <>
-                {agentDoc && (
-                  <div hidden={page !== "agent"}>
+                {chatDocs.map((entry) => (
+                  <div
+                    key={`agent:${entry.id}`}
+                    hidden={page !== "agent" || entry.id !== agentDoc.id}
+                  >
                     <AgentChat
-                      key={`agent:${agentDoc.id}`}
-                      doc={agentDoc}
+                      doc={entry}
                       documents={documents}
                       aiHost={host}
                       settings={settings}
-                      onBusy={setBusy}
-                      book={books[agentDoc.id] ?? null}
-                      onBookChange={(book) => updateBook(agentDoc.id, book)}
+                      executionBusy={busy}
+                      onBusy={(running, threadId) =>
+                        setRunningThreads((current) => {
+                          const next = { ...current };
+                          if (running && threadId) next[entry.id] = threadId;
+                          else delete next[entry.id];
+                          return next;
+                        })
+                      }
+                      book={books[entry.id] ?? null}
+                      onThreadChange={(thread, activate) =>
+                        updateBook(entry.id, (book) => updateThread(book, thread, activate))
+                      }
                       onLibrary={() => setPage("library")}
                       flows={chatDocs}
                       onSelectFlow={setAgentSelected}
                     />
                   </div>
-                )}
+                ))}
                 {page === "library" && (
                   <WorkspaceLibrary
                     documents={documents}
@@ -330,7 +393,8 @@ export function App() {
                       documents={documents}
                       aiHost={host}
                       settings={settings}
-                      onBusy={setBusy}
+                      executionBusy={Object.keys(runningThreads).length > 0}
+                      onBusy={setEditorBusy}
                       saving={saving}
                       onSave={(flow) => persist({ ...doc, flow })}
                     />
@@ -383,10 +447,12 @@ export function App() {
               </div>
             </section>
             <AiSettings
+              host={host}
               value={settings}
               disabled={busy}
               onChange={setSettings}
               onRelease={() => host.dispose()}
+              downloads={host.downloads}
             />
           </div>
         </main>
@@ -420,15 +486,19 @@ export function App() {
             color="red"
             variant="filled"
             loading={threadSaving}
-            disabled={busy}
+            disabled={Boolean(
+              threadDelete && runningThreads[threadDelete.docId] === threadDelete.id,
+            )}
             onClick={async () => {
-              if (!threadDelete || busy || threadSaving) return;
+              if (
+                !threadDelete ||
+                runningThreads[threadDelete.docId] === threadDelete.id ||
+                threadSaving
+              )
+                return;
               setThreadSaving(true);
               try {
-                await updateBook(
-                  threadDelete.docId,
-                  removeThread(books[threadDelete.docId], threadDelete.id),
-                );
+                await updateBook(threadDelete.docId, (book) => removeThread(book, threadDelete.id));
                 setThreadDelete(null);
               } catch (cause) {
                 setThreadDeleteError(String(cause));
