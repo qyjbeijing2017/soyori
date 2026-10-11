@@ -2,6 +2,8 @@
 
 本地 Agent 流程工具总仓库。core 和 CLI 都采用独立 Git 仓库，通过子模块固定版本，通过 pnpm workspace 联合开发。
 
+使用产品请从[正式手册](docs/handbook/introduction.md)和[快速入门](docs/handbook/quick-start.md)开始。网页侧栏 Document 与助手读取同一套手册，CLI 用法见[命令参考](docs/handbook/cli/guide.md)。
+
 项目目标是让用户和 AI 更方便地开发、运行和逐步调试 AI Agent，重点放在工具能力与联调，流程保持轻量。新加入的开发者或 AI 窗口先读 [项目目标与决策](docs/project-context.md)；自动协作入口见 [AGENTS.md](AGENTS.md)。文档明确区分已实现能力、用户确认方向和后续方案建议。
 
 核心产品原则：**预设子流程负责简单，底层节点负责能力**。已确认设计见 [AI 工具与预设](docs/ai-tools-and-presets.md)。单次模型调用已接入，使用方法见 [AI 工具](agent-plan-ai/README.md)；流程工具桥接与 Agent 预设仍待实现。

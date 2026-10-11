@@ -1,0 +1,14 @@
+schemaVersion: 1
+name: 手册子流程
+imports:
+  increment: ./add-one.yaml
+fields:
+  - name: answer
+    output: true
+steps:
+  - type: call
+    target: increment
+    inputs:
+      count: 2
+    outputs:
+      count: $answer

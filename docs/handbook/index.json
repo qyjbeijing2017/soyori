@@ -1,0 +1,137 @@
+{
+  "version": "2026-10-11",
+  "chapters": [
+    {
+      "id": "introduction",
+      "path": "docs/handbook/introduction.md",
+      "title": "认识 Agent Plan",
+      "group": "开始使用",
+      "summary": "产品概念、阅读路线、已实现能力与边界。"
+    },
+    {
+      "id": "quick-start",
+      "path": "docs/handbook/quick-start.md",
+      "title": "快速入门",
+      "group": "开始使用",
+      "summary": "不依赖模型的第一个流程，编辑、运行、修改与验证。",
+      "examples": ["hello"]
+    },
+    {
+      "id": "workspace",
+      "path": "docs/handbook/workspace.md",
+      "title": "文件库与编辑器",
+      "group": "开始使用",
+      "summary": "Library、草稿与保存、文件路径、工程包和对话。"
+    },
+    {
+      "id": "flow-language",
+      "path": "docs/handbook/flows/language.md",
+      "title": "流程结构与全部节点",
+      "group": "流程参考",
+      "summary": "schemaVersion、字段声明、全部节点参数与执行行为。",
+      "examples": ["hello", "counter"]
+    },
+    {
+      "id": "operands",
+      "path": "docs/handbook/flows/operands.md",
+      "title": "变量与数据路径",
+      "group": "流程参考",
+      "summary": "$ 引用、$$ 转义、模板、对象数组与写入边界。"
+    },
+    {
+      "id": "subflows",
+      "path": "docs/handbook/flows/subflows.md",
+      "title": "子流程与调用",
+      "group": "流程参考",
+      "summary": "imports、输入输出映射、作用域和嵌套执行。",
+      "examples": ["subflows"]
+    },
+    {
+      "id": "scripts",
+      "path": "docs/handbook/scripts/development.md",
+      "title": "脚本开发",
+      "group": "工具与 Agent",
+      "summary": "script.run、input/result、模块导入、Worker、错误与平台差异。",
+      "examples": ["scripts"]
+    },
+    {
+      "id": "tool-contract",
+      "path": "docs/handbook/tools/contract.md",
+      "title": "工具契约与平台支持",
+      "group": "工具与 Agent",
+      "summary": "共享工具的定义、调用规则、实际平台支持和宿主差异。"
+    },
+    {
+      "id": "tool-reference",
+      "path": "docs/handbook/tools/reference.md",
+      "title": "工具完整参考",
+      "group": "工具与 Agent",
+      "summary": "基础、网络、AI、存储、记忆、脚本和工具执行接口。"
+    },
+    {
+      "id": "assistant-tools",
+      "path": "docs/handbook/tools/assistant.md",
+      "title": "助手文件与调试工具",
+      "group": "工具与 Agent",
+      "summary": "project.docs/tools、workspace、flow.create/inspect/run 的完整接口与修复闭环。"
+    },
+    {
+      "id": "agents",
+      "path": "docs/handbook/agents/models.md",
+      "title": "模型与 Agent 工具循环",
+      "group": "工具与 Agent",
+      "summary": "DeepSeek 等兼容 API 配置、模型消息、工具请求和显式 while 循环。"
+    },
+    {
+      "id": "storage",
+      "path": "docs/handbook/agents/storage.md",
+      "title": "存储与对话记忆",
+      "group": "工具与 Agent",
+      "summary": "键值存储、threads 原始记录、memory 编排和 token 计数。"
+    },
+    {
+      "id": "debugging",
+      "path": "docs/handbook/debugging/guide.md",
+      "title": "运行与调试",
+      "group": "运行与理解",
+      "summary": "逐步执行、错误定位、脚本修复、嵌套调用栈、预算和 trace。",
+      "examples": ["debugging"]
+    },
+    {
+      "id": "cli",
+      "path": "docs/handbook/cli/guide.md",
+      "title": "CLI 使用与命令参考",
+      "group": "运行与理解",
+      "summary": "工作区安装、所有命令、参数、存储配置、输出协议与 trace。"
+    },
+    {
+      "id": "architecture",
+      "path": "docs/handbook/architecture.md",
+      "title": "架构与能力边界",
+      "group": "运行与理解",
+      "summary": "Core、CLI、Editor 与工具包的职责，当前公开 API 与未实现能力。"
+    }
+  ],
+  "examples": [
+    { "id": "hello", "title": "第一个流程", "entry": "hello.yaml", "files": ["hello.yaml"] },
+    { "id": "counter", "title": "循环计数", "entry": "counter.yaml", "files": ["counter.yaml"] },
+    {
+      "id": "subflows",
+      "title": "子流程调用",
+      "entry": "main.yaml",
+      "files": ["main.yaml", "add-one.yaml"]
+    },
+    {
+      "id": "scripts",
+      "title": "脚本与模块",
+      "entry": "flow.yaml",
+      "files": ["flow.yaml", "lib/greet.js"]
+    },
+    {
+      "id": "debugging",
+      "title": "修复除零错误",
+      "entry": "broken.yaml",
+      "files": ["broken.yaml", "fixed.yaml"]
+    }
+  ]
+}

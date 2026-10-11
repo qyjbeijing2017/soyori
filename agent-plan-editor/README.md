@@ -2,6 +2,8 @@
 
 React + TypeScript + Vite 的响应式编辑器，复用 Core、AI 与存储包。
 
+设置上方的 **Document** 打开[正式手册](../docs/handbook/introduction.md)，包含快速入门、完整流程语法、脚本、工具、CLI 和调试。目录、阅读器、正文和搜索索引分开加载；助手 `project.docs` 使用同一套内容。示例只导入文件，不自动执行。
+
 ```sh
 pnpm install
 pnpm editor

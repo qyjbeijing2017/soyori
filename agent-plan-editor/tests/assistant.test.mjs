@@ -13,6 +13,11 @@ test("assistant selects configured providers, keeps both model turns consistent,
   const settings = structuredClone(initialAiSettings);
   assert.equal(assistantProvider(settings), "local");
   assert.equal(assistantFlow(settings).steps[1].target, "llm.local");
+  const local = assistantFlow(settings);
+  assert.ok(local.steps[1].inputs.tools.includes("flow.create"));
+  assert.ok(local.steps[3].body[2].inputs.tools.includes("flow.create"));
+  assert.match(local.steps[0].inputs.system, /根目录/);
+  assert.match(local.steps[0].inputs.system, /不要追问/);
   settings.anthropic = {
     apiKey: "anthropic-secret",
     model: "test-claude",

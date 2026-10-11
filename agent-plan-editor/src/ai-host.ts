@@ -13,6 +13,7 @@ import { createStorageTools } from "agent-plan-storage";
 import { createBrowserStorage } from "agent-plan-storage/browser";
 import { createBasicTools } from "agent-plan-tools";
 import type { AiSettings } from "./ai-settings";
+import { createAssistantTools } from "./assistant-tools.ts";
 import { ModelDownloadManager } from "./model-download";
 import { configureManagedModelCache } from "./model-files";
 import { createBrowserScriptTools } from "./script-host";
@@ -20,6 +21,7 @@ import { createBrowserScriptTools } from "./script-host";
 export { type AiSettings, initialAiSettings } from "./ai-settings";
 
 export class BrowserAiHost {
+  documentation?: import("./documentation").Documentation;
   readonly downloads = new ModelDownloadManager();
   private state: { status: "idle" | "initializing" | "ready" | "error"; error: string } = {
     status: "idle",
@@ -89,6 +91,7 @@ export class BrowserAiHost {
     graph?: LoadedFlow,
     activeSource?: () => string | undefined,
     stream?: (event: ModelEvent) => void,
+    running = false,
   ) {
     const registry: Record<string, RuntimeFunction> = {};
     const storage = createBrowserStorage();
@@ -141,6 +144,18 @@ export class BrowserAiHost {
       ...createToolExecutionTools({ registry: scope.registry, signal }),
     });
     Object.assign(registry, createMemoryTools(storage));
+    Object.assign(
+      registry,
+      createAssistantTools({
+        signal,
+        docs: this.documentation,
+        registry,
+        running,
+        changed: () => globalThis.dispatchEvent?.(new Event("agent-plan-workspace-changed")),
+        functions: (target, source, childSignal) =>
+          this.tools(settings, childSignal, progress, target, source, undefined, true),
+      }),
+    );
     for (const provider of ["openai", "anthropic"] as const) {
       const name = `llm.${provider}`;
       const original = registry[name];

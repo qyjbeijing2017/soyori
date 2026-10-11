@@ -82,20 +82,36 @@ export function readFile(path: string): Promise<WorkspaceFile | undefined> {
   });
 }
 /** Atomic batch, preserving bytes and existing IDs. Conflicts never silently overwrite. */
-export async function writeFiles(files: WorkspaceFile[], replace = false) {
+export async function writeFiles(
+  files: WorkspaceFile[],
+  replace = false,
+  revisions?: Record<string, string>,
+) {
   const paths = new Set<string>();
   for (const file of files) {
     file.path = filePath(file.path);
     if (paths.has(file.path)) throw Error(`Duplicate path: ${file.path}`);
     paths.add(file.path);
   }
-  return transaction<void>("readwrite", (store, result) => {
+  return transaction<void>("readwrite", (store, result, fail) => {
     const request = store.getAll();
     request.onsuccess = () => {
       const existing = request.result as WorkspaceFile[];
       const combined = new Map(existing.map((f) => [f.path, f]));
       for (const file of files) {
         const previous = combined.get(file.path);
+        if (
+          revisions &&
+          previous &&
+          revisions[file.path] !== `${previous.id}:${previous.updatedAt}`
+        ) {
+          fail(Error(`WORKSPACE_CONFLICT: File changed: ${file.path}`));
+          return;
+        }
+        if (revisions && !previous && revisions[file.path]) {
+          fail(Error(`WORKSPACE_CONFLICT: File removed: ${file.path}`));
+          return;
+        }
         if (previous && (!replace || previous.kind !== file.kind || previous.id !== file.id)) {
           store.transaction.abort();
           return;

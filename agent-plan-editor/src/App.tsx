@@ -1,7 +1,7 @@
 import { Button, Modal, NativeSelect, TextInput, UnstyledButton } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { parseFlow } from "agent-plan-core";
-import { useEffect, useId, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AgentChat } from "./AgentChat";
 import { AiSettings } from "./AiSettings";
@@ -24,15 +24,30 @@ import {
 } from "./library";
 import { ModelDownloadProgress } from "./ModelDownloadProgress";
 import { NavigationDrawer } from "./NavigationDrawer";
+import { projectDocs } from "./project-docs";
 import { Icon, IconButton } from "./ui";
 import { WorkspaceLibrary } from "./WorkspaceLibrary";
 
-type Page = "agent" | "library" | "editor";
+const DocumentPage = lazy(() => import("./DocumentPage"));
+type Page = "agent" | "library" | "editor" | "document";
 export function App() {
   const formId = useId();
   const { i18n } = useTranslation();
   const mobile = useMediaQuery("(max-width: 48em)");
-  const [page, setPage] = useState<Page>("agent");
+  const [page, setPage] = useState<Page>(() =>
+    location.hash.startsWith("#document/") ? "document" : "agent",
+  );
+  useEffect(() => {
+    const navigate = () => setPage(location.hash.startsWith("#document/") ? "document" : "agent");
+    window.addEventListener("hashchange", navigate);
+    return () => window.removeEventListener("hashchange", navigate);
+  }, []);
+  useEffect(() => {
+    if (page === "document" && !location.hash.startsWith("#document/"))
+      history.replaceState(null, "", "#document/introduction");
+    else if (page !== "document" && location.hash.startsWith("#document/"))
+      history.replaceState(null, "", location.pathname + location.search);
+  }, [page]);
   const [documents, setDocuments] = useState<FlowDocument[]>([]);
   const [libraryRevision, setLibraryRevision] = useState(0);
   const [agentSelected, setAgentSelected] = useState(() => {
@@ -74,7 +89,21 @@ export function App() {
       /* Keep settings in memory when storage is unavailable. */
     }
   }, [settings]);
-  const [host] = useState(() => new BrowserAiHost());
+  const [host] = useState(() => {
+    const host = new BrowserAiHost();
+    host.documentation = projectDocs;
+    return host;
+  });
+  useEffect(() => {
+    const refresh = () => {
+      void loadLibrary()
+        .then(setDocuments)
+        .catch((cause) => setError(String(cause)));
+      setLibraryRevision((value) => value + 1);
+    };
+    window.addEventListener("agent-plan-workspace-changed", refresh);
+    return () => window.removeEventListener("agent-plan-workspace-changed", refresh);
+  }, []);
   useEffect(() => {
     void host.downloads.restore().catch(() => {});
     return () => host.dispose();
@@ -273,6 +302,17 @@ export function App() {
             )}
           </nav>
           <Button
+            className="drawer-document"
+            variant={page === "document" ? "light" : "subtle"}
+            leftSection={<Icon name="document" />}
+            onClick={() => {
+              setPage("document");
+              if (mobile) setDrawerOpen(false);
+            }}
+          >
+            Document
+          </Button>
+          <Button
             className="drawer-settings"
             variant="subtle"
             leftSection={<Icon name="settings" />}
@@ -335,6 +375,20 @@ export function App() {
               <div className="loading-state">{tr("正在打开你的工作空间…")}</div>
             ) : (
               <>
+                {page === "document" && (
+                  <Suspense fallback={<p role="status">{tr("正在加载章节…")}</p>}>
+                    <DocumentPage
+                      onOpenExample={async (path) => {
+                        const docs = await loadLibrary();
+                        const imported = docs.find((doc) => doc.path === path);
+                        if (!imported) throw Error(tr("示例流程未找到。"));
+                        setDocuments(docs);
+                        setSelected(imported.id);
+                        setPage("editor");
+                      }}
+                    />
+                  </Suspense>
+                )}
                 {chatDocs.map((entry) => (
                   <div
                     key={`agent:${entry.id}`}
@@ -400,7 +454,7 @@ export function App() {
                     />
                   </div>
                 )}
-                {!doc && !loading && page !== "library" && (
+                {!doc && !loading && page === "editor" && (
                   <div className="empty-panel">
                     <p>{tr("请先从 Library 选择一个流程。")}</p>
                     <Button type="button" onClick={() => setPage("library")}>

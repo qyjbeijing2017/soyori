@@ -44,6 +44,7 @@ const paths = {
   plus: "M12 4v16M4 12h16",
   loop: "M20 8a8 8 0 0 0-14-2L3 9m0-6v6h6m-5 7a8 8 0 0 0 14 2l3-3m0 6v-6h-6",
   settings: "M4 6h16M4 12h16M4 18h16M8 3v6m8 0v6m-8 0v6",
+  document: "M5 3h10l4 4v14H5zM14 3v5h5M8 12h8M8 16h8",
   flow: "M4 4h16v4H4zM4 11h10v4H4zM10 18h10v4H10z",
   call: "M9 5 3 12l6 7m6-14 6 7-6 7",
   control: "M6 3v12a5 5 0 0 0 5 5h7M6 9h6a6 6 0 0 0 6-6m-3 0h6m-6 17h6",

@@ -5,6 +5,7 @@ export type { ModelEvent } from "./stream.js";
 import { AIMessage, HumanMessage, SystemMessage, ToolMessage } from "@langchain/core/messages";
 import { describeTools } from "agent-plan-core";
 import { AI_TOOL_DEFINITIONS } from "./definitions.js";
+import { remoteFailure } from "./remote-failure.js";
 import {
   type ChatMessage,
   parseCalls,
@@ -317,11 +318,7 @@ export function createAiTools(options: AiOptions) {
         )
           throw new Error("AI_JSON_OUTPUT: Model returned invalid, refused or incomplete JSON.");
         // SDK errors may contain credentials, request headers, URLs or provider-echoed prompts.
-        const status =
-          error && typeof error === "object" && "status" in error ? error.status : undefined;
-        throw new Error(
-          `AI_REQUEST_FAILED: ${provider}${typeof status === "number" ? ` HTTP ${status}` : " network or SDK error"}. Check model, credentials, service URL and browser CORS support.`,
-        );
+        throw new Error(remoteFailure(provider, error));
       }
     };
   return describeTools(

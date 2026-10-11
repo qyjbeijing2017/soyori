@@ -1,0 +1,10 @@
+schemaVersion: 1
+name: 手册除零错误
+fields:
+  - name: answer
+    output: true
+steps:
+  - type: divide
+    left: 10
+    right: 0
+    output: $answer

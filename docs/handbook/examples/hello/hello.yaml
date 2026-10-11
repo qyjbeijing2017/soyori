@@ -1,0 +1,13 @@
+schemaVersion: 1
+name: 手册问候
+description: 输入名字，输出一句问候。
+fields:
+  - name: name
+    input: true
+    initial: 世界
+  - name: chatOut
+    output: true
+steps:
+  - type: template
+    template: 你好，$name$！
+    output: $chatOut

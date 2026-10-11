@@ -2,6 +2,7 @@ import { parseFlow } from "agent-plan-core";
 import { BASIC_TOOL_DEFINITIONS } from "agent-plan-tools";
 import { type AiSettings, assistantProvider } from "./ai-settings.ts";
 import assistant from "./assistant.json" with { type: "json" };
+import { ASSISTANT_TOOL_DEFINITIONS } from "./assistant-tool-definitions.ts";
 
 export function assistantFlow(settings: AiSettings) {
   const flow = structuredClone(assistant);
@@ -14,8 +15,16 @@ export function assistantFlow(settings: AiSettings) {
       maxTokens: provider === "local" ? 512 : 4096,
       tools:
         provider === "local"
-          ? ["time.now", "web.search", "web.fetch"]
-          : Object.keys(BASIC_TOOL_DEFINITIONS),
+          ? [
+              "flow.create",
+              "workspace.list",
+              "project.tools",
+              "project.docs",
+              "time.now",
+              "web.search",
+              "web.fetch",
+            ]
+          : [...Object.keys(BASIC_TOOL_DEFINITIONS), ...Object.keys(ASSISTANT_TOOL_DEFINITIONS)],
       ...(connection ? { model: connection.model.trim() } : {}),
     } as typeof step.inputs;
   }

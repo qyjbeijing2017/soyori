@@ -1,0 +1,15 @@
+schemaVersion: 1
+name: 手册脚本
+fields:
+  - name: chatOut
+    output: true
+steps:
+  - type: call
+    target: script.run
+    inputs:
+      code: |
+        import { greet } from './lib/greet.js';
+        result(greet(input.name));
+      input:
+        name: 小明
+    output: $chatOut

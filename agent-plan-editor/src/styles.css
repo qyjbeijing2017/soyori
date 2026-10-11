@@ -1466,7 +1466,176 @@ textarea:where(:not([class*="mantine-"], [class*="wx-"])) {
 }
 .drawer-settings {
   flex-shrink: 0;
+  margin-top: 4px;
+}
+.drawer-document {
+  flex-shrink: 0;
   margin-top: auto;
+}
+.document-page {
+  display: flex;
+  flex-direction: column;
+  height: calc(100dvh - 88px);
+  min-height: 400px;
+  padding: 8px 20px;
+}
+.document-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 0 16px;
+  flex-wrap: wrap;
+}
+.document-header h1 {
+  margin: 0;
+  font-size: 22px;
+}
+.document-header small,
+.document-source {
+  color: #687c72;
+}
+.document-header > .mantine-TextInput-root {
+  margin-left: auto;
+  width: min(100%, 320px);
+}
+.document-body {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  gap: 24px;
+}
+.document-sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  overflow-y: auto;
+}
+.document-chapters strong {
+  display: block;
+  padding: 12px 10px 6px;
+  font-size: 12px;
+  color: #687c72;
+}
+.document-chapter {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  min-height: 44px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+.document-chapter[aria-current="page"] {
+  background: #e0eee7;
+  color: #07594c;
+  font-weight: 600;
+}
+.document-article {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 0 16px 48px 0;
+}
+.document-markdown {
+  max-width: 900px;
+  line-height: 1.8;
+}
+.document-markdown :is(h1, h2, h3, h4, h5, h6) {
+  scroll-margin-top: 16px;
+}
+.document-markdown table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+}
+.document-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.document-toc {
+  padding: 12px 0;
+}
+.document-page .document-toc summary {
+  cursor: pointer;
+  min-height: 44px;
+  display: list-item;
+}
+.document-toc a {
+  display: block;
+  padding: 6px 12px;
+  color: #07594c;
+}
+.document-code {
+  position: relative;
+  margin: 16px 0;
+}
+.document-code > button {
+  display: block;
+  margin-left: auto;
+}
+.document-code pre {
+  margin-top: 6px;
+}
+.document-search {
+  border-bottom: 1px solid #dae5df;
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+}
+.document-search-result {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+}
+.document-search-result:hover {
+  background: #eaf2ed;
+}
+.document-search-result span {
+  display: block;
+  white-space: pre-wrap;
+  font-size: 13px;
+  color: #687c72;
+  margin-top: 6px;
+}
+.document-example {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  border-top: 1px solid #dae5df;
+  padding: 16px 0;
+}
+.document-example small {
+  flex-basis: 100%;
+  overflow-wrap: anywhere;
+}
+.document-source {
+  padding-top: 20px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.document-notice {
+  padding: 10px;
+  background: #e0eee7;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 48em) {
+  .document-page {
+    padding: 4px 12px;
+  }
+  .document-header {
+    gap: 8px;
+  }
+  .document-header > .mantine-TextInput-root {
+    width: 100%;
+  }
+  .document-article {
+    padding-right: 0;
+  }
+  .document-markdown {
+    font-size: 15px;
+  }
 }
 .drawer-edge {
   position: fixed;

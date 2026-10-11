@@ -15,6 +15,7 @@ import {
 import { SCRIPT_TOOL_DEFINITION } from "agent-plan-script";
 import { STORAGE_TOOL_DEFINITIONS } from "agent-plan-storage";
 import { BASIC_TOOL_DEFINITIONS } from "agent-plan-tools";
+import { ASSISTANT_TOOL_DEFINITIONS } from "./assistant-tool-definitions.ts";
 import { tr } from "./i18n.ts";
 import type { CallChoice } from "./library-calls.ts";
 
@@ -47,6 +48,7 @@ export function callTargetGroups(choices: CallChoice[], target: string) {
 }
 
 export const toolDefinitions: Record<string, ToolDefinition> = {
+  ...ASSISTANT_TOOL_DEFINITIONS,
   "script.run": SCRIPT_TOOL_DEFINITION,
   ...BASIC_TOOL_DEFINITIONS,
   ...AI_TOOL_DEFINITIONS,
