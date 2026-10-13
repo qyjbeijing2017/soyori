@@ -66,6 +66,7 @@
 - CLI 协议测试覆盖实际子进程、stdout/stderr、退出码；有 trace 或超时时增加对应集成测试。
 - 全部包由同一 Git 仓库管理，packages/* 复用根 pnpm workspace 与唯一锁文件；独立 npm 发布包通过打包和工作区外安装验证确认。
 - 跨包修改、文档及验证在同一个提交中管理，不再维护子模块指针或子仓库发布顺序；不提交构建产物、output/、临时文件及凭证。
+- 文本检出统一使用 LF（包括 TSX/JS/CSS/HTML），避免 Windows 的自动换行转换导致格式检查失败。检查和 Editor 启动先按依赖顺序构建 Core、Storage、Script、Tools、AI，不依赖既有 dist 缓存。
 
 ## 初次审查结论（实现前）
 

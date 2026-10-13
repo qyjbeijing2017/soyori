@@ -4,9 +4,9 @@
   "type": "module",
   "packageManager": "pnpm@11.25.0",
   "scripts": {
-    "editor": "pnpm --filter soyori-core build && pnpm --filter soyori-ai build && pnpm --filter soyori-storage build && pnpm --filter soyori-script build && pnpm --filter soyori-tools build && pnpm --filter soyori-editor dev",
+    "editor": "pnpm --filter soyori-core build && pnpm --filter soyori-storage build && pnpm --filter soyori-script build && pnpm --filter soyori-tools build && pnpm --filter soyori-ai build && pnpm --filter soyori-editor dev",
     "build": "pnpm -r --if-present build",
-    "typecheck": "pnpm --filter soyori-core build && pnpm --filter soyori-ai build && pnpm --filter soyori-storage build && pnpm --filter soyori-script build && pnpm --filter soyori-tools build && pnpm -r --if-present typecheck",
+    "typecheck": "pnpm --filter soyori-core build && pnpm --filter soyori-storage build && pnpm --filter soyori-script build && pnpm --filter soyori-tools build && pnpm --filter soyori-ai build && pnpm -r --if-present typecheck",
     "test": "pnpm -r --if-present test",
     "cli": "node packages/cli/dist/index.js",
     "lint": "biome lint .",
