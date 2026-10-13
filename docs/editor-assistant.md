@@ -1,4 +1,4 @@
-# AgentPlan 助手与浏览器运行
+# Soyori 助手与浏览器运行
 
 当前实现说明，2026-10-11。流程执行语义仍由 Core 提供，助手使用普通步骤和显式工具循环。
 
@@ -10,11 +10,11 @@
 
 环境管理使用 `env.list`、`env.inspect`、`env.set`，契约见[环境与敏感值](handbook/agents/environment.md)。模型工具入口不开放原值 `env.get`，流程执行仍可使用它。助手只能写当前对话环境；敏感项只回传状态，设置参数的执行记录遮挡。`flow.run` 每次读取最新环境，支持设置后立即测试；显式敏感输出与错误遮挡，无自动敏感性传播或代码安全隔离。
 
-- `agent-plan-editor/src/assistant.json` 是独立内置助手；`assistant-flow.ts` 按设置构造两个一致的 `llm.*` 调用。界面显示 AgentPlan助手，保留内部 ID `builtin-local-agent`，不改已有会话 ID。
+- `packages/editor/src/assistant.json` 是独立内置助手；`assistant-flow.ts` 按设置构造两个一致的 `llm.*` 调用。界面显示 Soyori 助手，保留内部 ID `builtin-local-agent`，不改已有会话 ID。
 - `src/example.json` 是 Library 首次模板及新建流程模板，使用 `llm.auto`，完整消息上下文的运行变量名为 `memory`。新建弹窗的名称和说明留空；不覆盖已保存的用户流程。
 - 两种流程都使用 `memory.init → llm.* → memory.addAssistant → while → memory.save`。循环执行 `tools.execute → memory.addTools → llm.* → memory.addAssistant`，无工具请求时结束。
 - `memory.init/save` 使用 `prefix/threadId`，默认前缀 `memory`。Chat 原始记录仍在 `threads/<threadId>`，两者分开；不迁移旧流程的记忆。接口见 [记忆工具](memory-tools.md)。
-- 助手提示明确 Agent Plan 项目语境：“流程”指 JSON/YAML 流程文件，“根目录”指 Library 根目录。远程助手提供全部基础工具及项目操作工具；本地首先提供 `flow.create/workspace.list/project.tools/project.docs/time.now/web.search/web.fetch`，其余接口按需查询。skill 加载尚未实现。
+- 助手提示明确 Soyori 项目语境：“流程”指 JSON/YAML 流程文件，“根目录”指 Library 根目录。远程助手提供全部基础工具及项目操作工具；本地首先提供 `flow.create/workspace.list/project.tools/project.docs/time.now/web.search/web.fetch`，其余接口按需查询。skill 加载尚未实现。
 
 ## 项目文档、文件库与流程工具（2026-10-11）
 
@@ -75,13 +75,17 @@
 
 | 模块 | 责任 |
 | --- | --- |
-| `agent-plan-ai` | 共享供应商适配、消息组装、工具调用格式、流式事件、本地推理 |
-| `agent-plan-tools` | HTTP、搜索、日期及数学/文本/数组基础工具 |
+| `soyori-ai` | 共享供应商适配、消息组装、工具调用格式、流式事件、本地推理 |
+| `soyori-tools` | HTTP、搜索、日期及数学/文本/数组基础工具 |
 | `assistant-flow.ts` / `ai-settings.ts` | 内置助手流程构造与浏览器连接设置 |
 | `ai-host.ts` / `local-model.worker.ts` | 凭据注入、初始化、Worker 与取消 |
 | `model-download*.ts` / `model-files.ts` | 文件清单、完整缓存与断点续传 |
 | `AgentChat.tsx` / `chat-execution.ts` | 线程归属、临时预览与有界记录 |
 
-运行根目录 `pnpm verify`，Editor 生产构建用 `pnpm --filter agent-plan-editor build`。`assistant.test.mjs` 验证选择、模板隔离和设置恢复；`model-initialization.test.mjs` 验证共享初始化与模拟 OpenAI/Anthropic 请求；`memory-preset.test.mjs` 验证完整工具循环和成功才保存记忆。测试不下载模型、不消耗真实付费 API。
+运行根目录 `pnpm verify`，Editor 生产构建用 `pnpm --filter soyori-editor build`。`assistant.test.mjs` 验证选择、模板隔离和设置恢复；`model-initialization.test.mjs` 验证共享初始化与模拟 OpenAI/Anthropic 请求；`memory-preset.test.mjs` 验证完整工具循环和成功才保存记忆。测试不下载模型、不消耗真实付费 API。
 
 桌面浏览器已验证本地生成、实际工具往返及切页后的线程归属。小模型仍可能选错工具、重复追问或错误解读结果；搜索覆盖与最新新闻也不保证。真实付费服务账号尚未联调，模拟协议通过不能替代模型质量或手机兼容性验证。
+
+## Soyori 品牌与数据兼容（2026-10-13）
+
+应用标题、内置助手、提示词和手册统一使用 Soyori；图标资源为 `brand/soyori-logo.png?v=breeze-1`，采用用户确认的 01「风中的 S」透明 PNG，供品牌区、助手入口和 favicon 共用。IndexedDB、localStorage、模型缓存及内置助手 ID 保留既有标识，不因改名迁移或清空文件、对话和连接设置。手册已有操作截图暂展示拍摄时的图标。

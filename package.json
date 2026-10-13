@@ -1,26 +1,26 @@
 {
-  "name": "agent-plan-workspace",
+  "name": "soyori-workspace",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.25.0",
   "scripts": {
-    "editor": "pnpm --filter agent-plan-core build && pnpm --filter agent-plan-ai build && pnpm --filter agent-plan-storage build && pnpm --filter agent-plan-script build && pnpm --filter agent-plan-tools build && pnpm --filter agent-plan-editor dev",
+    "editor": "pnpm --filter soyori-core build && pnpm --filter soyori-ai build && pnpm --filter soyori-storage build && pnpm --filter soyori-script build && pnpm --filter soyori-tools build && pnpm --filter soyori-editor dev",
     "build": "pnpm -r --if-present build",
-    "typecheck": "pnpm --filter agent-plan-core build && pnpm --filter agent-plan-ai build && pnpm --filter agent-plan-storage build && pnpm --filter agent-plan-script build && pnpm --filter agent-plan-tools build && pnpm -r --if-present typecheck",
+    "typecheck": "pnpm --filter soyori-core build && pnpm --filter soyori-ai build && pnpm --filter soyori-storage build && pnpm --filter soyori-script build && pnpm --filter soyori-tools build && pnpm -r --if-present typecheck",
     "test": "pnpm -r --if-present test",
-    "cli": "node agent-plan-cli/dist/index.js",
+    "cli": "node packages/cli/dist/index.js",
     "lint": "biome lint .",
     "format": "biome format . --write",
     "check": "biome check .",
     "verify": "pnpm check && pnpm typecheck && pnpm test",
-    "release:pack": "pnpm --filter agent-plan-cli... build && node scripts/prepare-npm.mjs",
+    "release:pack": "pnpm --filter soyori-cli... build && node scripts/prepare-npm.mjs",
     "release:verify": "node scripts/verify-npm.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.14"
   },
-  "agentPlanRelease": {
-    "scope": "@agent-plan",
+  "soyoriRelease": {
+    "scope": "@soyori",
     "version": "0.1.0"
   }
 }

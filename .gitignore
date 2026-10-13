@@ -14,5 +14,5 @@ Thumbs.db
 .idea/
 .vscode/
 .playwright-cli/
-output/playwright/
+output/
 .agent-plan/storage/

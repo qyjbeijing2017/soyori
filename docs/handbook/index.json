@@ -4,7 +4,7 @@
     {
       "id": "introduction",
       "path": "docs/handbook/introduction.md",
-      "title": "什么是 AgentPlan",
+      "title": "什么是 Soyori",
       "group": "开始使用",
       "summary": "产品概念、阅读路线、已实现能力与边界。"
     },

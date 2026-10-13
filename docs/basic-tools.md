@@ -1,6 +1,6 @@
 # 通用基础工具
 
-CLI 与 Editor 共用 agent-plan-tools，所有能力通过普通 call 节点提供，既可直接编排，也可提供给模型调用。web.search 封装 Mwmbl 公共搜索接口，不搭建代理或自有搜索服务。
+CLI 与 Editor 共用 soyori-tools，所有能力通过普通 call 节点提供，既可直接编排，也可提供给模型调用。web.search 封装 Mwmbl 公共搜索接口，不搭建代理或自有搜索服务。
 
 ## 日期
 
@@ -55,4 +55,4 @@ Editor 遵循网站 CORS、浏览器禁用请求头及响应头可见性规则�
 
 默认 Agent 的系统提示只保留语言、按需使用工具与诚实回答等通用要求，不含搜索供应商、日期前置、URL 拼接或查询步骤；工具接口和说明提供具体用法。
 
-AgentPlan助手与新建模板独立；远程助手提供全部基础工具，本地使用 time.now/web.search/web.fetch 三个工具控制上下文开销。连接设置和路由见 [助手与浏览器运行](editor-assistant.md)。
+Soyori 助手与新建模板独立；远程助手提供全部基础工具，本地使用 time.now/web.search/web.fetch 三个工具控制上下文开销。连接设置和路由见 [助手与浏览器运行](editor-assistant.md)。

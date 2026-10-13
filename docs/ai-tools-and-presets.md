@@ -4,14 +4,14 @@
 
 ## 当前实现与边界
 
-- Editor/CLI 共用 agent-plan-ai，提供 llm.auto、llm.openai、llm.anthropic、llm.local。远程使用 LangChain，本地使用 Transformers.js，Core 不引入模型 SDK。llm.auto 按有效 LLM_PROVIDER > 宿主供应商设置选择；auto 依次使用 model/apiKey 完整的 OpenAI、Anthropic，否则本地，失败不切换供应商重试。
+- Editor/CLI 共用 soyori-ai，提供 llm.auto、llm.openai、llm.anthropic、llm.local。远程使用 LangChain，本地使用 Transformers.js，Core 不引入模型 SDK。llm.auto 按有效 LLM_PROVIDER > 宿主供应商设置选择；auto 依次使用 model/apiKey 完整的 OpenAI、Anthropic，否则本地，失败不切换供应商重试。
 - 连接逐项按步骤参数 > 有效环境 > 宿主连接 > 内置默认值解析，只有官方 Base URL 有内置默认值。CLI 环境为 --env > 系统环境 > env set 全局配置；网页环境按对话或文件覆盖全局，连接默认值来自设置。详见[环境手册](handbook/agents/environment.md)。
 - input 接受文字或完整消息数组；提示词组合使用 template 步骤和 `$path$` 插值。新手流程用 chatIn → template → prompt → llm.auto → chatOut，见[快速入门](handbook/quick-start.md)。
 - tools.execute 支持有接口定义的宿主函数及当前 imports 内的子流程，顺序执行请求，复用 Core。参数、可选允许列表和共享预算在执行入口检查；普通工具失败返回单项结果。批内暂停和逐项 Core trace 尚未实现。详见[工具调用](tool-calling.md)。
 - 新建流程的五个外层步骤为 memory.init → llm.auto → memory.addAssistant → while → memory.save，完整上下文使用 memory 变量。循环内执行工具、memory.addTools、再次调用模型并追加消息。已有用户流程不自动改写，不内置摘要压缩。内置助手使用独立 assistant.json，可查询文档和工具、管理 Library 文件、创建和运行已保存流程，见[助手与浏览器运行](editor-assistant.md)。
 - 当前本地模型为 onnx-community/Qwen3-1.7B-ONNX。浏览器 WebGPU + Q4F16 文件约 1.44 GB，需要 shader-f16；CLI 优先 WebGPU + Q4F16，初始化失败释放后回退 CPU + Q4（约 2.15 GB），生成失败不切换设备重试。下载取决于网速；缓存保留无需重复下载。加载可能需要几分钟，浏览器刷新或关闭重开、CLI 新进程均需再次初始化，同一次页面或进程内复用成功会话。
 - 浏览器 script.run 与 CLI 共享模块契约，见[脚本与工作区](scripts-and-workspace.md)。尚未实现 Jev、多模态、skill 加载、通用外部工具加载、电脑目录同步、MCP、共享远程调试服务和原生封装；预设展示与升级机制仍待设计。手机与当前模型 CLI 跨设备推理仍需实测，模拟服务及布局测试不代表这些验证完成。
-- npm 六包发布准备使用 MIT；原定 agent-plan 和 @agent-plan/core 已被其他项目使用，scope 待重新确定。本项目尚未发布，见[npm 发布准备](npm-release.md)。
+- npm 六包发布准备使用 MIT；项目已更名 Soyori，发布候选 scope 为 @soyori，权限尚待确认；本项目尚未发布，见[npm 发布准备](npm-release.md)。
 
 ## 历史设计与验证记录
 
@@ -109,15 +109,15 @@ typesafe.decide
 
 ## 7. 实现状态与后续阅读
 
-2026-10-01 实现更新：共享 `agent-plan-ai` 包已提供 `llm.openai`、`llm.anthropic`、`llm.local` 单次文本调用，CLI 与 Editor 注册使用；远程使用 LangChain，本地使用 Transformers.js。Editor 有模型设置、简单调用表单、下载进度和取消。详见 [当前 AI 调用契约](../agent-plan-ai/README.md)，该文档优先描述已实现参数，不把本文其他概念字段当成 API。
+2026-10-01 实现更新：共享 `soyori-ai` 包已提供 `llm.openai`、`llm.anthropic`、`llm.local` 单次文本调用，CLI 与 Editor 注册使用；远程使用 LangChain，本地使用 Transformers.js。Editor 有模型设置、简单调用表单、下载进度和取消。详见 [当前 AI 调用契约](../packages/ai/README.md)，该文档优先描述已实现参数，不把本文其他概念字段当成 API。
 
 流程工具桥接、工具调用消息、Agent 循环预设、预设展示元数据、专用提示词模板节点和 Jev 接入仍未实现。Editor 也尚未加载外部 imports。本地已验证桌面浏览器与 Node CPU 的中文生成；手机和真实付费 API 尚未实测。
 
-实施时先核实 [宿主函数](../agent-plan-core/docs/functions.md)、[子流程](../agent-plan-core/docs/subflows.md) 和 [Runtime](../agent-plan-core/docs/runtime.md) 的公开契约，明确需要补充的能力；不要从规划文档推断当前 API 已存在。
+实施时先核实 [宿主函数](../packages/core/docs/functions.md)、[子流程](../packages/core/docs/subflows.md) 和 [Runtime](../packages/core/docs/runtime.md) 的公开契约，明确需要补充的能力；不要从规划文档推断当前 API 已存在。
 
 ## 已实现：工具接口与参数分组（2026-10-09）
 
-共享工具包现已提供 `ToolDefinition` 输入输出接口，包含说明、类型提示、运行默认值、预填值和内联折叠组。Editor 从定义生成表单；LLM 的连接设置按节点填写，生成选项、输出格式和运行信息默认折叠。此接口仅组织和描述已有调用能力，不实现工具循环或新的预设引擎。协议见 [分组与工具接口](../agent-plan-core/docs/groups-and-tools.md)。
+共享工具包现已提供 `ToolDefinition` 输入输出接口，包含说明、类型提示、运行默认值、预填值和内联折叠组。Editor 从定义生成表单；LLM 的连接设置按节点填写，生成选项、输出格式和运行信息默认折叠。此接口仅组织和描述已有调用能力，不实现工具循环或新的预设引擎。协议见 [分组与工具接口](../packages/core/docs/groups-and-tools.md)。
 
 ## 已实现：模型工具调用（2026-10-09）
 
@@ -131,4 +131,4 @@ typesafe.decide
 
 ## 当前默认助手与模板（2026-10-11）
 
-AgentPlan助手使用独立 assistant.json；新建流程保留 example.json 的本地记忆示例。宿主注入设置中的 OpenAI/Anthropic 连接，自动选择有 Key 的服务，无 Key 则本地；仍使用普通 llm.* 和显式工具循环。memory.init/save 封装通用存储，不增加隐藏 Agent 引擎。下载、初始化、临时流式预览与会话运行记录见 [助手与浏览器运行](editor-assistant.md)。上文旧 LFM 选型和验证仅为历史。
+Soyori 助手使用独立 assistant.json；新建流程保留 example.json 的本地记忆示例。宿主注入设置中的 OpenAI/Anthropic 连接，自动选择有 Key 的服务，无 Key 则本地；仍使用普通 llm.* 和显式工具循环。memory.init/save 封装通用存储，不增加隐藏 Agent 引擎。下载、初始化、临时流式预览与会话运行记录见 [助手与浏览器运行](editor-assistant.md)。上文旧 LFM 选型和验证仅为历史。

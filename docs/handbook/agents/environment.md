@@ -90,7 +90,7 @@ steps:
 
 ## CLI 设置环境
 
-启动优先级：**--env 临时覆盖 > 操作系统环境 > AgentPlan 全局配置**。启动后 env.override/env.load 可进一步覆盖本次运行；LLM 的步骤参数仍优先于运行环境。CLI 不区分 chat/非 chat，threadId 只是普通流程输入，不选择环境；已移除 --thread-id。网页仍保留对话/文件作用域。
+启动优先级：**--env 临时覆盖 > 操作系统环境 > Soyori 全局配置**。启动后 env.override/env.load 可进一步覆盖本次运行；LLM 的步骤参数仍优先于运行环境。CLI 不区分 chat/非 chat，threadId 只是普通流程输入，不选择环境；已移除 --thread-id。网页仍保留对话/文件作用域。
 
 ```powershell
 pnpm cli env set OPENAI_API_KEY demo-global --sensitive

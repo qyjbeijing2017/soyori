@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "name": "外部函数示例",
+  "fields": {
+    "name": {
+      "initial": "Agent",
+      "input": true
+    },
+    "message": {
+      "output": true
+    }
+  },
+  "steps": [
+    {
+      "type": "call",
+      "target": "greet",
+      "inputs": {
+        "name": "$name"
+      },
+      "output": "$message"
+    }
+  ]
+}

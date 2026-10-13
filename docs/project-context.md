@@ -1,8 +1,14 @@
-# Agent Plan：项目目标与决策
+# Soyori：项目目标与决策
 
 当前状态更新：2026-10-13。来源：本项目用户讨论及当前工作区代码。本文用于让新加入的 AI 窗口理解方向和已确认约束；实现状态是工作区快照，不代表已经提交、发布或部署。工作入口见 [AGENTS.md](../AGENTS.md)。日期决策保留演进背景，旧默认模型和早期能力判断不作为当前状态。
 
 当前助手、模板、连接设置、下载和初始化生命周期见 [助手与浏览器运行](editor-assistant.md)。文末按日期保留决策历史，冲突时以最新决策和当前源码为准。
+
+2026-10-13 Soyori 命名与愿景：用户确认项目正式名称为 Soyori，替代 Agent Plan / AgentPlan。Soyori 是按语感创作的名称，没有约定的日语词源。长期愿景是为类似人的数字生命建立基础，承接此前 Furin 的探索；当前阶段提供人与各种 Agent 都能快速编辑、检查、纠错和修改的 Plan 开发与调试系统，不代表已经实现数字生命或自主成长。许可证继续使用 MIT，商业化后置，图标方向另行讨论。
+
+开发包统一为 soyori-core/cli/editor/ai/storage/script/tools，CLI 命令为 soyori，发布候选 scope 为 @soyori（权限尚未确认、未发布，需拥有权限后使用）。源码目录统一为 packages/*，GitHub 主仓库改名为 soyori；Core/CLI 子模块已合并为普通目录。浏览器 IndexedDB/localStorage、模型缓存与 CLI 默认数据目录保留旧标识，不迁移、不清空已有数据；新 SOYORI_* 环境变量优先，旧 AGENT_PLAN_* 作为兼容回退。工程包新导出 .soyori.zip，仍接受旧 .agentp.zip。
+
+2026-10-13 Soyori 图标确认：用户选择探索稿 01「Breeze / 风中的 S」。采用两段柔和深青绿色带与右上独立圆点的透明 PNG，替换品牌区、助手入口和 favicon；不采用种子或连续生长的其他两款。资源与说明见 packages/editor/public/brand。
 
 2026-10-11 正式手册：用户确认 Document 入口位于设置上方，内容源统一放在 docs/handbook，覆盖快速入门、流程完整参考、脚本、工具、CLI、Agent 与调试。人类阅读器和 project.docs 共用同一版本内容，目录轻量加载，章节与全文搜索索引按需加载，不把方向与历史文档作为默认手册。工具区分两端共享、环境差异与 Editor 专属，未实现能力明确标记。暂不推进嵌入 SDK，先完善现有产品基础。
 
@@ -22,7 +28,9 @@
 
 2026-10-13 CLI 入门同步：从空 YAML 逐步声明 chatIn/prompt/chatOut，添加 template → llm.auto 两步，与 Editor 入门统一。模型准备可选，区分文件缓存与每次 CLI 新进程的模型加载；末尾保留完整 YAML，并提供可选 trace 中间值检查。
 
-2026-10-13 npm 发布准备与名称冲突：用户选择 MIT，先准备 npm，不做域名或一键安装。保留开发包名及 private 工作区，生成六个 scoped 发布包和固定版本 npm alias 依赖，独立安装验证已通过。用户随后授权尝试首发；注册表核查发现 agent-plan 和 @agent-plan/core 已被其他项目使用，本机也尚未登录，未执行发布。配置中的 @agent-plan 仅为原计划，本项目最终 scope 待确定，不能把它当作已可安装的公开包。流程见 [npm 发布准备](npm-release.md)。
+2026-10-13 npm 发布准备与名称冲突：用户选择 MIT，先准备 npm，不做域名或一键安装。保留开发包名及 private 工作区，生成六个 scoped 发布包和固定版本 npm alias 依赖，独立安装验证已通过。用户随后授权尝试首发；注册表核查发现 agent-plan 和 @agent-plan/core 已被其他项目使用，本机也尚未登录，未执行发布。当时配置中的 @agent-plan 仅为原计划；随后项目更名 Soyori，发布候选 scope 改为 @soyori，权限仍待确认，不能把它当作已可安装的公开包。流程见 [npm 发布准备](npm-release.md)。
+
+2026-10-13 单仓库迁移：用户确认 Core/CLI 收入 Soyori 主仓库，七个包统一到 packages/core、cli、editor、ai、storage、script、tools；根锁文件唯一，CI 只检出主仓库。旧子仓库不删除，迁移前完整 Git bundle、修改补丁和源码副本保存在本机 output/migration，旧 .git/modules 元数据亦保留，不参与当前开发。包职责与独立 npm 发布边界保持；此前子模块提交顺序规则被本决策取代。
 
 ## 1. 项目为什么存在
 
@@ -50,7 +58,7 @@
 
 新对话先进入空白草稿并保留所选 Agent，不创建 thread；首次发送用户消息时才分配 thread 并保存输入。Agent 选择在浏览器刷新后恢复，历史记录加载不自动创建空对话。
 
-文件库优先保留 SVAR File Manager 原生工具栏、目录树、文件视图、新建/上传及响应式布局，仅补充流程入口、源码编辑和目录下载。只有 `.agentp.zip` 工程包自动解压，普通 ZIP 原样保存；目录/工作区下载统一使用该工程包后缀。代码输入与文件源码共用 CodeMirror 6，存储仍由现有 IndexedDB 工作区负责。
+文件库优先保留 SVAR File Manager 原生工具栏、目录树、文件视图、新建/上传及响应式布局，仅补充流程入口、源码编辑和目录下载。只有 `.soyori.zip` 工程包自动解压，普通 ZIP 原样保存；目录/工作区下载统一使用该工程包后缀。代码输入与文件源码共用 CodeMirror 6，存储仍由现有 IndexedDB 工作区负责。
 
 2026-10-09：Library 改为浏览器内文件工作区，IndexedDB 保存任意文件及目录，支持目录/ZIP 导入导出；JSON/YAML 必须通过 Core 校验才作为流程。CLI 和 Editor 共用 script.run 接口，仅用 code 执行 ESM 顶层代码，以全局 input 接收参数、result(value) 设置输出（最后一次调用为准，未调用返回 null）；外部脚本通过静态 import 和字面量动态 import 引入，CLI 可解析已安装包但不自动安装；完整边界见 [脚本与工作区](scripts-and-workspace.md)。此决策替代早期单文件脚本和 Library 平铺方案。
 
@@ -91,13 +99,13 @@
 
 运行输入和宿主返回值允许任意 JavaScript 值，不能把“能运行”理解成“能无损序列化或跨进程传输”。未来远程调试需设计值摘要和附件协议。
 
-core 与 CLI 是总仓库下的独立 Git 子模块，使用 pnpm workspace 联合开发。保持内核与宿主分离，统一语义只实现一次。
+core 与 CLI 位于 packages/core、packages/cli，和其他包由一个 Git 仓库及 pnpm workspace 联合管理。保持内核与宿主分离，统一语义只实现一次。
 
 ## 4. 已落地的数据规则
 
 记忆以流程变量保存，聊天编排由普通步骤和子流程负责。已实现通用 `storage.read/write/delete/list` 与 `tokens.count`、CLI 文件存储和管理命令、Editor IndexedDB 存储，以及 memory.init/save 和默认记忆对话模板。不增加 namespace，用 `/` 分组的 key 区分数据；CLI 数据目录可配置，配置路径固定，更换目录不迁移数据。本地计数复用 tokenizer，远程仅提供显式估算；不内置摘要压缩或自动裁剪。详见 [存储与计数](storage-and-tokens.md)。Library 已保存的流程在刷新后保留，未应用的表单草稿和运行现场不恢复。
 
-详见 [变量、对象与数组方案](../agent-plan-core/docs/operands.md)，此处只记录关键决策和原因。
+详见 [变量、对象与数组方案](../packages/core/docs/operands.md)，此处只记录关键决策和原因。
 
 - `$count`、`$request.options.temperature`、`$messages[0].content` 读取变量或路径。普通字符串、数字、布尔值、`null` 是常量；`$$name` 表示文本 `$name`。
 - 字面量对象/数组递归解析引用，键名不解析；每次执行新建字面量容器。初值、宿主输入、工具返回值及引用读出的值不再次解析。
@@ -113,7 +121,7 @@ core 与 CLI 是总仓库下的独立 Git 子模块，使用 pnpm workspace 联�
 
 界面分为 Agent、Library、Editor。Agent 可使用独立内置助手或用户对话流程，统一使用 chatIn/threadId 输入及 chatOut 输出；Library 保存文件和文件夹，支持 ZIP 导入导出、源码编辑和本地持久化；Editor 用步骤列表及变量表单编辑，参数用名称 + 输入栏编辑，自动推断 JSON/YAML/数字等类型。默认新建流程为可编辑的 memory 记忆对话和显式工具循环。
 
-`agent-plan-editor` 采用 React + TypeScript + Vite、Mantine 组件及少量业务 CSS，复用 core 的公开 API。应用步骤或有效变量设置修改后，流程写入 Library 的 IndexedDB；对话展示记录和流程记忆独立保存，执行现场不恢复。首次使用本地模型需要下载，刷新后下一次使用重新加载；连接设置保存于当前浏览器 localStorage，步骤显式密钥会随流程导出。详见 [Editor](../agent-plan-editor/README.md)。后续原生封装候选是 Tauri 2，也讨论过移动端 Capacitor，尚未定型。
+`soyori-editor` 采用 React + TypeScript + Vite、Mantine 组件及少量业务 CSS，复用 core 的公开 API。应用步骤或有效变量设置修改后，流程写入 Library 的 IndexedDB；对话展示记录和流程记忆独立保存，执行现场不恢复。首次使用本地模型需要下载，刷新后下一次使用重新加载；连接设置保存于当前浏览器 localStorage，步骤显式密钥会随流程导出。详见 [Editor](../packages/editor/README.md)。后续原生封装候选是 Tauri 2，也讨论过移动端 Capacitor，尚未定型。
 
 建议界面：
 
@@ -165,9 +173,9 @@ editor 应持有编辑稳定标识，但当前运行协议的步骤没有 ID。�
 
 1. [AGENTS.md](../AGENTS.md)：工作约定和已确认规则。
 2. 本文：目的、产品取舍、实现状态与规划。
-3. [README](../README.md)：目录、运行方式、子模块及验证。
+3. [README](../README.md)：统一仓库目录、运行方式及验证。
    AI、工具或预设任务还需阅读 [AI 工具与预设](ai-tools-and-presets.md)，区分已确认方向与尚未实现的契约。
-4. 按任务查阅 [数据语法](../agent-plan-core/docs/operands.md)、[Runtime](../agent-plan-core/docs/runtime.md)、[子流程](../agent-plan-core/docs/subflows.md)、[宿主函数](../agent-plan-core/docs/functions.md)、[CLI](../agent-plan-cli/README.md)。
+4. 按任务查阅 [数据语法](../packages/core/docs/operands.md)、[Runtime](../packages/core/docs/runtime.md)、[子流程](../packages/core/docs/subflows.md)、[宿主函数](../packages/core/docs/functions.md)、[CLI](../packages/cli/README.md)。
 5. [工程约定](engineering-rules.md)：职责边界、验证和提交规则；历史审查结论不能替代查看当前代码。
 
 后续文档维护要区分“用户已确认”“实现已验证”和“仍是建议”。不要把技术建议写成已批准的实施任务，也不要因本文件记录规划而自动启动全部建设。
@@ -244,7 +252,7 @@ Library 新建、改名、上传及保存统一要求流程名称唯一（忽略
 
 Editor 调用输出取消保存模式选择，按子流程 output 字段或内置工具返回字段显示固定列表，每项只填写保存变量，空项不保存。已有完整结果目标在编辑时展开为对应的属性路径；Core 的 output/outputs 协议保持不变。
 
-2026-10-03 对话入口改为只检查 chatOut.output；宿主运行时补齐 chatIn 和 threadId 输入。每个 thread 创建时生成独立 ID，同一线程所有轮次复用；不再生成或注入 memoryKey。初始流程仅定义这三个变量，将 chatOut 设置为 hello Agent Plan；已有流程的步骤不被模板替换。
+2026-10-03 对话入口改为只检查 chatOut.output；宿主运行时补齐 chatIn 和 threadId 输入。每个 thread 创建时生成独立 ID，同一线程所有轮次复用；不再生成或注入 memoryKey。初始流程仅定义这三个变量，将 chatOut 设置为 hello Soyori；已有流程的步骤不被模板替换。
 
 2026-10-03：对话的 `chatOut` 支持文字、数字、布尔值、null、对象和数组。字符串按 Markdown 展示，其他值以 YAML 代码块展示，并将展示文字保存到对话记录；未赋值显示 `undefined`，不再因输出不是字符串而报错。
 
@@ -289,7 +297,7 @@ Editor 调用目标按实际调用名的第一个英文句点（.）之前的 na
 
 变量采用带 `name` 的有序 fields 数组，`type: group` 直接包含 fields；步骤组直接包含 steps。均支持名称、说明和默认 collapsed，随 JSON/YAML、Library 保存和下载分发，不增加作用域。未分组字段对象仍可作为简写读取；Editor 编辑字段时生成数组。Core 单步执行跳过组壳，保留真实嵌套路径。
 
-工具包统一提供输入、输出、默认值、预填值、说明和内联参数分组，并通过函数的 definition 暴露；Editor 不再维护独立参数清单。默认值只作 placeholder，initial 才预填（如 `$chatIn`）。LLM 默认展开输入、模型和连接设置，生成选项、输出格式和运行信息默认折叠。展开状态属于临时 UI；分组设置中的默认折叠才写入流程。详见 [分组与工具接口](../agent-plan-core/docs/groups-and-tools.md)。
+工具包统一提供输入、输出、默认值、预填值、说明和内联参数分组，并通过函数的 definition 暴露；Editor 不再维护独立参数清单。默认值只作 placeholder，initial 才预填（如 `$chatIn`）。LLM 默认展开输入、模型和连接设置，生成选项、输出格式和运行信息默认折叠。展开状态属于临时 UI；分组设置中的默认折叠才写入流程。详见 [分组与工具接口](../packages/core/docs/groups-and-tools.md)。
 
 ### 变量新增入口（2026-10-09）
 
@@ -327,7 +335,7 @@ Editor 的 LLM/tools.execute 的 tools 参数使用专用智能选择器：同�
 
 ### 通用基础工具（2026-10-10）
 
-新增共享 agent-plan-tools，CLI 与 Editor 注册 time.now、web.fetch 及 math/text/array 基础库，工具定义供 Editor 直接展示。默认 Agent tools 改为 time.now/web.fetch；不做 web.search。网页读取遵循浏览器 CORS，不提供代理，不执行网页脚本；错误及长度限制明确。详见 [基础工具](basic-tools.md)。
+新增共享 soyori-tools，CLI 与 Editor 注册 time.now、web.fetch 及 math/text/array 基础库，工具定义供 Editor 直接展示。默认 Agent tools 改为 time.now/web.fetch；不做 web.search。网页读取遵循浏览器 CORS，不提供代理，不执行网页脚本；错误及长度限制明确。详见 [基础工具](basic-tools.md)。
 
 2026-10-10：web.fetch 调整为通用 HTTP(S) 请求工具，支持 method、headers、JSON/文本 body，输出 url/status/headers/body，按 Content-Type 解析 JSON，HTML 原样返回；不再内置正文提取或字符截断。HTTP 错误状态交由流程判断，网络与解析错误仍报错。此决策替代此前网页正文读取接口。
 
@@ -349,4 +357,4 @@ Editor 的 LLM/tools.execute 的 tools 参数使用专用智能选择器：同�
 
 2026-10-11：新增共享 memory.init/save，init 按 prefix/threadId 读取消息数组、按需替换 system 和追加 prompt，save 保存完整消息数组；默认前缀 memory，与原始 threads/<threadId> 记录分开。默认流程简化为五个外层步骤，保留显式工具循环及底层消息组装工具，不覆盖或迁移已有用户流程。此决策替代默认流程中模板生成 key、storage.read/setSystem/addUser 和 storage.write 的组合；详见 [记忆工具](memory-tools.md)。
 
-2026-10-11：内置对话入口改为 AgentPlan助手，使用独立 assistant.json，与新建流程 example.json 分开。设置保存 OpenAI/Anthropic 的 API Key、Base URL、模型 ID 及模型来源；自动模式优先 OpenAI，其次 Anthropic，无 Key 则本地，也可显式选本地。远程失败不静默回退。凭据由宿主注入调用，不写入助手流程或记忆；已有内置会话 ID 保留。远程助手可调用基础工具库，本地保留时间、搜索和 HTTP 工具以控制上下文开销。
+2026-10-11：内置对话入口改为 Soyori 助手，使用独立 assistant.json，与新建流程 example.json 分开。设置保存 OpenAI/Anthropic 的 API Key、Base URL、模型 ID 及模型来源；自动模式优先 OpenAI，其次 Anthropic，无 Key 则本地，也可显式选本地。远程失败不静默回退。凭据由宿主注入调用，不写入助手流程或记忆；已有内置会话 ID 保留。远程助手可调用基础工具库，本地保留时间、搜索和 HTTP 工具以控制上下文开销。

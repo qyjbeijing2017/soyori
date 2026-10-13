@@ -1,11 +1,5 @@
 packages:
-  - agent-plan-core
-  - agent-plan-cli
-  - agent-plan-editor
-  - agent-plan-ai
-  - agent-plan-storage
-  - agent-plan-script
-  - agent-plan-tools
+  - "packages/*"
 allowBuilds:
   esbuild: true
   onnxruntime-node: true

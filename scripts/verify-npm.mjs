@@ -9,7 +9,7 @@ import { npmCli, root, runNode } from "./npm-runtime.mjs";
 const { destination } = JSON.parse(await readFile(join(root, "output/npm/latest.json"), "utf8"));
 const artifacts = JSON.parse(await readFile(join(destination, "artifacts.json"), "utf8"));
 await writeFile(join(destination, "verification.json"), '{"verified":false,"status":"running"}\n');
-const directory = await mkdtemp(join(tmpdir(), "agent-plan-npm-"));
+const directory = await mkdtemp(join(tmpdir(), "soyori-npm-"));
 let base;
 const requested = new Set();
 const server = createServer(async (request, response) => {
@@ -77,7 +77,7 @@ base = `http://127.0.0.1:${server.address().port}`;
 try {
   await writeFile(
     join(directory, "package.json"),
-    '{"name":"agent-plan-install-check","private":true,"type":"module"}\n',
+    '{"name":"soyori-install-check","private":true,"type":"module"}\n',
   );
   const cli = artifacts.find((item) => item.name.endsWith("/cli"));
   console.log(`Installing ${cli.name}@${cli.version} outside the workspace: ${directory}`);
@@ -97,7 +97,7 @@ try {
     assert.ok(requested.has(artifact.name), `Dependency not installed: ${artifact.name}`);
   const entry = join(directory, "node_modules", cli.name, "dist/index.js");
   const help = await runNode([entry, "--help"], { cwd: directory });
-  assert.match(help.stdout, /agent-plan/);
+  assert.match(help.stdout, /soyori/);
   await writeFile(
     join(directory, "hello.yaml"),
     "schemaVersion: 1\nname: install-check\nfields:\n  - name: answer\n    output: true\nsteps:\n  - type: template\n    template: 安装成功\n    output: $answer\n",
@@ -184,7 +184,7 @@ try {
       },
     );
   }
-  const bin = process.platform === "win32" ? "agent-plan.cmd" : "agent-plan";
+  const bin = process.platform === "win32" ? "soyori.cmd" : "soyori";
   await readFile(join(directory, "node_modules/.bin", bin));
   await writeFile(
     join(destination, "verification.json"),

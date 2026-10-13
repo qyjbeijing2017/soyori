@@ -12,7 +12,7 @@ importers:
         specifier: 2.5.14
         version: 2.5.14
 
-  agent-plan-ai:
+  packages/ai:
     dependencies:
       '@huggingface/transformers':
         specifier: 4.3.0
@@ -26,34 +26,34 @@ importers:
       '@langchain/openai':
         specifier: 1.6.0
         version: 1.6.0(@langchain/core@1.2.13(openai@7.25.0(zod@4.6.5)))
-      agent-plan-core:
+      soyori-core:
         specifier: workspace:*
-        version: link:../agent-plan-core
-      agent-plan-storage:
+        version: link:../core
+      soyori-storage:
         specifier: workspace:*
-        version: link:../agent-plan-storage
+        version: link:../storage
     devDependencies:
       typescript:
         specifier: 7.0.2
         version: 7.0.2
 
-  agent-plan-cli:
+  packages/cli:
     dependencies:
-      agent-plan-ai:
+      soyori-ai:
         specifier: workspace:*
-        version: link:../agent-plan-ai
-      agent-plan-core:
+        version: link:../ai
+      soyori-core:
         specifier: workspace:*
-        version: link:../agent-plan-core
-      agent-plan-script:
+        version: link:../core
+      soyori-script:
         specifier: workspace:*
-        version: link:../agent-plan-script
-      agent-plan-storage:
+        version: link:../script
+      soyori-storage:
         specifier: workspace:*
-        version: link:../agent-plan-storage
-      agent-plan-tools:
+        version: link:../storage
+      soyori-tools:
         specifier: workspace:*
-        version: link:../agent-plan-tools
+        version: link:../tools
       commander:
         specifier: 15.0.0
         version: 15.0.0
@@ -71,7 +71,7 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
 
-  agent-plan-core:
+  packages/core:
     dependencies:
       yaml:
         specifier: 2.9.1
@@ -81,7 +81,7 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
 
-  agent-plan-editor:
+  packages/editor:
     dependencies:
       '@codemirror/autocomplete':
         specifier: ^6.20.3
@@ -137,21 +137,21 @@ importers:
       acorn:
         specifier: ^8.18.0
         version: 8.18.0
-      agent-plan-ai:
+      soyori-ai:
         specifier: workspace:*
-        version: link:../agent-plan-ai
-      agent-plan-core:
+        version: link:../ai
+      soyori-core:
         specifier: workspace:*
-        version: link:../agent-plan-core
-      agent-plan-script:
+        version: link:../core
+      soyori-script:
         specifier: workspace:*
-        version: link:../agent-plan-script
-      agent-plan-storage:
+        version: link:../script
+      soyori-storage:
         specifier: workspace:*
-        version: link:../agent-plan-storage
-      agent-plan-tools:
+        version: link:../storage
+      soyori-tools:
         specifier: workspace:*
-        version: link:../agent-plan-tools
+        version: link:../tools
       esbuild-wasm:
         specifier: 0.25.12
         version: 0.25.12
@@ -202,14 +202,14 @@ importers:
         specifier: 8.3.1
         version: 8.3.1(@types/node@24.19.0)(yaml@2.9.1)
 
-  agent-plan-script:
+  packages/script:
     dependencies:
       acorn:
         specifier: ^8.18.0
         version: 8.18.0
-      agent-plan-core:
+      soyori-core:
         specifier: workspace:*
-        version: link:../agent-plan-core
+        version: link:../core
       esbuild-wasm:
         specifier: ^0.25.12
         version: 0.25.12
@@ -218,11 +218,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
 
-  agent-plan-storage:
+  packages/storage:
     dependencies:
-      agent-plan-core:
+      soyori-core:
         specifier: workspace:*
-        version: link:../agent-plan-core
+        version: link:../core
     devDependencies:
       '@types/node':
         specifier: 24.19.0
@@ -231,11 +231,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
 
-  agent-plan-tools:
+  packages/tools:
     dependencies:
-      agent-plan-core:
+      soyori-core:
         specifier: workspace:*
-        version: link:../agent-plan-core
+        version: link:../core
     devDependencies:
       typescript:
         specifier: 7.0.2

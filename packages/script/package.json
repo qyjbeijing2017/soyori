@@ -1,0 +1,31 @@
+{
+  "name": "soyori-script",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --test tests/*.test.mjs"
+  },
+  "dependencies": {
+    "acorn": "^8.18.0",
+    "soyori-core": "workspace:*",
+    "esbuild-wasm": "^0.25.12"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qyjbeijing2017/soyori.git",
+    "directory": "packages/script"
+  }
+}

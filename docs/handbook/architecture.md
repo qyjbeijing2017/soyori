@@ -6,13 +6,13 @@
 
 | 部分 | 职责 |
 | --- | --- |
-| agent-plan-core | 结构校验、Operand、变量、节点、调度器、子流程、状态与错误 |
-| agent-plan-cli | 磁盘/HTTP 来源加载、参数、宿主注册、子进程、trace、输出与退出码 |
-| agent-plan-editor | IndexedDB Library、步骤和源码界面、对话、浏览器宿主与调试 UI |
-| agent-plan-ai | 模型集成、消息编排、工具调用桥接与预算 |
-| agent-plan-tools | 日期、网络、数学、文本、数组等共享工具 |
-| agent-plan-storage | JSON 存储与各端后端 |
-| agent-plan-script | 脚本校验、模块准备与共享协议，各端提供执行环境 |
+| soyori-core | 结构校验、Operand、变量、节点、调度器、子流程、状态与错误 |
+| soyori-cli | 磁盘/HTTP 来源加载、参数、宿主注册、子进程、trace、输出与退出码 |
+| soyori-editor | IndexedDB Library、步骤和源码界面、对话、浏览器宿主与调试 UI |
+| soyori-ai | 模型集成、消息编排、工具调用桥接与预算 |
+| soyori-tools | 日期、网络、数学、文本、数组等共享工具 |
+| soyori-storage | JSON 存储与各端后端 |
+| soyori-script | 脚本校验、模块准备与共享协议，各端提供执行环境 |
 
 Core 不读取网络、磁盘、凭据，不内置模型 SDK。CLI 和 Editor 负责加载流程依赖并注册工具，再交给唯一内核执行。
 
@@ -40,4 +40,4 @@ Core 不自动超时、取消或重试；宿主执行环境和工具负责相应
 
 浏览器网络受 CORS，本地工具取 Library 和 IndexedDB；CLI 取磁盘和用户存储。代码执行环境也不同。跨端移植先查 [平台矩阵](tools/contract.md)。
 
-开发包依赖 pnpm workspace，Core/AI 等仍标记 private。npm 发布准备已能生成六个独立发布包并验证工作区外安装，但原定 agent-plan 与 @agent-plan/core 已被其他项目占用，最终 scope 待确定，本项目尚未发布。嵌入 SDK 暂不推进。Windows/macOS/iOS/Android 原生封装、目录同步、MCP、远程共享调试不属于当前承诺。
+开发包统一命名为 soyori-*，依赖 pnpm workspace，Core/AI 等仍标记 private。npm 发布准备可以生成六个独立发布包并验证工作区外安装，当前候选 scope 为 @soyori，需确认发布权限；本项目尚未发布。源码统一位于 packages/*，由一个 Git 仓库管理；Core/CLI 不再是子模块。嵌入 SDK 暂不推进。Windows/macOS/iOS/Android 原生封装、目录同步、MCP、远程共享调试不属于当前承诺。

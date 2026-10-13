@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "子流程示例",
+  "fields": {
+    "count": {
+      "initial": 0,
+      "input": true,
+      "output": true
+    }
+  },
+  "steps": [
+    {
+      "type": "call",
+      "target": "add-one",
+      "inputs": {
+        "count": "$count"
+      },
+      "outputs": {
+        "count": "$count"
+      }
+    }
+  ],
+  "imports": {
+    "add-one": "./add-one.json"
+  }
+}

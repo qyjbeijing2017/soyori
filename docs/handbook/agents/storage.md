@@ -30,7 +30,7 @@ prefix 是字面前缀，列目录用 `demo/`，否则 `demo` 也会匹配 demo-
 
 网页使用同源 IndexedDB，CLI 使用配置目录下的 JSON 文件。两端不共享数据，也不按项目自动隔离。网页清除站点数据可能删除存储；Library 工程包不包含通用存储和运行现场。
 
-CLI 优先级：--storage-dir → AGENT_PLAN_STORAGE_DIR → 配置 storageDir → 系统默认位置。Windows 默认存储 `%LOCALAPPDATA%/agent-plan/storage`，配置 `%APPDATA%/agent-plan/config.json`；macOS 位于 Application Support/agent-plan；Linux 使用 XDG_CONFIG_HOME/XDG_DATA_HOME，否则 ~/.config 和 ~/.local/share。
+CLI 优先级：--storage-dir → SOYORI_STORAGE_DIR → 配置 storageDir → 系统默认位置。Windows 默认存储 `%LOCALAPPDATA%/agent-plan/storage`，配置 `%APPDATA%/agent-plan/config.json`；macOS 位于 Application Support/agent-plan；Linux 使用 XDG_CONFIG_HOME/XDG_DATA_HOME，否则 ~/.config 和 ~/.local/share。
 
 更换目录不迁移旧数据，config set 保存绝对路径。CLI 拒绝存储目录内部符号链接；这不是对抗其他本机进程的沙箱。命令见 [CLI](../cli/guide.md)。
 
@@ -51,3 +51,5 @@ setSystem 删除旧 system 并在首位放一条；addUser/addAssistant/addTools
 tokens.count 接受文字或消息数组。mode=local（默认）使用当前模型 tokenizer，返回 method=tokenizer 与模型 ID；只需 tokenizer，不加载权重。消息数组使用聊天模板和生成前缀，裸文字不添加特殊 token。
 
 mode=estimate 不联网，按 UTF-8 字节与消息开销估算，返回 method=estimate、model=null。估算不等于任何远程模型实际计数。浏览器 local 模式需允许下载 tokenizer。
+
+Soyori 改名保留：`SOYORI_STORAGE_DIR` 优先于兼容的 `AGENT_PLAN_STORAGE_DIR`。CLI 默认数据目录及浏览器数据库名称保留原 agent-plan 标识，不迁移或清空已有数据。

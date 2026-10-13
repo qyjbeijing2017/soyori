@@ -10,6 +10,6 @@ steps:
   - type: template
     template: |-
       用户说：$chatIn$
-      欢迎使用 Agent Plan！
+      欢迎使用 Soyori！
       价格：$$99
     output: $chatOut

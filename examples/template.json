@@ -13,7 +13,7 @@
   "steps": [
     {
       "type": "template",
-      "template": "用户说：$chatIn$\n欢迎使用 Agent Plan！\n价格：$$99",
+      "template": "用户说：$chatIn$\n欢迎使用 Soyori！\n价格：$$99",
       "output": "$chatOut"
     }
   ]

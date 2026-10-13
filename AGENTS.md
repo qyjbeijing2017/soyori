@@ -1,6 +1,6 @@
-# Agent Plan：AI 协作入口
+# Soyori：AI 协作入口
 
-适用本工作区及子目录；子模块内另有补充说明。开始工作先读 [项目目标与决策](docs/project-context.md)，再按任务读取协议文档。用户当次明确指示优先；发现文档与代码冲突时核实并说明，不自行猜测。
+适用本工作区及子目录；packages 内另有补充说明。开始工作先读 [项目目标与决策](docs/project-context.md)，再按任务读取协议文档。用户当次明确指示优先；发现文档与代码冲突时核实并说明，不自行猜测。
 
 ## 项目方向
 
@@ -10,7 +10,7 @@
 - AI 能力通过独立 `call` 工具提供，复用 LangChain 集成，供 Editor/CLI 共享；llm.auto 负责按有效配置选择供应商，Agent 工具循环由普通可编辑步骤组合。当前能力和后续边界见 [AI 工具与预设](docs/ai-tools-and-presets.md)。
 - 手机方便操作是核心要求，不能只把桌面布局缩小。Web 优先，并考虑后续 Windows、macOS、iOS、Android 适配。
 - 用户与外部 AI 应能读取项目、流程、工具、字段、执行位置和错误，未来共同操作同一调试会话。
-- editor 分为 Agent 对话、Library 浏览器文件工作区、Editor 步骤与变量表单三个界面。Library 在 IndexedDB 保存原始文件，支持文件夹与 ZIP 导入导出；JSON/YAML 经 Core 校验才作为流程。CLI 与 Editor 共享 script.run 模块接口，详见 [脚本与工作区](docs/scripts-and-workspace.md)。CLI 复用 [AI 工具包](agent-plan-ai/README.md)。内置助手可查询项目文档与工具、管理 Library 文件、创建和运行已保存流程，详见 [助手与浏览器运行](docs/editor-assistant.md)；新建流程含显式工具循环。电脑目录同步、通用外部工具加载、预设升级机制、MCP 和原生封装尚未实现。
+- editor 分为 Agent 对话、Library 浏览器文件工作区、Editor 步骤与变量表单三个界面。Library 在 IndexedDB 保存原始文件，支持文件夹与 ZIP 导入导出；JSON/YAML 经 Core 校验才作为流程。CLI 与 Editor 共享 script.run 模块接口，详见 [脚本与工作区](docs/scripts-and-workspace.md)。CLI 复用 [AI 工具包](packages/ai/README.md)。内置助手可查询项目文档与工具、管理 Library 文件、创建和运行已保存流程，详见 [助手与浏览器运行](docs/editor-assistant.md)；新建流程含显式工具循环。电脑目录同步、通用外部工具加载、预设升级机制、MCP 和原生封装尚未实现。
 
 ## 必须保持的现有规则
 
@@ -21,17 +21,17 @@
 - Chat 每轮传入 chatIn、threadId；原始记录存于通用存储 threads/<threadId>，运行前保存用户消息，结束后追加回复。不再自动提供 memoryKey，流程记忆自行管理；旧对话记录不迁移。
 - 未设置值在文本模板中转空字符串、数学与大小比较中转 0；转换不写回源值，相等比较及存储语义不变。
 - 写入自动创建或替换不兼容的中间容器，保留兼容容器的其他内容；不恢复成“类型冲突默认报错”或要求额外覆盖开关。
-- `append` 追加一项，非数组目标转为数组；越界写入补 `null`，遵守当前扩展限制。完整边界以 [operands.md](agent-plan-core/docs/operands.md) 为准。
+- `append` 追加一项，非数组目标转为数组；越界写入补 `null`，遵守当前扩展限制。完整边界以 [operands.md](packages/core/docs/operands.md) 为准。
 - 初值、宿主输入和返回值保持原样；引用对象保持身份。实时状态不是历史快照，trace 不代表可恢复执行。
 - 本次语法调整经用户确认保持 `schemaVersion: 1`，不兼容旧裸字段引用。这不是未来所有变更都禁止升版本的规则。
 - 数据类型宽松不代表取消路径、结构、原型访问和资源限制校验。
 
 ## 工作方式
 
-- 修改前检查总仓库与相关子模块的状态，保留已有未提交工作。不因其他窗口存在改动而重置或覆盖。
+- 修改前检查仓库状态，保留已有未提交工作。不因其他窗口存在改动而重置或覆盖。
 - 遵循 [工程约定](docs/engineering-rules.md) 第 1–8 节；末尾审查记录只是历史，不能作为当前能力判断。
 - 协议改动同步源码、文档、JSON/YAML 示例、类型与行为测试。使用现有 Node 24、pnpm workspace、Biome、node:test。
 - 代码变更完成后运行适用检查；跨 core/CLI 的变更运行根目录 `pnpm verify`。纯文档变更检查内容、链接与 diff，不必重跑全部运行测试。
 - 命令能力先查看 `pnpm cli --help` 和子命令帮助。结论以当前源码、配置和验证结果为依据，简洁报告限制。
-- core 与 CLI 是独立 Git 子模块。需要提交发布时，按子仓库先提交/推送、总仓库后更新指针处理；本文件不自动授权提交或发布。
+- 全部源码由一个 Git 仓库管理，包位于 packages/*；core 与 CLI 不再是子模块。包职责与 npm 发布边界独立保留。本文件不自动授权提交或发布，不提交 output/、临时文件及凭证。
 - 后续确认的新决策更新 `docs/project-context.md`，协议细节更新对应文档，避免只留在聊天记录或复制多份不同规则。

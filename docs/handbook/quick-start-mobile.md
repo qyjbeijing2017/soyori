@@ -22,7 +22,7 @@
 
 ![点击抽屉中的设置](images/mobile-settings.svg)
 
-在设置的 **AgentPlan助手** 区域，为 OpenAI 或兼容服务填写 **API Key、Base URL、模型 ID**，填写后自动保存。模型 ID 使用服务实际支持的名称；已有连接可直接使用。
+在设置的 **Soyori 助手** 区域，为 OpenAI 或兼容服务填写 **API Key、Base URL、模型 ID**，填写后自动保存。模型 ID 使用服务实际支持的名称；已有连接可直接使用。
 
 ![模型连接设置](images/mobile-model.jpg)
 

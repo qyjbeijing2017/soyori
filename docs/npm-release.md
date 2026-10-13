@@ -1,10 +1,10 @@
 # npm 发布准备
 
-打包范围为 core、storage、script、tools、ai、cli 六个包；初始版本 `0.1.0`，许可证 MIT。版本与 scope 统一配置在根 `package.json` 的 `agentPlanRelease`。当前配置中的 `@agent-plan` 是原计划名称，尚不是可用的正式发布目标。
+打包范围为 core、storage、script、tools、ai、cli 六个包；初始版本 `0.1.0`，许可证 MIT。版本与 scope 统一配置在根 `package.json` 的 `soyoriRelease`。当前配置中的 `@soyori` 是 Soyori 的发布候选 scope，尚未确认拥有发布权限，也未发布。
 
-> **发布状态：尚未发布，名称需要调整。** 2026-10-13 查询 npm 官方注册表发现，`agent-plan` 和 `@agent-plan/core` 已由 [ovidius72/agent-planner](https://github.com/ovidius72/agent-planner) 发布，查询时最新版本均为 0.4.7。本项目与它无关。本机 npm 尚未登录；其余五个包返回 404 不代表拥有这个 scope 的发布权限。用户已授权尝试首发，但因名称冲突和缺少登录未执行发布。
+> **发布状态：尚未发布。** 项目已更名 Soyori。此前 agent-plan 与 @agent-plan/core 名称冲突，未执行发布；当前候选 @soyori 需先确认账号或组织权限，不能将本地打包成功当作注册表已经可安装。
 
-本地开发包名和 `workspace:*` 保持不变，工作区仍为 private。发布脚本从编译结果生成独立发布目录，将内部依赖转换成 npm alias，例如 `agent-plan-core: npm:@agent-plan/core@0.1.0`。安装后内部 import 可以继续解析，用户安装入口是 `@agent-plan/cli`。
+本地开发包名已统一为 soyori-*，依赖仍使用 `workspace:*`，工作区仍为 private。发布脚本从编译结果生成独立发布目录，将内部依赖转换成 npm alias，例如 `soyori-core: npm:@soyori/core@0.1.0`。安装后内部 import 可以继续解析，用户安装入口是 `@soyori/cli`。
 
 ## 1. 构建和打包
 
@@ -19,7 +19,7 @@ pnpm release:pack
 
 每个发布包仅包含 `dist/`、package.json、README 和 LICENSE；保留 CLI 主入口、运行 Worker、脚本 Worker 及共享包的公开 exports。去掉 private、开发依赖和开发脚本，配置 public npm registry。模型权重不打包，按需下载；第三方依赖及其许可证由 npm 一起安装。
 
-如果脚本找不到 npm，可设置 `AGENT_PLAN_NPM_CLI` 为本机 `npm/bin/npm-cli.js` 的绝对路径。
+如果脚本找不到 npm，可设置 `SOYORI_NPM_CLI` 为本机 `npm/bin/npm-cli.js` 的绝对路径。
 
 ## 2. 验证独立安装
 
@@ -35,7 +35,7 @@ CI 在 Windows/Linux 上运行打包与独立安装检查。CI 配置存在不�
 
 ## 3. 正式发布
 
-正式发布前，确定一个自己拥有权限的 npm 用户或组织 scope，将根 package.json 的 agentPlanRelease.scope 改为该名称，核查六个包名，再重新执行 release:pack 和 release:verify。现有 @agent-plan 产物仅供本地验证，不应直接发布。本准备流程不创建组织、不配置账号、不执行发布。
+正式发布前，确定一个自己拥有权限的 npm 用户或组织 scope，将根 package.json 的 soyoriRelease.scope 改为该名称，核查六个包名，再重新执行 release:pack 和 release:verify。@soyori 产物仅供本地验证，确认 scope 权限并完成本次验证后才能发布。本准备流程不创建组织、不配置账号、不执行发布。
 
 读取 `output/npm/latest.json`，进入其 `destination` 目录，确认该目录存在成功的 `verification.json`。先登录：
 
@@ -52,8 +52,8 @@ npm whoami
 
 ```powershell
 npm install -g @YOUR_SCOPE/cli
-agent-plan --help
-agent-plan run ./translate.yaml --json --timeout 10m
+soyori --help
+soyori run ./translate.yaml --json --timeout 10m
 ```
 
 用户只需要 Node 24 和 npm，无需 pnpm、源码或子模块。当前快速入门仍保留源码安装方式，正式发布并验证注册表安装后再切换。域名、一键安装脚本和独立运行时发行包不属于本次范围。

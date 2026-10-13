@@ -1,0 +1,16 @@
+schemaVersion: 1
+name: 子流程示例
+imports:
+  add-one: ./add-one.yaml
+fields:
+  count:
+    initial: 0
+    input: true
+    output: true
+steps:
+  - type: call
+    target: add-one
+    inputs:
+      count: $count
+    outputs:
+      count: $count

@@ -2,7 +2,7 @@
 
 从一个空 YAML 文件开始，做一个**单轮翻译助手**：填写中文 → 拼合提示词 → 调用模型 → 得到英文。
 
-流程与 [电脑端 Editor](quick-start.md)、[手机端 Editor](quick-start-mobile.md) 教程相同。以下命令使用 PowerShell，在 Agent Plan 项目根目录执行。
+流程与 [电脑端 Editor](quick-start.md)、[手机端 Editor](quick-start-mobile.md) 教程相同。以下命令使用 PowerShell，在 Soyori 项目根目录执行。
 
 ## 1. 准备 CLI
 

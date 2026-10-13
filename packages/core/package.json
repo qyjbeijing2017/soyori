@@ -1,0 +1,40 @@
+{
+  "name": "soyori-core",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "description": "Core runtime for Agent orchestration: execution loops, nodes, runs, and debugging.",
+  "type": "module",
+  "packageManager": "pnpm@11.25.0",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "clean": "node --input-type=module -e \"import { rmSync } from 'node:fs'; rmSync('dist', { recursive: true, force: true });\"",
+    "build": "pnpm run clean && tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "pnpm build && tsc -p tests/tsconfig.json && node --test tests/*.test.mjs",
+    "dev": "tsc -p tsconfig.json --watch",
+    "prepack": "pnpm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qyjbeijing2017/soyori.git",
+    "directory": "packages/core"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2"
+  },
+  "dependencies": {
+    "yaml": "2.9.1"
+  }
+}

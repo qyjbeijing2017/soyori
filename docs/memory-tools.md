@@ -1,6 +1,6 @@
 # 消息组装与默认对话流程
 
-agent-plan-ai 提供 createMemoryTools() 与 MEMORY_TOOL_DEFINITIONS，CLI 和 Editor 注册同名工具。记忆直接是通用消息数组。
+soyori-ai 提供 createMemoryTools() 与 MEMORY_TOOL_DEFINITIONS，CLI 和 Editor 注册同名工具。记忆直接是通用消息数组。
 
 | 工具 | 输入 | 输出 |
 | --- | --- | --- |
@@ -21,7 +21,7 @@ setSystem 的 text 必须是非空文本，原文保留；每次删除已有 sys
   inputs:
     messages: $messages
     text: |
-      你是 Agent Plan 的本地助手。
+      你是 Soyori 的本地助手。
       使用中文回答，不编造工具执行结果。
   outputs:
     messages: $messages

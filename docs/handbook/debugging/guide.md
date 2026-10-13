@@ -55,7 +55,7 @@ pnpm cli run docs/handbook/examples/subflows/main.yaml --trace run-001.jsonl --t
 
 trace 文件必须不存在。JSONL 记录 start、initial、step-start、step-end、end。默认不采集字段，--trace-values 显式开启有限摘要，可能包含敏感输入。可按 source/path 和 childInvocationId 检查子流程，不能从摘要恢复运行。
 
-CLI 默认总超时 30 秒，包括流程加载、模块、模型及 trace 等待。--timeout 显式值优先于 AGENT_PLAN_TIMEOUT；超时退出 124，中断 130。它能终止执行子进程，但不能撤销网络或文件副作用。
+CLI 默认总超时 30 秒，包括流程加载、模块、模型及 trace 等待。--timeout 显式值优先于 SOYORI_TIMEOUT；超时退出 124，中断 130。它能终止执行子进程，但不能撤销网络或文件副作用。
 
 ## 助手如何验证修复
 
