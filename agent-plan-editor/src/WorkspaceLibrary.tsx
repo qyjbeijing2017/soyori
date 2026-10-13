@@ -2,6 +2,7 @@ import { Button, Group, Modal, Stack, Text } from "@mantine/core";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CodeEditor } from "./CodeEditor";
 import { canChat } from "./chat-contract";
+import { exportFile } from "./export-file";
 import { type FileAction, FileBrowser, type FileMutation } from "./FileBrowser";
 import { readFlowFile } from "./flow-files";
 import { tr } from "./i18n";
@@ -71,7 +72,7 @@ export function WorkspaceLibrary({
       file.content.size > 2 * 1024 * 1024 ||
       !/\.(js|mjs|cjs|ts|json|ya?ml|txt|md|csv|css|html|svg)$/i.test(file.path)
     ) {
-      downloadBlob(file.content, file.path.split("/").at(-1)!);
+      downloadBlob(await exportFile(file.content, file.path), file.path.split("/").at(-1)!);
       return;
     }
     setSource(await file.content.text());
@@ -144,7 +145,7 @@ export function WorkspaceLibrary({
     if (action === "download") {
       void perform(async () =>
         downloadBlob(
-          isDirectory ? await exportWorkspace(target) : file!.content,
+          isDirectory ? await exportWorkspace(target) : await exportFile(file!.content, file!.path),
           isDirectory
             ? `${target.split("/").at(-1) || "workspace"}.agentp.zip`
             : target.split("/").at(-1)!,

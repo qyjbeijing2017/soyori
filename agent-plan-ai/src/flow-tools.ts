@@ -4,6 +4,8 @@ import {
   type LoadedFlow,
   type Runtime,
   type RuntimeFunction,
+  redactFailure,
+  redactFields,
   type ToolDefinition,
 } from "agent-plan-core";
 
@@ -43,7 +45,7 @@ export function createToolRegistry(
             .map(([name, f]) => ({
               name,
               ...(f.description ? { description: f.description } : {}),
-              ...(f.initial === undefined ? {} : { defaultValue: f.initial }),
+              ...(f.initial === undefined || f.sensitive ? {} : { defaultValue: f.initial }),
             })),
           outputs: fields.filter(([, f]) => f.output).map(([name]) => ({ name })),
         };
@@ -63,8 +65,9 @@ export function createToolRegistry(
                   await runtime.step();
                 }
                 const state = runtime.getState();
-                if (state.error) throw Error(state.error.message);
-                return state.output ?? {};
+                if (state.error)
+                  throw Error(redactFailure(state.error, runtime.getSensitiveFields()).message);
+                return redactFields(state.output ?? {}, runtime.getSensitiveFields());
               } finally {
                 frames.pop();
               }

@@ -11,12 +11,24 @@ import { createTokenTools } from "agent-plan-ai/tokens";
 import type { LoadedFlow, RuntimeFunction } from "agent-plan-core";
 import { createStorageTools } from "agent-plan-storage";
 import { createBrowserStorage } from "agent-plan-storage/browser";
+import {
+  createRuntimeEnvironment,
+  type Environment,
+  effectiveEnvironment,
+} from "agent-plan-storage/environment";
 import { createBasicTools } from "agent-plan-tools";
 import type { AiSettings } from "./ai-settings";
 import { createAssistantTools } from "./assistant-tools.ts";
+import {
+  assistantRegistry,
+  createEnvironmentManagementTools,
+  type EnvironmentContext,
+} from "./environment-management.ts";
+import { environmentStorage, flushEnvironmentWrites } from "./environment-store.ts";
 import { ModelDownloadManager } from "./model-download";
 import { configureManagedModelCache } from "./model-files";
 import { createBrowserScriptTools } from "./script-host";
+import { filePath, readFile } from "./workspace-files.ts";
 
 export { type AiSettings, initialAiSettings } from "./ai-settings";
 
@@ -92,14 +104,35 @@ export class BrowserAiHost {
     activeSource?: () => string | undefined,
     stream?: (event: ModelEvent) => void,
     running = false,
+    environment: Environment = {},
+    environmentContext: EnvironmentContext = {},
   ) {
     const registry: Record<string, RuntimeFunction> = {};
     const storage = createBrowserStorage();
     const scope = createToolRegistry(registry, graph, activeSource, signal);
+    const modelRegistry = () => assistantRegistry(scope.registry());
+    const runEnvironment = createRuntimeEnvironment(environment, async (path) => {
+      signal.throwIfAborted();
+      const source = scope.source() ?? graph?.source ?? "workspace:/flow.yaml";
+      if (!source.startsWith("workspace:") || /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(path))
+        throw Error("ENV_SOURCE: Expected a workspace configuration path.");
+      const target = filePath(
+        decodeURIComponent(new URL(path, source).pathname).replace(/^\//, ""),
+      );
+      const file = await readFile(target);
+      if (file?.kind !== "file") throw Error("ENV_FILE_MISSING: Configuration file missing.");
+      if (file.content.size > 2 * 1024 * 1024)
+        throw Error("ENV_FILE_LIMIT: Configuration exceeds 2 MiB.");
+      const text = await file.content.text();
+      signal.throwIfAborted();
+      return text;
+    });
     Object.assign(registry, {
       ...createBasicTools({ signal, browser: true }),
       ...createBrowserScriptTools(() => scope.source() ?? graph?.source, signal),
       ...createStorageTools(storage),
+      ...runEnvironment.tools,
+      ...createEnvironmentManagementTools(environmentContext, signal),
       "tokens.count": Object.assign(
         async (input: Record<string, unknown>) => {
           if ((input.mode ?? "local") === "local") {
@@ -119,8 +152,13 @@ export class BrowserAiHost {
         { definition: this.tokenTools["tokens.count"].definition },
       ),
       ...createAiTools({
+        provider: settings.assistantProvider,
+        get environment() {
+          return runEnvironment.strings();
+        },
+        connections: { openai: settings.openai, anthropic: settings.anthropic },
         ...(stream ? { stream } : {}),
-        registry: scope.registry,
+        registry: modelRegistry,
         browser: true,
         signal,
         local: async (input) => {
@@ -141,7 +179,7 @@ export class BrowserAiHost {
           return this.request(input, signal, progress, stream) as Promise<GenerateResult>;
         },
       }),
-      ...createToolExecutionTools({ registry: scope.registry, signal }),
+      ...createToolExecutionTools({ registry: modelRegistry, signal }),
     });
     Object.assign(registry, createMemoryTools(storage));
     Object.assign(
@@ -149,27 +187,35 @@ export class BrowserAiHost {
       createAssistantTools({
         signal,
         docs: this.documentation,
-        registry,
+        get registry() {
+          return assistantRegistry(registry);
+        },
         running,
         changed: () => globalThis.dispatchEvent?.(new Event("agent-plan-workspace-changed")),
-        functions: (target, source, childSignal) =>
-          this.tools(settings, childSignal, progress, target, source, undefined, true),
+        functions: async (target, source, childSignal) => {
+          await flushEnvironmentWrites();
+          const current =
+            environmentContext.threadId || environmentContext.fileId
+              ? await effectiveEnvironment(
+                  environmentStorage,
+                  environmentContext.threadId,
+                  environmentContext.fileId,
+                )
+              : environment;
+          return this.tools(
+            settings,
+            childSignal,
+            progress,
+            target,
+            source,
+            undefined,
+            true,
+            { ...current, ...runEnvironment.overrides },
+            environmentContext,
+          );
+        },
       }),
     );
-    for (const provider of ["openai", "anthropic"] as const) {
-      const name = `llm.${provider}`;
-      const original = registry[name];
-      registry[name] = Object.assign(
-        (input: Record<string, unknown>) =>
-          original({
-            ...input,
-            apiKey: input.apiKey ?? settings[provider].apiKey.trim(),
-            baseURL: input.baseURL ?? settings[provider].baseURL.trim(),
-            model: input.model ?? settings[provider].model.trim(),
-          }),
-        { definition: original.definition },
-      );
-    }
     return registry;
   }
 

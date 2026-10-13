@@ -37,6 +37,9 @@ export function executionSummary(value: unknown, limit = 2000): string {
     if (item === null || typeof item !== "object") return String(item);
     if (seen.has(item)) return "[shared or circular]";
     seen.add(item);
+    const target = Object.getOwnPropertyDescriptor(item, "target");
+    const environmentWrite =
+      target && "value" in target && ["env.set", "env.override"].includes(target.value);
     const result: Record<string, unknown> = {};
     let count = 0;
     for (const key in item) {
@@ -48,7 +51,11 @@ export function executionSummary(value: unknown, limit = 2000): string {
       remaining -= key.length;
       const descriptor = Object.getOwnPropertyDescriptor(item, key);
       result[key.slice(0, 100)] =
-        descriptor && "value" in descriptor ? visit(descriptor.value, depth + 1) : "[accessor]";
+        environmentWrite && key === "inputs"
+          ? "[sensitive]"
+          : descriptor && "value" in descriptor
+            ? visit(descriptor.value, depth + 1)
+            : "[accessor]";
     }
     return result;
   }
@@ -80,26 +87,34 @@ export function observeChatTools(
   registry: Record<string, RuntimeFunction>,
   run: ChatExecution,
   publish: () => void,
+  hideValues: () => boolean = () => false,
 ) {
   for (const [name, original] of Object.entries(registry)) {
     const wrapped: RuntimeFunction = async (input) => {
+      const privateInput =
+        ["env.set", "env.override"].includes(name) ||
+        (name === "tools.execute" &&
+          Array.isArray(input.calls) &&
+          input.calls.some((call) => ["env.set", "env.override"].includes(call?.target)));
       const entry: ExecutionEntry = {
         label: name,
         status: "running",
         ms: 0,
-        input: executionSummary(input),
+        input: hideValues() || privateInput ? "[sensitive]" : executionSummary(input),
       };
       appendExecution(run, entry);
       publish();
       const start = performance.now();
       try {
         const output = await original(input);
-        entry.output = executionSummary(output);
+        entry.output =
+          hideValues() || name === "env.get" ? "[sensitive]" : executionSummary(output);
         entry.status = "completed";
         return output;
       } catch (cause) {
         entry.status = "failed";
-        entry.error = String(cause).slice(0, 2000);
+        entry.error =
+          hideValues() || privateInput ? "[sensitive error]" : String(cause).slice(0, 2000);
         throw cause;
       } finally {
         entry.ms = Math.round(performance.now() - start);

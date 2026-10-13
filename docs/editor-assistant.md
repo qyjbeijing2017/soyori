@@ -6,6 +6,10 @@
 
 ## 助手与新建流程
 
+设置中的 auto 模式调用 `llm.auto`；有效环境中的 LLM_PROVIDER 优先于工具宿主设置，auto 根据连接回退后的完整远程配置选择 OpenAI、Anthropic，最后本地。参数与失败行为见[环境手册](handbook/agents/environment.md#自动选择模型工具)。
+
+环境管理使用 `env.list`、`env.inspect`、`env.set`，契约见[环境与敏感值](handbook/agents/environment.md)。模型工具入口不开放原值 `env.get`，流程执行仍可使用它。助手只能写当前对话环境；敏感项只回传状态，设置参数的执行记录遮挡。`flow.run` 每次读取最新环境，支持设置后立即测试；显式敏感输出与错误遮挡，无自动敏感性传播或代码安全隔离。
+
 - `agent-plan-editor/src/assistant.json` 是独立内置助手；`assistant-flow.ts` 按设置构造两个一致的 `llm.*` 调用。界面显示 AgentPlan助手，保留内部 ID `builtin-local-agent`，不改已有会话 ID。
 - `src/example.json` 是 Library 首次模板及新建流程模板，继续使用本地模型。新建弹窗的名称和说明留空；不覆盖已保存的用户流程。
 - 两种流程都使用 `memory.init → llm.* → memory.addAssistant → while → memory.save`。循环执行 `tools.execute → memory.addTools → llm.* → memory.addAssistant`，无工具请求时结束。
@@ -39,7 +43,7 @@
 
 自动模式优先有 Key 的 OpenAI，再 Anthropic，否则本地。显式选择远程且其 Key 缺失时，选择另一已配置服务；均无 Key 则本地。显式本地始终使用本地。远程失败直接报错，不在失败后静默回退。
 
-连接保存在当前浏览器 localStorage 的 `agent-plan-assistant-settings`。`BrowserAiHost.tools()` 在远程请求前补齐缺失的连接参数，调用步骤显式参数优先；Key 不注入助手流程、流程变量、记忆或导出文件。Key 在此浏览器存储中保存，不是服务器账户凭据库。CLI 仍从调用输入获取连接，不读取此浏览器设置。
+连接保存在当前浏览器 localStorage 的 `agent-plan-assistant-settings`。共享 AI 工具在远程请求前按步骤参数 > 有效应用环境 > 设置中的连接默认值 > 内置默认值补齐连接；Key 不注入助手流程、流程变量、记忆或导出文件。内置助手不固定设置 model。CLI 读取命令临时覆盖、系统环境与全局配置，不读取浏览器设置。变量名称和空值规则见[环境手册](handbook/agents/environment.md)。
 
 浏览器直连服务，仍受 CORS 约束；OpenAI 地址默认为 `https://api.openai.com/v1`，Anthropic 默认为 `https://api.anthropic.com`。兼容接口必须支持相应请求与工具协议，不提供后端代理。
 

@@ -11,6 +11,7 @@ import { assistantFlow } from "./assistant-flow";
 import { removeThread, type ThreadBook, updateThread } from "./chat-threads";
 import { loadConversations, saveConversations } from "./conversations";
 import { DescriptionInput } from "./DescriptionInput";
+import { EnvironmentEditor } from "./EnvironmentEditor";
 import example from "./example.json";
 import { FlowEditor } from "./FlowEditor";
 import { tr } from "./i18n";
@@ -122,6 +123,14 @@ export function App() {
     else host.cancelInitialization();
   }, [host, settings.backgroundInitialization, settings.allowLocalDownload]);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [environmentOpen, setEnvironmentOpen] = useState(false);
+  const environmentPage = useRef(page);
+  useEffect(() => {
+    if (environmentPage.current !== page) {
+      environmentPage.current = page;
+      setEnvironmentOpen(false);
+    }
+  }, [page]);
   const [threadDelete, setThreadDelete] = useState<{
     docId: string;
     id: string;
@@ -354,7 +363,16 @@ export function App() {
                 </UnstyledButton>
               ))}
             </nav>
-            <div className="toolbar-side" aria-hidden="true" />
+            <div className="toolbar-side toolbar-actions">
+              {(page === "agent" || page === "editor") && (
+                <IconButton
+                  icon="settings"
+                  label={tr(page === "agent" ? "当前对话环境" : "当前文件测试环境")}
+                  disabled={busy || (page === "editor" && !doc)}
+                  onClick={() => setEnvironmentOpen(true)}
+                />
+              )}
+            </div>
           </header>
           <ModelDownloadProgress manager={host.downloads} />
           <main className={`page-content page-${page}`}>
@@ -395,6 +413,10 @@ export function App() {
                     hidden={page !== "agent" || entry.id !== agentDoc.id}
                   >
                     <AgentChat
+                      environmentOpen={
+                        environmentOpen && page === "agent" && entry.id === agentDoc.id
+                      }
+                      onEnvironmentClose={() => setEnvironmentOpen(false)}
                       doc={entry}
                       documents={documents}
                       aiHost={host}
@@ -442,6 +464,8 @@ export function App() {
                 {doc && (
                   <div hidden={page !== "editor"}>
                     <FlowEditor
+                      environmentOpen={environmentOpen && page === "editor"}
+                      onEnvironmentClose={() => setEnvironmentOpen(false)}
                       key={`editor:${doc.id}:${libraryRevision}`}
                       doc={doc}
                       documents={documents}
@@ -498,6 +522,12 @@ export function App() {
                     ]}
                   />
                 </div>
+              </div>
+            </section>
+            <section className="settings-group">
+              <h2>{tr("全局环境变量")}</h2>
+              <div className="settings-card">
+                <EnvironmentEditor disabled={busy} />
               </div>
             </section>
             <AiSettings

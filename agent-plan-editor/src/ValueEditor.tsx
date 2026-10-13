@@ -1,6 +1,6 @@
 import { Badge, TextInput } from "@mantine/core";
 import type { JsonValue } from "agent-plan-core";
-import { useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { tr } from "./i18n";
 import { formatValue, inferValue, valueKind } from "./parameter-value";
 import { IconButton } from "./ui";
@@ -36,12 +36,16 @@ export function AutoValueInput({
   suggest = false,
   placeholder,
   emptyStringAsBlank = false,
+  rightSection,
+  rightSectionWidth,
 }: {
   value: unknown;
   onChange: (value: JsonValue | undefined) => void;
   label: string;
   placeholder?: string;
   emptyStringAsBlank?: boolean;
+  rightSection?: ReactNode;
+  rightSectionWidth?: number;
   suggest?: boolean;
   allowUnset?: boolean;
   disabled?: boolean;
@@ -100,6 +104,9 @@ export function AutoValueInput({
         }}
         ref={input}
         aria-label={label}
+        rightSection={rightSection}
+        rightSectionWidth={rightSectionWidth}
+        rightSectionPointerEvents={rightSection ? "all" : undefined}
         aria-invalid={Boolean(error)}
         autosize={false}
         rows={1}

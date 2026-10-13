@@ -20,7 +20,11 @@ function readIndex(value: unknown): ThreadIndex {
 }
 
 /** Raw transcripts are shared tool storage; only UI selection/order stays in a separate index. */
-export function createConversationStore(storage: Storage, indexes: Storage) {
+export function createConversationStore(
+  storage: Storage,
+  indexes: Storage,
+  environmentStorage?: Storage,
+) {
   const snapshots = new Map<string, string>();
   let queue = Promise.resolve();
   function serial<T>(task: () => Promise<T>): Promise<T> {
@@ -48,6 +52,7 @@ export function createConversationStore(storage: Storage, indexes: Storage) {
     }
     for (const id of old.threadIds.filter((id) => !book.threads.some((t) => t.id === id))) {
       await storage.delete(`threads/${id}`);
+      await environmentStorage?.delete(`env/threads/${id}`);
       snapshots.delete(id);
     }
     await indexes.write(`thread-index/${docId}`, {

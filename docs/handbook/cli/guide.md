@@ -28,6 +28,9 @@ CLI 子仓库依赖 workspace 包，独立克隆并安装不等于可用的发�
 | `storage get <key>` | 读取一个记录 |
 | `storage delete <key>` | 立即删除指定单个 key |
 | `config set <name> <value>` | 设置支持的配置，当前 storage-dir |
+| `env set <name> <value>` | 保存全局环境值；--sensitive 遮挡 |
+| env list | 查看有效环境，敏感值遮挡 |
+| `env delete <name>` | 删除指定作用域的一项环境值 |
 
 各命令用 --help 查询完整帮助。storage 子命令支持 --storage-dir、--json，config set 支持 --json。
 
@@ -37,6 +40,7 @@ CLI 子仓库依赖 workspace 包，独立克隆并安装不等于可用的发�
 | --- | --- | --- |
 | --json | run/inspect/validate | 版本化机器输出 |
 | `--storage-dir <directory>` | 三者 | 覆盖存储位置 |
+| `--env <NAME=value>` | run/validate | 临时字符串环境覆盖，可重复；优先于系统环境和全局配置 |
 | `--timeout <duration>` | 三者 | 默认 30000 ms，支持 ms/s/m，正整数 |
 | `--input <file.json>` | run/validate | 输入对象；- 从 stdin 读到 EOF |
 | `--input-json <json>` | run/validate | 内联对象，与 --input 互斥 |

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import "fake-indexeddb/auto";
 import { existsSync } from "node:fs";
 import { registerHooks } from "node:module";
 import test from "node:test";
@@ -14,6 +15,7 @@ const hook = registerHooks({
   },
 });
 const { BrowserAiHost, initialAiSettings } = await import("../src/ai-host.ts");
+const { newFile, writeFiles } = await import("../src/workspace-files.ts");
 hook.deregister();
 
 test("remote calls use settings credentials and endpoints without initializing the local worker", async () => {
@@ -80,6 +82,65 @@ test("remote calls use settings credentials and endpoints without initializing t
     await tools["llm.openai"]({ input: "hello", apiKey: "override", model: "other" });
     assert.equal(requests[2].headers.get("authorization"), "Bearer override");
     assert.equal(requests[2].body.model, "other");
+    const environment = {
+      OPENAI_API_KEY: { value: "env-openai", sensitive: true },
+      OPENAI_MODEL: { value: "env-gpt", sensitive: false },
+      OPENAI_BASE_URL: { value: "https://openai.example/env", sensitive: false },
+      ANTHROPIC_API_KEY: { value: "env-anthropic", sensitive: true },
+      ANTHROPIC_MODEL: { value: "env-claude", sensitive: false },
+    };
+    const envTools = host.tools(
+      settings,
+      new AbortController().signal,
+      () => {},
+      undefined,
+      undefined,
+      undefined,
+      false,
+      environment,
+    );
+    await envTools["llm.openai"]({ input: "hello" });
+    assert.equal(requests[3].headers.get("authorization"), "Bearer env-openai");
+    assert.equal(requests[3].body.model, "env-gpt");
+    assert.equal(requests[3].url, "https://openai.example/env/chat/completions");
+    await envTools["llm.anthropic"]({ input: "hello" });
+    assert.equal(requests[4].headers.get("x-api-key"), "env-anthropic");
+    assert.equal(requests[4].body.model, "env-claude");
+    settings.assistantProvider = "openai";
+    const autoTools = host.tools(
+      settings,
+      new AbortController().signal,
+      () => {},
+      undefined,
+      undefined,
+      undefined,
+      false,
+      {
+        ...environment,
+        LLM_PROVIDER: { value: "anthropic", sensitive: false },
+      },
+    );
+    const autoResponse = await autoTools["llm.auto"]({ input: "hello" });
+    assert.equal(autoResponse.result, "remote reply");
+    assert.equal(requests[5].headers.get("x-api-key"), "env-anthropic");
+    assert.equal(requests[5].body.model, "env-claude");
+    await autoTools["env.override"]({ name: "ANTHROPIC_MODEL", value: "runtime-claude" });
+    await autoTools["llm.auto"]({ input: "hello" });
+    assert.equal(requests[6].body.model, "runtime-claude");
+    await writeFiles([
+      newFile(
+        "host-env-test.json",
+        new Blob([JSON.stringify({ ANTHROPIC_API_KEY: "loaded-key" })]),
+      ),
+    ]);
+    await autoTools["env.load"]({ path: "./host-env-test.json" });
+    await autoTools["llm.auto"]({ input: "hello" });
+    assert.equal(requests[7].headers.get("x-api-key"), "loaded-key");
+    await assert.rejects(
+      autoTools["env.load"]({ path: "https://example.com/env.json" }),
+      /ENV_SOURCE/,
+    );
+    assert.equal(host.getSnapshot().status, "idle");
   } finally {
     globalThis.fetch = originalFetch;
     host.dispose();

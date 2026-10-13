@@ -4,8 +4,12 @@ export type { ModelEvent } from "./stream.js";
 
 import { AIMessage, HumanMessage, SystemMessage, ToolMessage } from "@langchain/core/messages";
 import { describeTools } from "agent-plan-core";
+import { type AutoProvider, resolveConnection, selectProvider } from "./connection.js";
 import { AI_TOOL_DEFINITIONS } from "./definitions.js";
 import { remoteFailure } from "./remote-failure.js";
+
+export { resolveConnection, selectProvider } from "./connection.js";
+
 import {
   type ChatMessage,
   parseCalls,
@@ -26,7 +30,7 @@ export { createToolExecutionTools, EXECUTION_TOOL_DEFINITIONS } from "./tool-cal
 import { BASE_URLS, LOCAL_MAX_TOKENS, LOCAL_MODEL, REMOTE_MAX_TOKENS } from "./definitions.js";
 
 export { LOCAL_MODEL, LOCAL_REVISION } from "./definitions.js";
-export const AI_TOOLS = ["llm.openai", "llm.anthropic", "llm.local"] as const;
+export const AI_TOOLS = ["llm.openai", "llm.anthropic", "llm.local", "llm.auto"] as const;
 export type Provider = "openai" | "anthropic";
 export interface Connection {
   apiKey?: string | undefined;
@@ -53,6 +57,9 @@ export interface GenerateResult {
 }
 export type LocalGenerate = (input: GenerateInput, signal?: AbortSignal) => Promise<GenerateResult>;
 export interface AiOptions extends ToolOptions {
+  provider?: AutoProvider;
+  environment?: Readonly<Record<string, string>>;
+  connections?: Partial<Record<Provider, Connection>>;
   local: LocalGenerate;
   signal?: AbortSignal;
   timeoutMs?: number;
@@ -153,10 +160,14 @@ export function createAiTools(options: AiOptions) {
   const remote =
     (provider: Provider) =>
     async (raw: Record<string, unknown>): Promise<GenerateResult> => {
-      const input = prepare(raw);
+      const input = prepare(
+        resolveConnection(provider, raw, options.environment, options.connections?.[provider]),
+      );
       const config = input;
       if (!config.apiKey?.trim())
-        throw new Error(`AI_CONFIG: Specify ${provider} apiKey in the call inputs.`);
+        throw new Error(
+          `AI_CONFIG: Configure ${provider} apiKey in inputs or ${provider === "openai" ? "OPENAI" : "ANTHROPIC"}_API_KEY.`,
+        );
       const model = input.model;
       if (!model?.trim()) throw new Error(`AI_CONFIG: Specify a ${provider} model.`);
       if (config.baseURL) {
@@ -321,20 +332,32 @@ export function createAiTools(options: AiOptions) {
         throw new Error(remoteFailure(provider, error));
       }
     };
+  const handlers = {
+    "llm.openai": remote("openai"),
+    "llm.anthropic": remote("anthropic"),
+    "llm.local": async (raw: Record<string, unknown>) => {
+      const result = await options.local(prepare(raw, true), options.signal);
+      return {
+        ...result,
+        toolCalls: result.toolCalls ?? [],
+        message: result.message ?? {
+          role: "assistant" as const,
+          content: String(result.result ?? ""),
+        },
+      };
+    },
+  };
   return describeTools(
     {
-      "llm.openai": remote("openai"),
-      "llm.anthropic": remote("anthropic"),
-      "llm.local": async (raw: Record<string, unknown>) => {
-        const result = await options.local(prepare(raw, true), options.signal);
-        return {
-          ...result,
-          toolCalls: result.toolCalls ?? [],
-          message: result.message ?? {
-            role: "assistant" as const,
-            content: String(result.result ?? ""),
-          },
-        };
+      ...handlers,
+      "llm.auto": (raw: Record<string, unknown>) => {
+        const provider = selectProvider(
+          raw,
+          options.environment,
+          options.connections,
+          options.provider,
+        );
+        return handlers[`llm.${provider}`](raw);
       },
     },
     AI_TOOL_DEFINITIONS,

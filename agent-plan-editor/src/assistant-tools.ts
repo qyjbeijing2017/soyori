@@ -6,7 +6,10 @@ import {
   parseFlow,
   type Runtime,
   type RuntimeFunction,
+  redactFailure,
+  redactFields,
   toJsonValue,
+  withoutSensitiveInitials,
 } from "agent-plan-core";
 import { ASSISTANT_TOOL_DEFINITIONS } from "./assistant-tool-definitions.ts";
 import { executionSummary } from "./chat-execution.ts";
@@ -64,7 +67,7 @@ export function createAssistantTools(options: {
     graph: LoadedFlow,
     source: () => string | undefined,
     signal: AbortSignal,
-  ) => Record<string, RuntimeFunction>;
+  ) => Record<string, RuntimeFunction> | Promise<Record<string, RuntimeFunction>>;
   changed: () => void;
   running?: boolean;
 }) {
@@ -236,8 +239,12 @@ export function createAssistantTools(options: {
     "workspace.delete": (input) => mutate(() => changeFiles("delete", [string(input.path)])),
     "flow.inspect": async (input) => {
       const { graph, revision } = await graphFor(input);
-      createRuntime(graph, {}, { functions: options.functions(graph, () => graph.source, signal) });
-      return { revision, ...inspectFlow(graph.definition) };
+      createRuntime(
+        graph,
+        {},
+        { functions: await options.functions(graph, () => graph.source, signal) },
+      );
+      return { revision, ...inspectFlow(withoutSensitiveInitials(graph.definition)) };
     },
     "flow.run": async (input) => {
       if (options.running)
@@ -266,7 +273,7 @@ export function createAssistantTools(options: {
       try {
         signal.throwIfAborted();
         runtime = createRuntime(graph, literal, {
-          functions: options.functions(
+          functions: await options.functions(
             graph,
             () => runtime?.getStack().at(-1)?.source,
             controller.signal,
@@ -275,13 +282,16 @@ export function createAssistantTools(options: {
         while (!["completed", "failed"].includes(runtime.getState().status)) {
           controller.signal.throwIfAborted();
           if (++steps > 2000) throw Error("FLOW_LIMIT: exceeded 2000 steps");
+          const active = runtime.getStack().at(-1);
           const { event } = await runtime.step();
           if (event && records.length < 100)
             records.push({
               flow: event.flowName,
               path: event.path,
               type: event.type,
-              ...(event.error ? { error: event.error } : {}),
+              ...(event.error
+                ? { error: redactFailure(event.error, active?.getSensitiveFields() ?? []) }
+                : {}),
             });
           await new Promise((resolve) => setTimeout(resolve, 0));
         }
@@ -290,11 +300,16 @@ export function createAssistantTools(options: {
         return {
           status: state.status,
           revision,
-          output: executionSummary(state.output, 16000),
+          output: executionSummary(
+            redactFields(state.output ?? {}, runtime.getSensitiveFields()),
+            16000,
+          ),
           ...(state.status === "completed"
-            ? boundedFlowResult(state.output)
+            ? boundedFlowResult(redactFields(state.output ?? {}, runtime.getSensitiveFields()))
             : { resultAvailable: false, resultUnavailable: "failed" }),
-          ...(state.error ? { error: state.error } : {}),
+          ...(state.error
+            ? { error: redactFailure(state.error, runtime.getSensitiveFields()) }
+            : {}),
           stack: stack(),
           records,
           steps,
@@ -315,7 +330,9 @@ export function createAssistantTools(options: {
           resultUnavailable: "failed",
           error: {
             code: error.code ?? "FLOW_RUN_ERROR",
-            message: error.message ?? String(cause),
+            message: runtime?.getSensitiveFields().length
+              ? "[sensitive error]"
+              : (error.message ?? String(cause)),
             ...(error.path ? { path: error.path } : {}),
             ...(error.flowName ? { flowName: error.flowName } : {}),
             ...(error.source ? { source: error.source } : {}),

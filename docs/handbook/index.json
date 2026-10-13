@@ -1,10 +1,10 @@
 {
-  "version": "2026-10-11",
+  "version": "2026-10-13",
   "chapters": [
     {
       "id": "introduction",
       "path": "docs/handbook/introduction.md",
-      "title": "认识 Agent Plan",
+      "title": "什么是 AgentPlan",
       "group": "开始使用",
       "summary": "产品概念、阅读路线、已实现能力与边界。"
     },
@@ -83,6 +83,13 @@
       "summary": "DeepSeek 等兼容 API 配置、模型消息、工具请求和显式 while 循环。"
     },
     {
+      "title": "环境变量与敏感值",
+      "id": "environment",
+      "group": "工具与 Agent",
+      "path": "docs/handbook/agents/environment.md",
+      "summary": "全局与 thread 环境、env.get、敏感遮挡与导出边界。"
+    },
+    {
       "id": "storage",
       "path": "docs/handbook/agents/storage.md",
       "title": "存储与对话记忆",
@@ -113,8 +120,18 @@
     }
   ],
   "examples": [
-    { "id": "hello", "title": "第一个流程", "entry": "hello.yaml", "files": ["hello.yaml"] },
-    { "id": "counter", "title": "循环计数", "entry": "counter.yaml", "files": ["counter.yaml"] },
+    {
+      "id": "hello",
+      "title": "第一个流程",
+      "entry": "hello.yaml",
+      "files": ["hello.yaml"]
+    },
+    {
+      "id": "counter",
+      "title": "循环计数",
+      "entry": "counter.yaml",
+      "files": ["counter.yaml"]
+    },
     {
       "id": "subflows",
       "title": "子流程调用",

@@ -172,7 +172,7 @@ test("ordinary assistant tool loop completes docs, save, inspect and run without
     { target: "flow.run", inputs: { path: "loop/time.json" } },
   ];
   let round = 0;
-  registry["llm.local"] = async ({ input }) => {
+  registry["llm.auto"] = async ({ input }) => {
     if (round) {
       const result = JSON.parse(input.at(-1).content);
       assert.equal(result.error, undefined);

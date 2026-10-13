@@ -27,6 +27,7 @@ test("call groups use target namespaces and identify the current document across
       { value: "llm.local", label: "local" },
       { value: "llm.openai", label: "openai" },
       { value: "llm.anthropic", label: "anthropic" },
+      { value: "llm.auto", label: "auto" },
     ],
   );
   const self = groups.find((g) => g.group === "custom").items[0];

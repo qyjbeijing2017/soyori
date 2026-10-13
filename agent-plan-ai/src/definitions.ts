@@ -1,4 +1,4 @@
-import type { ParameterEntry, ToolDefinition } from "agent-plan-core";
+import { type ParameterEntry, type ToolDefinition, toolParameters } from "agent-plan-core";
 
 export const LOCAL_MODEL = "onnx-community/Qwen3-1.7B-ONNX";
 export const LOCAL_REVISION = "b85539623180ae64303f37373d942cb0595ca44d";
@@ -24,14 +24,14 @@ function llm(name: string, local: boolean): ToolDefinition {
       {
         name: "model",
         valueType: "string",
-        required: true,
         placeholder: "填写该服务提供的模型 ID",
+        description: "省略时读取 OPENAI_MODEL / ANTHROPIC_MODEL，再使用宿主连接默认值。",
       },
       {
         name: "apiKey",
         valueType: "string",
-        required: true,
-        description: "服务令牌。可填写 $变量名，避免将令牌直接保存在流程中。",
+        description:
+          "省略时读取 OPENAI_API_KEY / ANTHROPIC_API_KEY，再使用宿主连接默认值；支持 $变量引用。",
       },
     );
   const advanced: ParameterEntry[] = [];
@@ -44,8 +44,8 @@ function llm(name: string, local: boolean): ToolDefinition {
     advanced.push({
       name: "baseURL",
       valueType: "string",
-      defaultValue: name === "llm.openai" ? BASE_URLS.openai : BASE_URLS.anthropic,
-      description: "每个调用步骤独立设置，也可以引用运行变量。",
+      placeholder: name === "llm.openai" ? BASE_URLS.openai : BASE_URLS.anthropic,
+      description: "步骤参数 > OPENAI_BASE_URL / ANTHROPIC_BASE_URL > 宿主连接默认值 > 官方地址。",
     });
   advanced.push(
     {
@@ -117,6 +117,14 @@ export const AI_TOOL_DEFINITIONS: Record<string, ToolDefinition> = Object.fromEn
     llm(name, name === "llm.local"),
   ]),
 );
+const auto = llm("llm.auto", false);
+auto.description =
+  "按 LLM_PROVIDER、宿主供应商设置选择；auto 时优先配置完整的 OpenAI，再 Anthropic，否则本地。失败不切换重试。连接参数沿用各供应商环境回退。";
+for (const entry of toolParameters(auto.inputs)) {
+  if (entry.name === "maxTokens" || entry.name === "outputFormat") delete entry.defaultValue;
+  if (entry.name === "maxTokens") entry.placeholder = "远程默认 4096；本地默认 512";
+}
+AI_TOOL_DEFINITIONS["llm.auto"] = auto;
 export const TOKEN_TOOL_DEFINITIONS: Record<string, ToolDefinition> = {
   "tokens.count": {
     name: "tokens.count",

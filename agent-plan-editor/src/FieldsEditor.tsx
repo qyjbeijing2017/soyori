@@ -18,6 +18,7 @@ import { changeFieldList, fieldLocation, moveFieldEntry, putField } from "./fiel
 import { GroupBlock } from "./GroupBlock";
 import { tr } from "./i18n";
 import { MarkdownText } from "./MarkdownText";
+import { SensitiveValueInput } from "./SensitiveValueInput";
 import { SortableRow } from "./Sortable";
 import { IconButton } from "./ui";
 import { AutoValueInput, ValueTypeTag } from "./ValueEditor";
@@ -293,7 +294,8 @@ export function FieldsEditor({
                             </small>
                           )}
                         </UnstyledButton>
-                        <AutoValueInput
+                        <SensitiveValueInput
+                          sensitive={field.sensitive}
                           label={name}
                           value={value}
                           allowUnset
@@ -502,12 +504,23 @@ export function FieldsEditor({
                     edit({ ...editing, field: { ...editing.field, output: e.target.checked } })
                   }
                 />
+                <Checkbox
+                  label={tr("敏感值")}
+                  checked={editing.field.sensitive ?? false}
+                  onChange={(e) =>
+                    edit({
+                      ...editing,
+                      field: { ...editing.field, sensitive: e.currentTarget.checked },
+                    })
+                  }
+                />
               </div>
             </section>
             <section className="dialog-section">
               <div className="parameter-row">
                 <span className="parameter-name">{tr("默认值")}</span>
-                <AutoValueInput
+                <SensitiveValueInput
+                  sensitive={editing.field.sensitive}
                   label={tr("默认值")}
                   value={editing.field.initial}
                   allowUnset

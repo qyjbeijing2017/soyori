@@ -14,6 +14,7 @@ import {
 } from "agent-plan-core";
 import { SCRIPT_TOOL_DEFINITION } from "agent-plan-script";
 import { STORAGE_TOOL_DEFINITIONS } from "agent-plan-storage";
+import { ENV_TOOL_DEFINITIONS } from "agent-plan-storage/environment";
 import { BASIC_TOOL_DEFINITIONS } from "agent-plan-tools";
 import { ASSISTANT_TOOL_DEFINITIONS } from "./assistant-tool-definitions.ts";
 import { tr } from "./i18n.ts";
@@ -54,6 +55,7 @@ export const toolDefinitions: Record<string, ToolDefinition> = {
   ...AI_TOOL_DEFINITIONS,
   ...TOKEN_TOOL_DEFINITIONS,
   ...STORAGE_TOOL_DEFINITIONS,
+  ...ENV_TOOL_DEFINITIONS,
   ...MEMORY_TOOL_DEFINITIONS,
   ...EXECUTION_TOOL_DEFINITIONS,
 };

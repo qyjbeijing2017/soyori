@@ -39,6 +39,8 @@ timeoutMs 默认 10000，范围 1–60000；请求体和解压后响应分别最
 
 ## 存储与 token
 
+`env.get({name})` 读取本次运行的环境，thread 覆盖全局，返回 `{found, value}`。未设置时 value 为 null，不自动传播敏感标记。配置方式和边界见 [环境与敏感值](../agents/environment.md)。
+
 | 名称 | 输入 | 返回 |
 | --- | --- | --- |
 | storage.read | key | found、value，缺失 value 为 null |
@@ -65,6 +67,10 @@ storage 只接受 JSON。tokens.count 的 mode 默认 local，使用当前本地
 ## 模型
 
 `llm.openai`、`llm.anthropic`、`llm.local` 接收 input（文字或完整消息数组）、model、apiKey、baseURL、maxTokens、temperature、tools；远程还支持 outputFormat 和 jsonSchema。本地不接受远程格式参数，model 仅支持当前固定模型。
+
+远程连接参数支持逐项回退：步骤参数 > 当前有效环境 > 宿主连接默认值 > 官方 Base URL。环境名与空值规则见[环境与敏感值](../agents/environment.md#llm-自动读取连接配置)；模型与密钥没有内置默认值。
+
+`llm.auto` 使用相同输入输出，按 LLM_PROVIDER 和设置选择供应商；auto 时优先完整的 OpenAI 配置，再 Anthropic，最后本地。详见[自动选择](../agents/environment.md#自动选择模型工具)。
 
 统一返回 `{result, finishReason, usage, toolCalls, message}`。文本模式 result 是文字；远程 JSON 模式 result 是 JSON 值。不要读取旧 text/content 返回字段。详细默认值、消息和配置见 [模型与 Agent](../agents/models.md)。
 

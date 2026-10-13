@@ -4,6 +4,8 @@ import {
   type LoadedFlow,
   type RuntimeFailure,
   type RuntimeFunction,
+  redactFailure,
+  redactFields,
 } from "agent-plan-core";
 import { formatState } from "./format-state.ts";
 
@@ -28,14 +30,18 @@ export function createSession(
     records,
     executed,
     async step() {
-      const before = formatState(runtime.getState().fields);
+      const before = formatState(
+        redactFields(runtime.getState().fields, runtime.getSensitiveFields()),
+      );
       const result = await runtime.step();
       if (result.event?.invocationId === runtime.invocationId) {
         const record: StepRecord = {
           path: result.event.path,
           before,
-          after: formatState(result.state.fields),
-          ...(result.event.error ? { error: { ...result.event.error } } : {}),
+          after: formatState(redactFields(result.state.fields, runtime.getSensitiveFields())),
+          ...(result.event.error
+            ? { error: redactFailure(result.event.error, runtime.getSensitiveFields()) }
+            : {}),
           branch: result.event.branch,
         };
         if (runtime.getState().status === "waiting") pending = record;
@@ -46,8 +52,11 @@ export function createSession(
         if (records.length > 300) records.shift();
       }
       if (pending && runtime.getState().status !== "waiting") {
-        pending.after = formatState(runtime.getState().fields);
-        if (runtime.getState().error) pending.error = { ...runtime.getState().error! };
+        pending.after = formatState(
+          redactFields(runtime.getState().fields, runtime.getSensitiveFields()),
+        );
+        if (runtime.getState().error)
+          pending.error = redactFailure(runtime.getState().error!, runtime.getSensitiveFields());
         executed.add(pending.path);
         records.push(pending);
         if (records.length > 300) records.shift();

@@ -43,7 +43,9 @@ test("registered tools expose package interfaces without loading models; documen
     assert.equal(parameters.find((p) => p.name === "input").initial, "$chatIn");
     assert.equal(
       parameters.find((p) => p.name === "maxTokens").defaultValue,
-      parseInput({ input: "test" }, name === "llm.local").maxTokens,
+      name === "llm.auto"
+        ? undefined
+        : parseInput({ input: "test" }, name === "llm.local").maxTokens,
     );
     assert.deepEqual(
       toolParameters(fn.definition.outputs).map((p) => p.name),

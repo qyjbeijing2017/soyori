@@ -93,3 +93,5 @@ steps:
 步骤分组写为 `{type: group, name, steps, collapsed?, description?}`。字段数组中的分组写为 `{type: group, name, fields, collapsed?, description?}`。可嵌套，字段名仍在整个流程中唯一。
 
 分组不创建作用域，不额外占执行步骤；折叠状态只用于展示。每个节点都可写 `description`，用于编辑与调试，不改变执行行为。
+
+字段可选 `sensitive: true`，用于界面、快照和导出遮挡，不改变运行原值，不自动传播；详见 [环境变量与敏感值](../agents/environment.md)。

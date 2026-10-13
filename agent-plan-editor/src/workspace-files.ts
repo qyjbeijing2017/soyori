@@ -1,4 +1,5 @@
 import { unzipSync, zipSync } from "fflate";
+import { exportFile } from "./export-file.ts";
 
 export interface WorkspaceFile {
   id: string;
@@ -330,7 +331,7 @@ export async function exportWorkspace(directory = "") {
       entries,
       file.path.slice(directory ? offset : 0) + (file.kind === "directory" ? "/" : ""),
       {
-        value: new Uint8Array(await file.content.arrayBuffer()),
+        value: new Uint8Array(await (await exportFile(file.content, file.path)).arrayBuffer()),
         enumerable: true,
       },
     );

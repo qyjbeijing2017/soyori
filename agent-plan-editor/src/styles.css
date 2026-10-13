@@ -2925,3 +2925,78 @@ textarea:where(:not([class*="mantine-"], [class*="wx-"])) {
   background: currentColor;
   mask: url("./assets/chat-menu.svg") center / contain no-repeat;
 }
+
+.markdown-content.document-markdown h1 {
+  font-size: clamp(1.8rem, 3vw, 2.2rem);
+  line-height: 1.35;
+  margin: 0 0 24px;
+}
+.markdown-content.document-markdown h2 {
+  font-size: clamp(1.4rem, 2.3vw, 1.65rem);
+  line-height: 1.45;
+  margin: 48px 0 20px;
+  padding-top: 28px;
+  border-top: 1px solid #dce5df;
+}
+.markdown-content.document-markdown h3 {
+  font-size: 1.2rem;
+  line-height: 1.5;
+  margin: 32px 0 14px;
+}
+.markdown-content.document-markdown :is(h4, h5, h6) {
+  font-size: 1.05rem;
+  margin: 24px 0 12px;
+}
+.document-page .markdown-content.document-markdown p {
+  margin: 0 0 16px;
+}
+.markdown-content.document-markdown :is(ul, ol) {
+  margin: 16px 0 24px;
+}
+.markdown-content.document-markdown li + li {
+  margin-top: 10px;
+}
+.markdown-content.document-markdown table {
+  margin: 20px 0 28px;
+}
+.markdown-content.document-markdown :is(th, td) {
+  padding: 12px 16px;
+}
+
+.sensitive-value {
+  display: block;
+  min-width: 0;
+}
+.sensitive-eye {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+.sensitive-countdown {
+  font-size: 12px;
+  color: #7b8c82;
+  font-variant-numeric: tabular-nums;
+}
+.settings-card > .environment-editor {
+  padding: 24px 0 32px;
+}
+.environment-description {
+  margin: 0;
+}
+.environment-variables .variable-line {
+  align-items: center;
+}
+.environment-variables .variable-entry {
+  display: block;
+}
+.environment-editor .environment-variables .parameter-row {
+  align-items: center;
+}
+.toolbar-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+.settings-page {
+  padding-bottom: calc(64px + env(safe-area-inset-bottom));
+}

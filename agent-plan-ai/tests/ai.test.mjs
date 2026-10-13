@@ -12,7 +12,12 @@ test("validates before invoking a model; local calls require no credentials", as
     },
   });
   assert.equal((await tools["llm.local"]({ input: "你好" })).result, "local");
-  assert.deepEqual(Object.keys(tools).sort(), ["llm.anthropic", "llm.local", "llm.openai"]);
+  assert.deepEqual(Object.keys(tools).sort(), [
+    "llm.anthropic",
+    "llm.auto",
+    "llm.local",
+    "llm.openai",
+  ]);
   assert.equal(received.messages[0].content, "你好");
   assert.equal(received.maxTokens, 512);
   assert.equal(parseInput({ input: "hello" }).maxTokens, 4096);
@@ -129,6 +134,42 @@ test("real LangChain adapters send vendor protocols and preserve text, content, 
     assert.doesNotThrow(() => JSON.stringify(result));
   }
   assert.equal(requests[0].headers.authorization, "Bearer test-secret");
+  const environmentTools = createAiTools({
+    local: async () => {
+      throw Error("unexpected local inference");
+    },
+    environment: {
+      OPENAI_MODEL: "env-model",
+      OPENAI_API_KEY: "env-secret",
+      OPENAI_BASE_URL: `${base}/v1`,
+      ANTHROPIC_MODEL: "env-model",
+      ANTHROPIC_API_KEY: "env-secret",
+      ANTHROPIC_BASE_URL: base,
+    },
+    connections: {
+      openai: {
+        model: "ignored-default",
+        apiKey: "ignored-default",
+        baseURL: "https://unused.example",
+      },
+    },
+  });
+  for (const provider of ["openai", "anthropic"]) {
+    const response = await environmentTools[`llm.${provider}`]({
+      input: "你好",
+      model: "",
+      apiKey: " ",
+      baseURL: "",
+    });
+    assert.equal(response.result, "你好");
+    const request = requests.at(-1);
+    assert.equal(request.body.model, "env-model");
+    assert.equal(
+      provider === "openai" ? request.headers.authorization : request.headers["x-api-key"],
+      provider === "openai" ? "Bearer env-secret" : "env-secret",
+    );
+    assert.doesNotMatch(JSON.stringify(response), /env-secret/);
+  }
   assert.equal(requests[1].headers["x-api-key"], "test-secret");
   assert.equal(requests[0].body.messages[0].role, "system");
   assert.equal(requests[1].body.system, "简短回答");

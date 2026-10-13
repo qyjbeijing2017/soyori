@@ -12,7 +12,7 @@ import example from "../src/example.json" with { type: "json" };
 test("assistant selects configured providers, keeps both model turns consistent, and separates the template", () => {
   const settings = structuredClone(initialAiSettings);
   assert.equal(assistantProvider(settings), "local");
-  assert.equal(assistantFlow(settings).steps[1].target, "llm.local");
+  assert.equal(assistantFlow(settings).steps[1].target, "llm.auto");
   const local = assistantFlow(settings);
   assert.ok(local.steps[1].inputs.tools.includes("flow.create"));
   assert.ok(local.steps[3].body[2].inputs.tools.includes("flow.create"));
@@ -34,7 +34,7 @@ test("assistant selects configured providers, keeps both model turns consistent,
   const flow = assistantFlow(settings);
   for (const call of [flow.steps[1], flow.steps[3].body[2]]) {
     assert.equal(call.target, "llm.anthropic");
-    assert.equal(call.inputs.model, "test-claude");
+    assert.equal(Object.hasOwn(call.inputs, "model"), false);
     assert.ok(call.inputs.tools.includes("math.clamp"));
     assert.ok(call.inputs.tools.includes("web.search"));
   }

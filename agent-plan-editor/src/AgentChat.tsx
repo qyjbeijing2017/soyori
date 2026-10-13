@@ -9,7 +9,12 @@ import {
   UnstyledButton,
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
-import { createRuntime } from "agent-plan-core";
+import { createRuntime, fieldDefinitions, redactFailure, redactFields } from "agent-plan-core";
+import {
+  type Environment,
+  effectiveEnvironment,
+  saveEnvironment,
+} from "agent-plan-storage/environment";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { AiSettings, BrowserAiHost } from "./ai-host";
 import { formatChatOutput } from "./chat-contract";
@@ -27,6 +32,8 @@ import {
   type ThreadBook,
   threadFlow,
 } from "./chat-threads";
+import { EnvironmentEditor } from "./EnvironmentEditor";
+import { environmentStorage, flushEnvironmentWrites } from "./environment-store";
 import { tr } from "./i18n";
 import { canChat, type FlowDocument } from "./library";
 import { loadLibraryGraph } from "./library-calls";
@@ -45,6 +52,8 @@ export function AgentChat({
   onLibrary,
   flows,
   onSelectFlow,
+  environmentOpen = false,
+  onEnvironmentClose = () => {},
 }: {
   doc: FlowDocument;
   documents: FlowDocument[];
@@ -57,10 +66,13 @@ export function AgentChat({
   onLibrary: () => void;
   flows: FlowDocument[];
   onSelectFlow: (id: string) => void;
+  environmentOpen?: boolean;
+  onEnvironmentClose?: () => void;
 }) {
   const [runs, setRuns] = useState<ChatExecution[]>([]);
   const [selectedRun, setSelectedRun] = useState<string | null>(null);
   const [snapshots, setSnapshots] = useState(false);
+  const [draftEnvironment, setDraftEnvironment] = useState<Environment>({});
   const mobile = useMediaQuery("(max-width: 640px)");
   const inspected = runs.find((run) => run.id === selectedRun);
   const [transcripts, setTranscripts] = useState<Record<string, ChatMessage[]>>({});
@@ -143,8 +155,14 @@ export function AgentChat({
       // Make this turn's original input available to storage.read before executing the flow.
       await onThreadChange(pendingThread, true);
       inputSaved = true;
+      if (!book.activeId) {
+        await saveEnvironment(environmentStorage, draftEnvironment, thread.id);
+        setDraftEnvironment({});
+      }
       abort.current.signal.throwIfAborted();
       const graph = loadLibraryGraph({ ...doc, flow: threadFlow(doc.flow, thread) }, documents);
+      await flushEnvironmentWrites();
+      const environment = await effectiveEnvironment(environmentStorage, thread.id);
       const runtime = createRuntime(
         graph,
         { chatIn: question, threadId: thread.id },
@@ -159,8 +177,9 @@ export function AgentChat({
               (event) => {
                 if (abort.current?.signal.aborted) return;
                 if (event.type === "start") setPreview("");
-                else if (event.type === "text") setPreview(event.text);
-                else {
+                else if (event.type === "text") {
+                  if (!fieldDefinitions(doc.flow.fields).chatOut?.sensitive) setPreview(event.text);
+                } else {
                   appendExecution(run, {
                     label: "llm.metrics",
                     status: "completed",
@@ -170,9 +189,13 @@ export function AgentChat({
                   publish();
                 }
               },
+              false,
+              environment,
+              { threadId: thread.id },
             ),
             run,
             publish,
+            () => runtime.getStack().some((frame) => frame.getSensitiveFields().length > 0),
           ),
         },
       );
@@ -181,18 +204,37 @@ export function AgentChat({
         abort.current.signal.throwIfAborted();
         if (++steps > 2000) throw Error(tr("本次对话超过 2000 步，请到 Editor 检查循环。"));
         const before = run.snapshots
-          ? executionSummary(runtime.getState().fields, 4000)
+          ? executionSummary(
+              redactFields(runtime.getState().fields, runtime.getSensitiveFields()),
+              4000,
+            )
           : undefined;
         const started = performance.now();
+        const active = runtime.getStack().at(-1);
         const result = await runtime.step();
         if (result.event) {
           appendExecution(run, {
             label: `${result.event.flowName} · ${result.event.path} · ${result.event.type}`,
             status: result.event.error ? "failed" : "completed",
             ms: Math.round(performance.now() - started),
-            ...(result.event.error ? { error: executionSummary(result.event.error) } : {}),
+            ...(result.event.error
+              ? {
+                  error: executionSummary(
+                    redactFailure(result.event.error, active?.getSensitiveFields() ?? []),
+                  ),
+                }
+              : {}),
             ...(run.snapshots
-              ? { before, after: executionSummary(result.state.fields, 4000) }
+              ? {
+                  before,
+                  after: executionSummary(
+                    redactFields(
+                      result.state.fields,
+                      active?.getSensitiveFields() ?? runtime.getSensitiveFields(),
+                    ),
+                    4000,
+                  ),
+                }
               : {}),
           });
           publish();
@@ -200,10 +242,13 @@ export function AgentChat({
         await new Promise((resolve) => setTimeout(resolve, 0));
       }
       const state = runtime.getState();
-      if (state.error) throw Error(state.error.message);
+      if (state.error)
+        throw Error(redactFailure(state.error, runtime.getSensitiveFields()).message);
       run.status = "completed";
       publish();
-      const answer = formatChatOutput(state.output?.chatOut);
+      const answer = formatChatOutput(
+        redactFields(state.output ?? {}, runtime.getSensitiveFields()).chatOut,
+      );
       const next: ChatMessage[] = [
         ...prior,
         { role: "user", content: question },
@@ -247,6 +292,23 @@ export function AgentChat({
   }
   return (
     <section className="chat-page">
+      <Modal
+        opened={environmentOpen}
+        onClose={onEnvironmentClose}
+        title={tr("当前对话环境")}
+        centered
+      >
+        {book?.activeId && (
+          <EnvironmentEditor key={book.activeId} threadId={book.activeId} disabled={busy} />
+        )}
+        {book && !book.activeId && (
+          <EnvironmentEditor
+            draftValues={draftEnvironment}
+            onSaveDraft={setDraftEnvironment}
+            disabled={busy}
+          />
+        )}
+      </Modal>
       <Drawer
         opened={selectedRun !== null}
         onClose={() => setSelectedRun(null)}

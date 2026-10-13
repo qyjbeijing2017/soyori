@@ -3,16 +3,20 @@ import {
   type FlowDefinition,
   fieldDefinitions,
   parseFlow,
+  redactFailure,
   type Step,
   toJsonValue,
   withFieldDefinitions,
 } from "agent-plan-core";
+import { effectiveEnvironment } from "agent-plan-storage/environment";
 import { useEffect, useRef, useState } from "react";
 import type { AiSettings, BrowserAiHost } from "./ai-host";
 import { CallChoices } from "./CallChoices";
 import { CodeFilePath } from "./CodeEditor";
 import { ConfirmDelete } from "./ConfirmDelete";
 import { canChat, enableChat } from "./chat-contract";
+import { EnvironmentEditor } from "./EnvironmentEditor";
+import { environmentStorage, flushEnvironmentWrites } from "./environment-store";
 import { FieldsEditor } from "./FieldsEditor";
 import { tr } from "./i18n";
 import type { FlowDocument } from "./library";
@@ -33,6 +37,8 @@ export function FlowEditor({
   onBusy,
   saving,
   executionBusy = false,
+  environmentOpen = false,
+  onEnvironmentClose = () => {},
 }: {
   doc: FlowDocument;
   documents: FlowDocument[];
@@ -42,6 +48,8 @@ export function FlowEditor({
   onBusy: (busy: boolean) => void;
   saving: boolean;
   executionBusy?: boolean;
+  environmentOpen?: boolean;
+  onEnvironmentClose?: () => void;
 }) {
   const [flow, setFlow] = useState(doc.flow);
   const [valuesOpen, setValuesOpen] = useState(true);
@@ -150,6 +158,7 @@ export function FlowEditor({
     try {
       let current = session;
       if (!current || ["completed", "failed"].includes(current.runtime.getState().status)) {
+        await flushEnvironmentWrites();
         abort.current = new AbortController();
         const graph = loadLibraryGraph({ ...doc, flow: latestFlow.current }, documents);
         current = createSession(
@@ -161,6 +170,10 @@ export function FlowEditor({
             setNotice,
             graph,
             () => current?.runtime.getStack().at(-1)?.source,
+            undefined,
+            false,
+            await effectiveEnvironment(environmentStorage, undefined, doc.id),
+            { fileId: doc.id },
           ),
         );
         current.runtime.setFields(runValues);
@@ -220,6 +233,16 @@ export function FlowEditor({
       <CallChoices.Provider value={choices}>
         <VariableNames.Provider value={Object.keys(fieldDefinitions(flow.fields))}>
           <section className="editor-page compact-editor">
+            <Modal
+              opened={environmentOpen}
+              onClose={onEnvironmentClose}
+              title={tr("当前文件测试环境")}
+              centered
+              closeButtonProps={{ "aria-label": tr("关闭") }}
+            >
+              <p className="muted">{doc.path ?? flow.name}</p>
+              <EnvironmentEditor key={doc.id} fileId={doc.id} disabled={busy} />
+            </Modal>
             {clearing && (
               <ConfirmDelete
                 title={tr(clearing === "variables" ? "清空变量" : "清空步骤")}
@@ -344,7 +367,12 @@ export function FlowEditor({
               {state?.error && (
                 <div className="error" role="alert">
                   <strong>{state.error.path}</strong>
-                  <p>{state.error.message}</p>
+                  <p>
+                    {
+                      redactFailure(state.error, session?.runtime.getSensitiveFields() ?? [])
+                        .message
+                    }
+                  </p>
                 </div>
               )}
               <div hidden={!valuesOpen}>

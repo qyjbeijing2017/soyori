@@ -1,19 +1,10 @@
-import {
-  Button,
-  Group,
-  Loader,
-  NativeSelect,
-  PasswordInput,
-  Stack,
-  Switch,
-  Text,
-  TextInput,
-} from "@mantine/core";
+import { Button, Group, Loader, NativeSelect, Stack, Switch, Text, TextInput } from "@mantine/core";
 import { useSyncExternalStore } from "react";
 import type { BrowserAiHost, AiSettings as Settings } from "./ai-host";
 import { tr } from "./i18n";
 import { ModelDownloadProgress } from "./ModelDownloadProgress";
 import type { ModelDownloadManager } from "./model-download";
+import { TimedPasswordInput } from "./TimedPasswordInput";
 
 export function AiSettings({
   value,
@@ -63,7 +54,7 @@ export function AiSettings({
               {(["openai", "anthropic"] as const).map((provider) => (
                 <Stack key={provider} gap="sm">
                   <Text fw={600}>{provider === "openai" ? "OpenAI" : "Anthropic"}</Text>
-                  <PasswordInput
+                  <TimedPasswordInput
                     label="API Key"
                     autoComplete="off"
                     value={value[provider].apiKey}

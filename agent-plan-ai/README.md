@@ -1,6 +1,6 @@
 # Agent Plan AI 工具
 
-Editor 与 CLI 共用的单次文本模型调用：`llm.openai`、`llm.anthropic`、`llm.local`。Core 没有引入模型依赖。
+Editor 与 CLI 共用的单次文本模型调用：`llm.auto`、`llm.openai`、`llm.anthropic`、`llm.local`。Core 没有引入模型依赖。
 
 远程接入使用 LangChain 的 OpenAI/Anthropic 集成（MIT），本地使用 Transformers.js（Apache-2.0）。不引入 LangGraph；模型工具只返回请求，显式 Agent 循环由流程与 tools.execute 组合，不实现多模态或 Jev。
 
@@ -11,17 +11,19 @@ Editor 与 CLI 共用的单次文本模型调用：`llm.openai`、`llm.anthropic
 | 参数 | 说明 |
 | --- | --- |
 | `input` | 非空字符串，或完整多轮文本消息数组 |
-| `model` | 远程必填；本地当前只支持 Qwen3-1.7B-ONNX |
-| `baseURL` / `apiKey` | 远程步骤连接参数，支持变量引用；baseURL 省略使用官方服务，apiKey 必填 |
+| `model` | 远程可由步骤、当前环境或宿主默认连接提供；全部缺失报错。本地当前只支持 Qwen3-1.7B-ONNX |
+| `baseURL` / `apiKey` | 远程连接参数，支持变量引用和环境回退；baseURL 最终使用官方地址，apiKey 全部缺失报错 |
 | `outputFormat` / `jsonSchema` | 远程输出格式：默认 text；json 模式必须提供 JSON Schema 对象 |
 | `maxTokens` | 正整数；远程默认 4096、最多 32768；本地默认 512、最多 512。供应商可能有更严格限制；本地输入加最大输出仍须不超过 2048 token |
 | `temperature` | 可选 0–1；远程省略则不发送，本地省略使用 temperature=0.7、top_p=0.8、top_k=20，显式 temperature=0 为确定性解码。部分远程模型不接受此参数 |
 
-未知参数报错。共享工具读取 inputs 中的连接配置；Editor 宿主为缺失参数注入设置中的连接，显式调用参数优先。CLI 不读取供应商环境变量。直接填写的密钥会随流程保存和导出；可以引用运行时输入变量，避免把密钥作为默认值保存。显式开启 trace 值采集时也应注意输入内容。
+未知参数报错。连接逐项按 inputs > AiOptions.environment > AiOptions.connections > 内置默认值解析；省略/null/空白视为未填写，错误类型仍报错。环境名为 OPENAI_MODEL/API_KEY/BASE_URL 与 ANTHROPIC_MODEL/API_KEY/BASE_URL；只有 Base URL 有内置默认值。Editor 传入当前有效应用环境和设置中的连接默认值；CLI 传入 --env > 系统环境 > env set 全局配置合并后的运行环境，env.override/env.load 的更新会用于后续调用。直接填写的密钥会随流程保存和导出；环境回退直接由宿主读取，不写进流程变量、提示或工具返回。详细范围见[环境手册](../docs/handbook/agents/environment.md)。
 
-三种模型工具统一返回 `{ result, finishReason, usage, toolCalls, message }`。文本模式 result 是字符串，远程 JSON 模式是解析后的 JSON 值；不再返回 text、json、model、content。usage 来自供应商；本地 finishReason 和 usage 均为 null。`outputs: { "result": "$answer" }` 保存业务结果，`output` 保存整个返回对象。
+模型工具统一返回 `{ result, finishReason, usage, toolCalls, message }`。文本模式 result 是字符串，远程 JSON 模式是解析后的 JSON 值；不再返回 text、json、model、content。usage 来自供应商；本地 finishReason 和 usage 均为 null。`outputs: { "result": "$answer" }` 保存业务结果，`output` 保存整个返回对象。
 
 ## CLI
+
+`llm.auto` 自动选择同一组模型工具：有效环境 LLM_PROVIDER（auto/openai/anthropic/local）优先于宿主 AiOptions.provider；均未指定时为 auto。auto 依次选择 model/apiKey 配置完整的 OpenAI、Anthropic，否则本地。连接仍用逐项回退，输出格式不变；明确供应商缺配置报错，请求失败不改供应商重试。本地不支持远程 JSON 参数，默认 maxTokens 512，远程 4096。Editor 默认供应商来自设置，CLI 来自应用环境。内置助手的 auto 模式也使用 llm.auto。
 
 从总工作区运行 `pnpm install`、`pnpm build`，然后：
 
