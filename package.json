@@ -12,9 +12,15 @@
     "lint": "biome lint .",
     "format": "biome format . --write",
     "check": "biome check .",
-    "verify": "pnpm check && pnpm typecheck && pnpm test"
+    "verify": "pnpm check && pnpm typecheck && pnpm test",
+    "release:pack": "pnpm --filter agent-plan-cli... build && node scripts/prepare-npm.mjs",
+    "release:verify": "node scripts/verify-npm.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.14"
+  },
+  "agentPlanRelease": {
+    "scope": "@agent-plan",
+    "version": "0.1.0"
   }
 }

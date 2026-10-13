@@ -1,6 +1,21 @@
 # AI 工具与预设子流程
 
-决策整理：2026-10-01。来源：用户已确认的产品讨论。本文记录设计方向，不代表功能已实现，也不自动授权启动全部建设。项目整体背景见 [项目目标与决策](project-context.md)。
+当前状态整理：2026-10-13。项目整体背景见 [项目目标与决策](project-context.md)。下面先说明当前能力，其后的早期设计与验证记录仅作历史参考。
+
+## 当前实现与边界
+
+- Editor/CLI 共用 agent-plan-ai，提供 llm.auto、llm.openai、llm.anthropic、llm.local。远程使用 LangChain，本地使用 Transformers.js，Core 不引入模型 SDK。llm.auto 按有效 LLM_PROVIDER > 宿主供应商设置选择；auto 依次使用 model/apiKey 完整的 OpenAI、Anthropic，否则本地，失败不切换供应商重试。
+- 连接逐项按步骤参数 > 有效环境 > 宿主连接 > 内置默认值解析，只有官方 Base URL 有内置默认值。CLI 环境为 --env > 系统环境 > env set 全局配置；网页环境按对话或文件覆盖全局，连接默认值来自设置。详见[环境手册](handbook/agents/environment.md)。
+- input 接受文字或完整消息数组；提示词组合使用 template 步骤和 `$path$` 插值。新手流程用 chatIn → template → prompt → llm.auto → chatOut，见[快速入门](handbook/quick-start.md)。
+- tools.execute 支持有接口定义的宿主函数及当前 imports 内的子流程，顺序执行请求，复用 Core。参数、可选允许列表和共享预算在执行入口检查；普通工具失败返回单项结果。批内暂停和逐项 Core trace 尚未实现。详见[工具调用](tool-calling.md)。
+- 新建流程的五个外层步骤为 memory.init → llm.auto → memory.addAssistant → while → memory.save，完整上下文使用 memory 变量。循环内执行工具、memory.addTools、再次调用模型并追加消息。已有用户流程不自动改写，不内置摘要压缩。内置助手使用独立 assistant.json，可查询文档和工具、管理 Library 文件、创建和运行已保存流程，见[助手与浏览器运行](editor-assistant.md)。
+- 当前本地模型为 onnx-community/Qwen3-1.7B-ONNX。浏览器 WebGPU + Q4F16 文件约 1.44 GB，需要 shader-f16；CLI 优先 WebGPU + Q4F16，初始化失败释放后回退 CPU + Q4（约 2.15 GB），生成失败不切换设备重试。下载取决于网速；缓存保留无需重复下载。加载可能需要几分钟，浏览器刷新或关闭重开、CLI 新进程均需再次初始化，同一次页面或进程内复用成功会话。
+- 浏览器 script.run 与 CLI 共享模块契约，见[脚本与工作区](scripts-and-workspace.md)。尚未实现 Jev、多模态、skill 加载、通用外部工具加载、电脑目录同步、MCP、共享远程调试服务和原生封装；预设展示与升级机制仍待设计。手机与当前模型 CLI 跨设备推理仍需实测，模拟服务及布局测试不代表这些验证完成。
+- npm 六包发布准备使用 MIT；原定 agent-plan 和 @agent-plan/core 已被其他项目使用，scope 待重新确定。本项目尚未发布，见[npm 发布准备](npm-release.md)。
+
+## 历史设计与验证记录
+
+> 以下保留早期决策的原始背景，包括已被替代的模型、参数和“尚未实现”描述；判断当前能力请以上面的状态和链接协议文档为准。
 
 ## 1. 核心原则：预设负责简单，节点负责能力
 

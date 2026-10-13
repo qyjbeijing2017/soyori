@@ -9,6 +9,12 @@ import { handbookExamples, importHandbookExample } from "./handbook-examples";
 import { tr } from "./i18n";
 import { projectDocs } from "./project-docs";
 
+const handbookImages = import.meta.glob<string>("../../docs/handbook/images/*.{jpg,svg}", {
+  query: "?url",
+  import: "default",
+  eager: true,
+});
+
 function route() {
   const [id, section] = location.hash
     .slice(1)
@@ -265,6 +271,13 @@ export default function DocumentPage({
                     h4: heading,
                     h5: heading,
                     h6: heading,
+                    img: ({ src, alt }) => {
+                      const path = new URL(
+                        src ?? "",
+                        `https://handbook.local/${article.entry.path}`,
+                      ).pathname;
+                      return <img src={handbookImages[`../..${path}`]} alt={alt} loading="lazy" />;
+                    },
                     pre: ({ node, children }) => (
                       <div className="document-code">
                         <Button

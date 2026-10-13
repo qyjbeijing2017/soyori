@@ -11,10 +11,23 @@
     {
       "id": "quick-start",
       "path": "docs/handbook/quick-start.md",
-      "title": "快速入门",
+      "title": "快速入门：Editor（电脑端）",
       "group": "开始使用",
-      "summary": "不依赖模型的第一个流程，编辑、运行、修改与验证。",
-      "examples": ["hello"]
+      "summary": "从新建流程开始，创建变量、拼合提示词、调用模型并查看回复。"
+    },
+    {
+      "id": "quick-start-mobile",
+      "path": "docs/handbook/quick-start-mobile.md",
+      "title": "快速入门：Editor（手机端）",
+      "group": "开始使用",
+      "summary": "手机图文入门：新建流程、创建变量、拼合提示词并调用模型。"
+    },
+    {
+      "id": "quick-start-cli",
+      "path": "docs/handbook/quick-start-cli.md",
+      "title": "快速入门：YAML + CLI",
+      "group": "开始使用",
+      "summary": "逐步编写 YAML：创建变量、拼合提示词、调用模型及查看运行记录。"
     },
     {
       "id": "workspace",
@@ -120,6 +133,12 @@
     }
   ],
   "examples": [
+    {
+      "id": "translate",
+      "title": "单轮翻译助手",
+      "entry": "translate.yaml",
+      "files": ["translate.yaml"]
+    },
     {
       "id": "hello",
       "title": "第一个流程",

@@ -31,7 +31,7 @@ test("starter retains full messages across rounds using storage and memory assem
         ...createMemoryTools(storage),
         ...createToolExecutionTools({}),
         ...createStorageTools(storage),
-        "llm.local": async ({ input, maxTokens }) => {
+        "llm.auto": async ({ input, maxTokens }) => {
           assert.equal(maxTokens, 512);
           assert.equal(input.at(-1).content, chatIn);
           return { result: "reply", message: { role: "assistant", content: "reply" } };

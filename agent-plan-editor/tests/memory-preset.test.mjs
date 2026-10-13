@@ -23,7 +23,7 @@ test("simple memory preset saves only successful replies and isolates threads", 
     ...createStorageTools(storage),
     ...createMemoryTools(storage),
     ...createBasicTools(),
-    "llm.local": async ({ input }) => {
+    "llm.auto": async ({ input }) => {
       calls.push(input);
       if (fail) throw Error("model failed");
       return { result: "hello", message: { role: "assistant", content: "hello" } };
@@ -67,7 +67,7 @@ test("default tool loop feeds mixed outcomes back to the model until its final r
     ...createMemoryTools(storage),
     ...createBasicTools(),
     ...createStorageTools(storage),
-    "llm.local": async ({ input, tools }) => {
+    "llm.auto": async ({ input, tools }) => {
       assert.ok(tools.includes("time.now"));
       rounds++;
       let toolCalls;
@@ -114,15 +114,12 @@ test("default tool loop feeds mixed outcomes back to the model until its final r
 test("default preset keeps only necessary state and reads calls from the assistant message", () => {
   assert.deepEqual(
     example.fields.map((f) => f.name),
-    ["chatIn", "threadId", "chatOut", "messages", "assistantMessage", "toolResults"],
+    ["chatIn", "threadId", "chatOut", "memory", "assistantMessage", "toolResults"],
   );
-  const first = example.steps.find((s) => s.target === "llm.local");
+  const first = example.steps.find((s) => s.target === "llm.auto");
   const loop = example.steps.find((s) => s.type === "while");
   assert.deepEqual(first.inputs.tools, ["time.now", "web.search", "web.fetch"]);
-  assert.deepEqual(
-    loop.body.find((s) => s.target === "llm.local").inputs.tools,
-    first.inputs.tools,
-  );
+  assert.deepEqual(loop.body.find((s) => s.target === "llm.auto").inputs.tools, first.inputs.tools);
   assert.equal(loop.condition, "$assistantMessage.toolCalls.length");
   assert.equal(loop.body[0].inputs.calls, "$assistantMessage.toolCalls");
 });

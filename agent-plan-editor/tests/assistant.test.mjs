@@ -39,7 +39,7 @@ test("assistant selects configured providers, keeps both model turns consistent,
     assert.ok(call.inputs.tools.includes("web.search"));
   }
   assert.doesNotMatch(JSON.stringify(flow), /secret/);
-  assert.equal(example.steps[1].target, "llm.local");
+  assert.equal(example.steps[1].target, "llm.auto");
   assert.notEqual(flow.name, example.name);
   settings.assistantProvider = "local";
   assert.equal(assistantProvider(settings), "local");

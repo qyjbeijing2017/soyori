@@ -1,6 +1,6 @@
 # Agent Plan：项目目标与决策
 
-整理日期：2026-10-01。来源：本项目用户讨论及当前工作区代码。本文用于让新加入的 AI 窗口理解方向和已确认约束；实现状态是工作区快照，不代表已经提交、发布或部署。工作入口见 [AGENTS.md](../AGENTS.md)。
+当前状态更新：2026-10-13。来源：本项目用户讨论及当前工作区代码。本文用于让新加入的 AI 窗口理解方向和已确认约束；实现状态是工作区快照，不代表已经提交、发布或部署。工作入口见 [AGENTS.md](../AGENTS.md)。日期决策保留演进背景，旧默认模型和早期能力判断不作为当前状态。
 
 当前助手、模板、连接设置、下载和初始化生命周期见 [助手与浏览器运行](editor-assistant.md)。文末按日期保留决策历史，冲突时以最新决策和当前源码为准。
 
@@ -10,13 +10,27 @@
 
 2026-10-11 创建流程补充：助手明确项目中的流程与 Library 根目录含义；新增 flow.create，复用新建流程模板和保存接口，省略名称时自动生成唯一名称，默认根目录保存。本地模型直接获得此工具定义，减少从通用文件写入反推创建流程的负担。工具契约与模型任务表现分别验证。
 
+2026-10-13 新建流程模板：完整消息上下文的运行变量由 messages 改为 memory，两处模型调用改为 llm.auto。Library 首次模板及 flow.create 共用此模板；消息组装工具的 messages 接口保持不变，已有用户流程不自动改写。
+
+2026-10-13 CLI 本地设备：优先尝试 WebGPU + Q4F16，初始化失败释放后回退 CPU + Q4，进度与选择写 stderr；同一进程复用，生成失败不切换重试，取消不触发回退。总超时包含两次初始化，回退可能下载另一份权重；跨设备实际推理兼容性仍需验证。
+
+2026-10-13 快速入门：拆为 Editor 与 YAML + CLI 两页，共用单轮翻译流程 chatIn → llm.auto → chatOut，不引入记忆和工具循环。Editor 配实际操作截图及可导入示例；CLI 提供 YAML 与 PowerShell 命令，分别说明模型准备。
+
+2026-10-13 Editor 入门调整：从新建流程、清空默认步骤与变量开始，逐步创建 chatIn/prompt/chatOut；文本模板拼合提示词，llm.auto 以 $prompt 接收文字。模型准备标为可选，说明本地默认型号、下载大小和首次等待，并用截图标注设置入口。替代前述 Editor 导入示例作为起点的安排；YAML + CLI 页暂保持现有内容。
+
+2026-10-13 手机 Editor 入门：新增独立手机图文章节，与电脑端使用相同八步及 chatIn/prompt/chatOut 流程。按手机竖屏布局截图，说明文件库目录面板、新建、区域折叠、表单滚动和运行图标；布局验证不代表手机实机本地模型兼容性验证。
+
+2026-10-13 CLI 入门同步：从空 YAML 逐步声明 chatIn/prompt/chatOut，添加 template → llm.auto 两步，与 Editor 入门统一。模型准备可选，区分文件缓存与每次 CLI 新进程的模型加载；末尾保留完整 YAML，并提供可选 trace 中间值检查。
+
+2026-10-13 npm 发布准备与名称冲突：用户选择 MIT，先准备 npm，不做域名或一键安装。保留开发包名及 private 工作区，生成六个 scoped 发布包和固定版本 npm alias 依赖，独立安装验证已通过。用户随后授权尝试首发；注册表核查发现 agent-plan 和 @agent-plan/core 已被其他项目使用，本机也尚未登录，未执行发布。配置中的 @agent-plan 仅为原计划，本项目最终 scope 待确定，不能把它当作已可安装的公开包。流程见 [npm 发布准备](npm-release.md)。
+
 ## 1. 项目为什么存在
 
 2026-10-13 CLI 与运行环境调整（替代前面的 CLI thread/OS 规则）：run/validate 支持重复 --env NAME=value，仅本次生效；有效环境按 --env > OS 环境 > 持久全局配置，取消 CLI --thread-id 与输入 threadId 环境选择，CLI env 管理只保存全局。网页对话/文件作用域保持。共享 env.override 临时赋值、env.load 按调用流程相对路径读取约定 JSON，影响后续 LLM 与子流程，不持久保存、不自动加载文件；远端调用不能加载本地配置。原值运行环境工具不直接开放给网页助手模型。
 
 2026-10-13 llm.auto：共享工具按有效 LLM_PROVIDER > 网页供应商设置选择，auto 时按配置完整的 OpenAI、Anthropic、本地排序；CLI 默认为 auto。明确指定供应商缺配置报错，失败不切换重试。复用现有输入输出和连接回退，远程/本地 token 默认值分别 4096/512。网页内置助手的 auto 模式使用此工具，环境参与选择。
 
-2026-10-13 LLM 连接回退：OpenAI/Anthropic 三个连接参数逐项按步骤参数、当前有效环境、宿主连接默认值、内置默认值解析。环境名称为 OPENAI_MODEL/API_KEY/BASE_URL 与 ANTHROPIC_MODEL/API_KEY/BASE_URL。网页默认值来自连接设置，CLI 使用应用保存环境，不读 OS 供应商环境；仅官方 Base URL 有内置默认值，模型与密钥缺失报错。省略/null/空白为未填写，错误类型仍校验。内置助手不将设置中的 model 固定写入步骤，以允许环境覆盖。
+2026-10-13 LLM 连接回退：OpenAI/Anthropic 三个连接参数逐项按步骤参数、当前有效环境、宿主连接默认值、内置默认值解析。环境名称为 OPENAI_MODEL/API_KEY/BASE_URL 与 ANTHROPIC_MODEL/API_KEY/BASE_URL。网页默认值来自连接设置，CLI 使用 --env > OS 环境 > 持久全局配置合并的有效环境；仅官方 Base URL 有内置默认值，模型与密钥缺失报错。省略/null/空白为未填写，错误类型仍校验。内置助手不将设置中的 model 固定写入步骤，以允许环境覆盖。
 
 2026-10-13 助手环境管理：env.get 保留给流程执行，浏览器模型的工具列表和 tools.execute 不直接开放它。助手使用 env.list/inspect 查询有效环境，敏感项仅返回 missing/empty/set 状态；env.set 只写当前对话，新项默认敏感，不能降级已有敏感项。flow.run 继续允许真实凭证测试，读取发起运行环境的最新配置，并遮挡显式标记的输出和错误。无需操作编辑器或新增通用授权体系；这不是防止任意代码读取凭证的安全隔离。
 
@@ -70,10 +84,10 @@
 | core | TypeScript/ESM；流程类型、校验、字段、运算、If/While、子流程、宿主函数 | 不内置模型、HTTP 或数据库 SDK，不负责文件与网络加载 |
 | 调试内核 | `step()`、`run()`、`getState()`、`getStack()`、`setFields()`、根 `reset()` | 状态是实时视图；无历史恢复、通用暂停/取消协议 |
 | CLI | `run/inspect/validate`，JSON/YAML、局部 imports、宿主函数、机器输出、trace、执行隔离与超时 | 不是持久开发服务，也没有让多个客户端接入同一运行的会话协议 |
-| CLI 脚本 | 工作区已有内置 `script.run` 单文件脚本宿主能力 | 属于 Node CLI；不是浏览器运行能力，也不是通用不可信代码沙箱 |
-| 数据语法 | `$` 引用、对象/数组路径、常量、`$$`、自动覆盖与 `append` | 不支持表达式或字符串插值；仍有明确校验与资源上限 |
-| AI 工具 | 共享包提供本地/OpenAI/Anthropic 单次文本调用，CLI 与 Editor 均已注册；本地已实测桌面浏览器及 Node CPU | 无工具循环、流程工具桥接、Jev、多模态；手机与真实付费 API 尚未实测 |
-| editor / 远程接入 | Agent 对话、Library 上传/下载/改名及持久化、Editor 步骤与变量表单、单步调试 | 无通用工具/外部 imports 加载、目录同步、操作编辑器的助手或 MCP |
+| 脚本 | CLI/Editor 共用 `script.run` 模块接口，支持宿主允许的模块加载 | 浏览器与 Node 加载能力不同；Worker 不构成通用不可信代码沙箱 |
+| 数据语法 | `$` 引用、对象/数组路径、常量、`$$`、自动覆盖与 `append`；template 正文 `$path$` 插值 | 普通输入字符串不解析表达式或模板；仍有明确校验与资源上限 |
+| AI 工具 | llm.auto 与本地/OpenAI/Anthropic 单次调用、流程工具桥接、显式工具循环与记忆模板 | 无 Jev、多模态和预设升级机制；手机、当前模型 CLI 跨设备推理与真实付费 API 尚待实测 |
+| editor / 远程接入 | Agent 对话、Library 文件夹/ZIP/源码/相对 imports、步骤与变量表单、单步调试、内置项目助手和手册 | 无通用外部工具加载、电脑目录同步、共享远程调试或 MCP |
 
 运行输入和宿主返回值允许任意 JavaScript 值，不能把“能运行”理解成“能无损序列化或跨进程传输”。未来远程调试需设计值摘要和附件协议。
 
@@ -81,7 +95,7 @@ core 与 CLI 是总仓库下的独立 Git 子模块，使用 pnpm workspace 联�
 
 ## 4. 已落地的数据规则
 
-2026-10-02 补充：记忆以流程变量保存，由子流程组织聊天和压缩。已实现通用 `storage.read/write/delete/list` 与 `tokens.count`，CLI 文件存储、用户配置和管理命令，以及 Editor IndexedDB 存储。不增加 namespace，用 `/` 分组的 key 区分数据；CLI 数据目录可配置，配置路径固定，更换目录不迁移数据。本地计数复用 tokenizer，远程仅提供显式估算；未内置压缩、对话记忆预设或存储管理页面。详见 [存储与计数](storage-and-tokens.md)。Library 已保存的流程在刷新后保留，未应用的表单草稿和运行现场不恢复。
+记忆以流程变量保存，聊天编排由普通步骤和子流程负责。已实现通用 `storage.read/write/delete/list` 与 `tokens.count`、CLI 文件存储和管理命令、Editor IndexedDB 存储，以及 memory.init/save 和默认记忆对话模板。不增加 namespace，用 `/` 分组的 key 区分数据；CLI 数据目录可配置，配置路径固定，更换目录不迁移数据。本地计数复用 tokenizer，远程仅提供显式估算；不内置摘要压缩或自动裁剪。详见 [存储与计数](storage-and-tokens.md)。Library 已保存的流程在刷新后保留，未应用的表单草稿和运行现场不恢复。
 
 详见 [变量、对象与数组方案](../agent-plan-core/docs/operands.md)，此处只记录关键决策和原因。
 
@@ -93,13 +107,13 @@ core 与 CLI 是总仓库下的独立 Git 子模块，使用 pnpm workspace 联�
 - 运行对象保持引用身份，属性修改对共享引用可见；整个字段替换不会替换其他字段持有的引用。
 - 旧裸字段名引用已迁移为 `$`，不根据字段存在与否猜测字符串含义。
 
-选择自动覆盖是有意的产品取舍：更少的前置知识和构造步骤。未来 editor 应展示修改结果，而不是重新引入强制类型声明或每次覆盖确认。
+选择自动覆盖是有意的产品取舍：更少的前置知识和构造步骤。Editor 展示修改结果，不重新引入强制类型声明或每次覆盖确认。
 
 ## 5. editor 基础工程与后续方案
 
-2026-10-02：界面分为 Agent、Library、Editor。Agent 使用普通聊天界面，直接选择并执行用户的对话流程，统一使用 chatIn 输入 / chatOut 输出；Library 第一版平铺，支持上传 JSON/YAML、下载 YAML、改名和本地持久化；Editor 用表单编辑步骤及变量，参数用名称 + 输入栏编辑，自动推断 JSON/YAML/数字等类型。默认流程仅设置 chatOut 为 hello Agent Plan；记忆读写由用户流程安排。
+界面分为 Agent、Library、Editor。Agent 可使用独立内置助手或用户对话流程，统一使用 chatIn/threadId 输入及 chatOut 输出；Library 保存文件和文件夹，支持 ZIP 导入导出、源码编辑和本地持久化；Editor 用步骤列表及变量表单编辑，参数用名称 + 输入栏编辑，自动推断 JSON/YAML/数字等类型。默认新建流程为可编辑的 memory 记忆对话和显式工具循环。
 
-`agent-plan-editor` 采用 React + TypeScript + Vite、Mantine 组件及少量业务 CSS，复用 core 的公开 API。应用步骤或保存变量后，流程写入 Library 的 IndexedDB；对话展示记录和流程记忆独立保存，执行现场不恢复。首次使用本地模型需要下载；凭据仅保留当前页面。详见 [Editor](../agent-plan-editor/README.md)。后续原生封装候选是 Tauri 2，也讨论过移动端 Capacitor，尚未定型。
+`agent-plan-editor` 采用 React + TypeScript + Vite、Mantine 组件及少量业务 CSS，复用 core 的公开 API。应用步骤或有效变量设置修改后，流程写入 Library 的 IndexedDB；对话展示记录和流程记忆独立保存，执行现场不恢复。首次使用本地模型需要下载，刷新后下一次使用重新加载；连接设置保存于当前浏览器 localStorage，步骤显式密钥会随流程导出。详见 [Editor](../agent-plan-editor/README.md)。后续原生封装候选是 Tauri 2，也讨论过移动端 Capacitor，尚未定型。
 
 建议界面：
 

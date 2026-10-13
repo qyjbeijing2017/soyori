@@ -56,7 +56,7 @@ Tokenizer（分词器）负责文字与 token 的转换，和模型权重一起�
 固定使用 [onnx-community/Qwen3-1.7B-ONNX](https://huggingface.co/onnx-community/Qwen3-1.7B-ONNX)，从共享常量 `LOCAL_REVISION` 指定的固定版本下载：
 
 - 浏览器：WebGPU + `shader-f16`，Q4F16 权重约 1.43 GB。
-- CLI：Node CPU，Q4 权重约 2.15 GB。
+- CLI：优先尝试 Node WebGPU + Q4F16；初始化失败释放 GPU 后回退 CPU + Q4（约 2.15 GB）。选择结果写 stderr，同一进程复用；生成失败不切换设备重试。回退可能额外下载 Q4 权重，总超时包含两次初始化。
 - 两端还需分词器和运行库；文件大小不是运行内存。浏览器缓存可能因配额或清理丢失。
 - 本地输入和输出合计限制 2048 tokens；不承诺所有手机可用，不支持时明确报错，不自动切到付费服务。
 - 上游 revision 或网络变化会影响下载和结果；离线首次使用不支持。

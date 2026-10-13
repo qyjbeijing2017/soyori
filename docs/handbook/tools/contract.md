@@ -25,7 +25,7 @@ defaultValue 描述处理函数的默认行为，不自动写入节点；initial
 | storage.read/write/delete/list | 有 | 有 | 磁盘 JSON 与 IndexedDB，不自动同步 |
 | tokens.count | 有 | 有 | local 模式需 tokenizer；浏览器需允许下载 |
 | memory.init/save/setSystem/addUser/addAssistant/addTools | 有 | 有 | init/save 使用各端存储 |
-| llm.openai/anthropic/local | 有 | 有 | 浏览器连接设置注入、WebGPU；CLI 显式输入、CPU |
+| llm.auto/openai/anthropic/local | 有 | 有 | 两端均支持参数与有效环境回退；浏览器 WebGPU，CLI 优先 GPU、初始化失败回退 CPU |
 | tools.execute | 有 | 有 | 根据当前作用域、注册表和共享预算执行 |
 | script.run | 有 | 有 | 文件与模块来源、包支持、超时范围不同 |
 | project.docs/tools | 无 | 有 | 当前是 Editor 助手接口 |

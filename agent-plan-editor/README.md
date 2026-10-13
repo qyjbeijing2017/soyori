@@ -19,9 +19,9 @@ pnpm editor
 
 步骤点击“应用步骤”后写入 Library；有效的变量设置自动保存，列表运行值只影响当前调试，不写入流程默认值，不再提供保存变量按钮。无效输入明确报错，不称为已保存。变量名变更不自动重写步骤引用。运行数据直接复用变量面板，暂停时修改值通过 Core setFields 生效，不重置运行进度；最多保留 300 条步骤记录，每次连续调试最多推进 2000 步后暂停。Agent 页超过 2000 步则失败，避免对话无限等待。
 
-## 默认本地 Agent
+## 内置助手与新建流程
 
-Agent 的内置入口是独立的 AgentPlan助手，按设置选择 OpenAI、Anthropic 或本地模型。首次 Library 模板及新建流程仍使用本地记忆对话示例，包含可编辑的 memory.init 系统提示、time.now/web.search/web.fetch 工具与显式工具循环。系统提示仅保留通用行为要求，具体查询用法由工具说明提供；不保证小模型正确调用工具。
+Agent 的内置入口是独立的 AgentPlan助手，自动模式使用 llm.auto，明确供应商时调用对应模型工具。首次 Library 模板与新建流程默认使用 llm.auto，以 memory 运行变量保存完整消息，包含可编辑的 memory.init 系统提示、time.now/web.search/web.fetch 工具与显式工具循环。系统提示仅保留通用行为要求，具体查询用法由工具说明提供；不保证小模型正确调用工具。
 
 新建流程从同一模板开始。Agent 的“新对话”生成独立 UUID，每轮传入 `threadId` 和 `chatIn`；不自动提供 memoryKey。记忆结构和存储 key 由流程自行管理。Editor 调试可手动填写 threadId。
 
@@ -39,7 +39,7 @@ Agent 的内置入口是独立的 AgentPlan助手，按设置选择 OpenAI、Ant
 
 已注册 `llm.local`、`llm.openai`、`llm.anthropic`、`storage.read/write/delete/list`、`tokens.count`。在 Editor 添加调用步骤，选择工具名称后编辑参数。使用方法见 [AI 工具](../agent-plan-ai/README.md) 和 [存储与计数](../docs/storage-and-tokens.md)。
 
-模型调用仍复用共享工具；本地模型在 Worker 中运行。停止调用无法回滚之前已发生的存储或外部副作用。外部子流程加载、浏览器 script.run、通用工具加载和 Agent 工具循环仍未实现。当前的 Agent 对话页运行用户流程，不是操作编辑器的内置助手。
+模型调用复用共享工具；本地模型在 Worker 中运行。停止调用无法回滚之前已发生的存储或外部副作用。Library 相对 imports、浏览器 script.run 和显式 Agent 工具循环已实现；内置助手可以查询文档与工具、管理文件、创建、检查及运行已保存流程，详见[助手与浏览器运行](../docs/editor-assistant.md)。通用外部工具加载、电脑目录同步、共享远程调试和 MCP 尚未实现。
 
 ## 验证
 
@@ -195,4 +195,4 @@ CodeMirror 6（MIT）复用于 script.run 的 code 和文件源码，提供行�
 
 对话运行不会锁住导航：可切页面、切换 Agent/会话、创建空白会话或删除其他会话，回复继续保存到发起运行的会话，原会话显示“运行中”。正在运行的会话需先停止再删除；其他会话可保留输入草稿，当前运行结束后再发送。运行状态只在本次页面内保留，刷新不恢复执行。
 
-AgentPlan助手使用独立 `src/assistant.json`，新建流程仍使用 `src/example.json`。设置可选择自动/OpenAI/Anthropic/本地，配置 API Key、Base URL、模型 ID；自动优先有 Key 的 OpenAI，再 Anthropic，均未配置时本地。远程失败直接报告，不静默回退；远程模型提供基础库工具，本地控制为时间/搜索/HTTP 三个工具。连接配置保存于当前浏览器 localStorage，Key 由宿主注入，不进入流程或记忆；调用步骤显式传入的连接参数优先于设置。远程直连仍要求服务支持浏览器 CORS。
+AgentPlan助手使用独立 `src/assistant.json`，新建流程使用 `src/example.json`。设置可选择自动/OpenAI/Anthropic/本地，配置 API Key、Base URL、模型 ID；llm.auto 优先读取有效 LLM_PROVIDER，再读取设置，auto 按完整 OpenAI 配置、Anthropic 配置、本地的顺序选择。远程失败直接报告，不静默回退。远程助手提供全部基础与项目操作工具；本地先提供 flow.create/workspace.list/project.tools/project.docs/time.now/web.search/web.fetch，其余接口按需查询。连接配置保存于当前浏览器 localStorage，Key 由宿主注入，不进入流程或记忆；连接逐项按显式参数、有效环境、设置、内置默认值回退。远程直连仍要求服务支持浏览器 CORS。

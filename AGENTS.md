@@ -7,16 +7,16 @@
 - 帮助用户和 AI 更方便地开发、运行及逐步调试 AI Agent，兼顾不熟悉编程的用户。
 - 工具开发与调试是重点；流程保持简单、顺序、可理解。editor 使用步骤列表和嵌套块，不以画布或任意连线为目标。
 - 核心产品原则：**预设子流程负责简单，底层节点负责能力**。新手默认使用预设，按需展开内部流程；不为易用性另造隐藏执行语义。
-- AI 能力通过独立 `call` 工具提供，优先复用 LangChain 集成，供 Editor/CLI 共享；供应商切换和 Agent 工具循环由可编辑子流程组合。设计及未实现边界见 [AI 工具与预设](docs/ai-tools-and-presets.md)。
+- AI 能力通过独立 `call` 工具提供，复用 LangChain 集成，供 Editor/CLI 共享；llm.auto 负责按有效配置选择供应商，Agent 工具循环由普通可编辑步骤组合。当前能力和后续边界见 [AI 工具与预设](docs/ai-tools-and-presets.md)。
 - 手机方便操作是核心要求，不能只把桌面布局缩小。Web 优先，并考虑后续 Windows、macOS、iOS、Android 适配。
 - 用户与外部 AI 应能读取项目、流程、工具、字段、执行位置和错误，未来共同操作同一调试会话。
-- editor 分为 Agent 对话、Library 浏览器文件工作区、Editor 步骤与变量表单三个界面。Library 在 IndexedDB 保存原始文件，支持文件夹与 ZIP 导入导出；JSON/YAML 经 Core 校验才作为流程。CLI 与 Editor 共享 script.run 模块接口，详见 [脚本与工作区](docs/scripts-and-workspace.md)。CLI 复用 [AI 工具包](agent-plan-ai/README.md)。电脑目录同步、操作编辑器的助手、通用工具加载、Agent 循环预设、MCP 和原生封装尚未实现。
+- editor 分为 Agent 对话、Library 浏览器文件工作区、Editor 步骤与变量表单三个界面。Library 在 IndexedDB 保存原始文件，支持文件夹与 ZIP 导入导出；JSON/YAML 经 Core 校验才作为流程。CLI 与 Editor 共享 script.run 模块接口，详见 [脚本与工作区](docs/scripts-and-workspace.md)。CLI 复用 [AI 工具包](agent-plan-ai/README.md)。内置助手可查询项目文档与工具、管理 Library 文件、创建和运行已保存流程，详见 [助手与浏览器运行](docs/editor-assistant.md)；新建流程含显式工具循环。电脑目录同步、通用外部工具加载、预设升级机制、MCP 和原生封装尚未实现。
 
 ## 必须保持的现有规则
 
 - 通用存储与计数见 [存储与计数](docs/storage-and-tokens.md)：记忆仍是流程变量，编排和压缩交给子流程；存储按 key 分组，不增加 namespace。CLI 支持可配置文件目录与固定位置的用户配置，浏览器使用 IndexedDB；两端注册同名工具。tokenizer 实际计数与通用估算必须明确区分。
 
-- core 是唯一的流程语义实现；CLI、未来 editor 和服务复用公开 API，不复制校验或执行规则。
+- core 是唯一的流程语义实现；CLI、Editor 和未来服务复用公开 API，不复制校验或执行规则。
 - 步骤输入：JSON 常量、`$` 变量路径、`$$` 字符串转义；字面量对象/数组递归解析。写入目标为 `$` 路径。文本模板正文另用 `$path$` 插值与 `$$` 转义，旧 concat 已移除。
 - Chat 每轮传入 chatIn、threadId；原始记录存于通用存储 threads/<threadId>，运行前保存用户消息，结束后追加回复。不再自动提供 memoryKey，流程记忆自行管理；旧对话记录不迁移。
 - 未设置值在文本模板中转空字符串、数学与大小比较中转 0；转换不写回源值，相等比较及存储语义不变。

@@ -6,7 +6,7 @@
 
 项目目标是让用户和 AI 更方便地开发、运行和逐步调试 AI Agent，重点放在工具能力与联调，流程保持轻量。新加入的开发者或 AI 窗口先读 [项目目标与决策](docs/project-context.md)；自动协作入口见 [AGENTS.md](AGENTS.md)。文档明确区分已实现能力、用户确认方向和后续方案建议。
 
-核心产品原则：**预设子流程负责简单，底层节点负责能力**。已确认设计见 [AI 工具与预设](docs/ai-tools-and-presets.md)。单次模型调用已接入，使用方法见 [AI 工具](agent-plan-ai/README.md)；流程工具桥接与 Agent 预设仍待实现。
+核心产品原则：**预设子流程负责简单，底层节点负责能力**。当前能力与后续方向见 [AI 工具与预设](docs/ai-tools-and-presets.md)。共享模型工具包含 llm.auto 和三种供应商调用，流程工具桥接、显式 Agent 循环及默认记忆模板已接入。Editor 内置助手可查询文档、管理文件、创建和运行流程；预设展示与升级机制仍待设计。
 
 CLI/Editor 已接入通用 JSON 存储与 token 计数，见 [存储与计数](docs/storage-and-tokens.md)。记忆和压缩由流程组合；不自动保存运行现场。
 
@@ -23,6 +23,8 @@ agent-plan/
 ```
 
 ## 获取与安装
+
+npm 打包与工作区外安装验证已准备，许可证为 MIT。原计划的 `agent-plan` 和 `@agent-plan/core` 已被其他项目使用，发布 scope 待重新确定，本项目尚未发布到 npm。打包、名称核查和发布前提见 [npm 发布准备](docs/npm-release.md)；目前按下面的源码方式安装。
 
 需要 Node.js 24 和 pnpm；包管理器版本固定在根 `package.json`。
 
@@ -77,6 +79,11 @@ CLI 已实现 `run`、`inspect`、`validate`、文件/内联 JSON/stdin 输入�
 
 - **core**：流程结构、校验、字段与节点、runtime、调用栈、外部函数执行机制。不依赖 CLI。
 - **cli**：命令参数、文件加载、函数模块导入、输出与退出码。通过 `agent-plan-core: workspace:*` 使用本地子模块包，不复制 core 源码。
+- **ai**：共享模型调用、本地模型及 token 计数。
+- **storage**：通用存储、用户配置与运行环境。
+- **script**：共享 JavaScript 脚本模块契约和 Worker 执行。
+- **tools**：共享基础工具及宿主工具注册。
+- **editor**：浏览器文件库、步骤编辑、Agent 对话、内置助手和手册。
 
 运行器能力与示例见 [core 文档](agent-plan-core/README.md)。步骤输入现在支持 `$` 变量路径、JSON 固定值和 `append` 数组追加；详细规则见 [变量、对象与数组方案](agent-plan-core/docs/operands.md)。本次直接调整未投入实际使用的格式，`schemaVersion` 保持 `1`，不自动兼容旧裸字段名。
 

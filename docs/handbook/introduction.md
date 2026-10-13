@@ -2,6 +2,8 @@
 
 Agent Plan 致力于让任何人（包括不懂代码的人），在任何设备上（包括移动设备），快速的开发、运行和调试自己的AI Agent。
 
+从一个单轮翻译助手开始：[电脑端 Editor 入门](quick-start.md)、[手机端 Editor 入门](quick-start-mobile.md) 或 [YAML + CLI 入门](quick-start-cli.md)。
+
 ## AI Agent 的基本结构
 
 一个通用的 AI Agent，结构往往非常简单：**一个 AI 模型、一组工具，以及一个让它们配合工作的流程。**

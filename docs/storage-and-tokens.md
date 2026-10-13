@@ -111,4 +111,4 @@ pnpm cli storage delete demo/memory --storage-dir ./.agent-plan/storage
 
 ## 记忆工具（2026-10-10）
 
-默认本地对话采用七个外层步骤，包含显式工具循环且内部变量展开，三个 memory 工具统一组装用户、模型和工具结果消息；读取和保存复用 storage，不做摘要压缩或自动裁剪。详见 [记忆工具](memory-tools.md)。
+默认新建对话采用五个外层步骤：memory.init、llm.auto、memory.addAssistant、while、memory.save；完整消息保存在 memory 变量，循环中用 memory.addTools 组装工具结果。读取和保存复用 storage，不做摘要压缩或自动裁剪。详见 [记忆工具](memory-tools.md)。

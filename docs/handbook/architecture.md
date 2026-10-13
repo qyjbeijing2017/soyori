@@ -40,4 +40,4 @@ Core 不自动超时、取消或重试；宿主执行环境和工具负责相应
 
 浏览器网络受 CORS，本地工具取 Library 和 IndexedDB；CLI 取磁盘和用户存储。代码执行环境也不同。跨端移植先查 [平台矩阵](tools/contract.md)。
 
-当前包依赖 pnpm workspace，Core/AI 等标记 private，尚未形成独立发布的嵌入 SDK。Windows/macOS/iOS/Android 原生封装、目录同步、MCP、远程共享调试不属于当前承诺。
+开发包依赖 pnpm workspace，Core/AI 等仍标记 private。npm 发布准备已能生成六个独立发布包并验证工作区外安装，但原定 agent-plan 与 @agent-plan/core 已被其他项目占用，最终 scope 待确定，本项目尚未发布。嵌入 SDK 暂不推进。Windows/macOS/iOS/Android 原生封装、目录同步、MCP、远程共享调试不属于当前承诺。

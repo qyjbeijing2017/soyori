@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "name": "本地记忆对话",
-  "description": "带系统提示的本地记忆对话；可查询时间并通过 Mwmbl 搜索联网资料，工具结果加入上下文后继续回复。首次运行需下载模型；超出上下文或运行预算时会报错。",
+  "name": "记忆对话",
+  "description": "带系统提示的记忆对话；可查询时间并通过 Mwmbl 搜索联网资料，工具结果加入上下文后继续回复。使用本地模型时首次运行需下载模型；超出上下文或运行预算时会报错。",
   "fields": [
     {
       "name": "chatIn",
@@ -16,7 +16,7 @@
       "output": true
     },
     {
-      "name": "messages",
+      "name": "memory",
       "description": "交给模型的完整消息上下文。"
     },
     {
@@ -39,14 +39,14 @@
         "prompt": "$chatIn"
       },
       "outputs": {
-        "memory": "$messages"
+        "memory": "$memory"
       }
     },
     {
       "type": "call",
-      "target": "llm.local",
+      "target": "llm.auto",
       "inputs": {
-        "input": "$messages",
+        "input": "$memory",
         "maxTokens": 512,
         "tools": ["time.now", "web.search", "web.fetch"]
       },
@@ -59,11 +59,11 @@
       "type": "call",
       "target": "memory.addAssistant",
       "inputs": {
-        "messages": "$messages",
+        "messages": "$memory",
         "message": "$assistantMessage"
       },
       "outputs": {
-        "messages": "$messages"
+        "messages": "$memory"
       }
     },
     {
@@ -85,18 +85,18 @@
           "type": "call",
           "target": "memory.addTools",
           "inputs": {
-            "messages": "$messages",
+            "messages": "$memory",
             "results": "$toolResults"
           },
           "outputs": {
-            "messages": "$messages"
+            "messages": "$memory"
           }
         },
         {
           "type": "call",
-          "target": "llm.local",
+          "target": "llm.auto",
           "inputs": {
-            "input": "$messages",
+            "input": "$memory",
             "maxTokens": 512,
             "tools": ["time.now", "web.search", "web.fetch"]
           },
@@ -109,11 +109,11 @@
           "type": "call",
           "target": "memory.addAssistant",
           "inputs": {
-            "messages": "$messages",
+            "messages": "$memory",
             "message": "$assistantMessage"
           },
           "outputs": {
-            "messages": "$messages"
+            "messages": "$memory"
           }
         }
       ]
@@ -124,7 +124,7 @@
       "inputs": {
         "threadId": "$threadId",
         "prefix": "memory",
-        "memory": "$messages"
+        "memory": "$memory"
       },
       "outputs": {}
     }

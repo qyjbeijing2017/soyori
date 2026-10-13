@@ -1,6 +1,6 @@
 # 模型工具调用
 
-`llm.local`、`llm.openai`、`llm.anthropic` 支持可选 `tools: string[]`，值为当前作用域允许的调用名。工具说明可省略；宿主从函数的 `.definition.inputs`（包括折叠组）生成参数结构，或从已导入子流程的输入字段生成结构。未提供类型的字段接受 JSON 值，不从默认值猜测类型。模型只能请求本次列出的工具。
+`llm.auto`、`llm.local`、`llm.openai`、`llm.anthropic` 支持可选 `tools: string[]`，值为当前作用域允许的调用名。工具说明可省略；宿主从函数的 `.definition.inputs`（包括折叠组）生成参数结构，或从已导入子流程的输入字段生成结构。未提供类型的字段接受 JSON 值，不从默认值猜测类型。模型只能请求本次列出的工具。Editor 中四个模型工具共用工具搜索、选择和变量引用输入方式。
 
 ## 模型输入输出
 

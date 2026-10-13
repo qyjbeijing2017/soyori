@@ -11,7 +11,7 @@
 环境管理使用 `env.list`、`env.inspect`、`env.set`，契约见[环境与敏感值](handbook/agents/environment.md)。模型工具入口不开放原值 `env.get`，流程执行仍可使用它。助手只能写当前对话环境；敏感项只回传状态，设置参数的执行记录遮挡。`flow.run` 每次读取最新环境，支持设置后立即测试；显式敏感输出与错误遮挡，无自动敏感性传播或代码安全隔离。
 
 - `agent-plan-editor/src/assistant.json` 是独立内置助手；`assistant-flow.ts` 按设置构造两个一致的 `llm.*` 调用。界面显示 AgentPlan助手，保留内部 ID `builtin-local-agent`，不改已有会话 ID。
-- `src/example.json` 是 Library 首次模板及新建流程模板，继续使用本地模型。新建弹窗的名称和说明留空；不覆盖已保存的用户流程。
+- `src/example.json` 是 Library 首次模板及新建流程模板，使用 `llm.auto`，完整消息上下文的运行变量名为 `memory`。新建弹窗的名称和说明留空；不覆盖已保存的用户流程。
 - 两种流程都使用 `memory.init → llm.* → memory.addAssistant → while → memory.save`。循环执行 `tools.execute → memory.addTools → llm.* → memory.addAssistant`，无工具请求时结束。
 - `memory.init/save` 使用 `prefix/threadId`，默认前缀 `memory`。Chat 原始记录仍在 `threads/<threadId>`，两者分开；不迁移旧流程的记忆。接口见 [记忆工具](memory-tools.md)。
 - 助手提示明确 Agent Plan 项目语境：“流程”指 JSON/YAML 流程文件，“根目录”指 Library 根目录。远程助手提供全部基础工具及项目操作工具；本地首先提供 `flow.create/workspace.list/project.tools/project.docs/time.now/web.search/web.fetch`，其余接口按需查询。skill 加载尚未实现。
@@ -55,7 +55,7 @@
 
 ## 本地下载与初始化
 
-当前模型为 `onnx-community/Qwen3-1.7B-ONNX`，固定 revision `b85539623180ae64303f37373d942cb0595ca44d`。浏览器使用 Q4F16/WebGPU，文件总量约 1.44 GB；CLI 使用 Q4/CPU，权重约 2.15 GB。文件大小不等于内存需求。
+当前模型为 `onnx-community/Qwen3-1.7B-ONNX`，固定 revision `b85539623180ae64303f37373d942cb0595ca44d`。浏览器使用 Q4F16/WebGPU，文件总量约 1.44 GB；CLI 优先 Q4F16/WebGPU，初始化失败回退 Q4/CPU（权重约 2.15 GB），生成失败不切换重试。文件大小不等于内存需求。
 
 `ModelDownloadManager` 管理模型和 tokenizer 文件；Cache API `agent-plan-model-files-v1` 保存完整文件，IndexedDB `agent-plan-model-downloads` 保存下载分块。暂停/继续使用 Range，停止或释放保留已下载数据。进度在设置及主界面展示，下载完成后隐藏进度条。刷新可恢复下载数据，不能恢复执行现场。
 

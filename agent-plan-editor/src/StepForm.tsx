@@ -309,9 +309,13 @@ export function StepForm({
                     draft.target === "script.run" && name === "code"
                       ? ScriptCodeInput
                       : name === "tools" &&
-                          ["llm.local", "llm.openai", "llm.anthropic", "tools.execute"].includes(
-                            draft.target,
-                          )
+                          [
+                            "llm.auto",
+                            "llm.local",
+                            "llm.openai",
+                            "llm.anthropic",
+                            "tools.execute",
+                          ].includes(draft.target)
                         ? ToolListInput
                         : AutoValueInput;
                   return (

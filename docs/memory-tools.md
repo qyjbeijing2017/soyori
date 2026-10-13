@@ -35,11 +35,13 @@ memory.init/save 的 key 为 prefix/threadId，prefix 默认 memory，允许空�
 
 ## 默认流程
 
-五个外层步骤：memory.init → llm.local → memory.addAssistant → 工具循环 → memory.save。工具循环执行 tools.execute → memory.addTools → llm.local → memory.addAssistant，直到 toolCalls 为空。
+新建流程默认使用 llm.auto，按有效环境与网页供应商设置选择模型；消息组装工具的 messages 参数及输出名保持不变，映射到 $memory 运行变量。
+
+五个外层步骤：memory.init → llm.auto → memory.addAssistant → 工具循环 → memory.save。工具循环执行 tools.execute → memory.addTools → llm.auto → memory.addAssistant，直到 toolCalls 为空。
 
 系统提示在 memory.init 的 system 参数中编辑，每轮放在消息最前面并替换旧提示，不重复累积。默认提示仅保留语言、按需调用工具和诚实回答等通用要求，具体查询接口放在工具定义中。模型 tools 参数内联 time.now/web.search/web.fetch，两处调用均可编辑。工具请求直接读取 assistantMessage.toolCalls。
 
-接口变量 chatIn/threadId/chatOut；内部 messages/assistantMessage/toolResults。记忆保存于 memory/<threadId>，Chat 原始记录仍在 threads/<threadId>；已有用户流程保持原样，不迁移旧 threads/<threadId>/messages。模型失败不覆盖旧记忆，回复上限 512 token。
+接口变量 chatIn/threadId/chatOut；内部 memory/assistantMessage/toolResults。记忆保存于 memory/<threadId>，Chat 原始记录仍在 threads/<threadId>；已有用户流程保持原样，不迁移旧 threads/<threadId>/messages。模型失败不覆盖旧记忆，回复上限 512 token。
 
 不做摘要、压缩或自动裁剪；超出模型上下文限制会报错。默认工具循环是普通 while，可编辑并逐步调试；共享模型及工具调用预算防止无界执行。普通工具失败作为消息交给模型，模型调用失败或预算耗尽不保存本轮上下文。旧 memory.read/append/context/compact 不再注册，不迁移旧记忆或覆盖用户流程。并发写同一 key 沿用 storage.write 覆盖语义。
 
