@@ -500,5 +500,15 @@
   "字符串原值；未设置时 null。": "Original string value, or null when unset.",
   "省略时保留已有系统提示。": "Omit to keep the existing system instruction.",
   "可选的本轮用户文本。": "Optional user text for this turn.",
-  "已有上下文；未设置或 null 时从空数组开始。": "Existing history; unset or null starts with an empty array."
+  "已有上下文；未设置或 null 时从空数组开始。": "Existing history; unset or null starts with an empty array.",
+  "让想法，一步步变成 AI 助手。": "Turn your ideas into an AI assistant.",
+  "从一次对话开始，或跟着教程搭建自己的流程。": "Start a conversation, or follow a guide to build your own flow.",
+  "入门指引": "Getting started",
+  "我想快速开始": "Help me get started",
+  "跟着图文，做出第一个 AI 流程": "Build your first AI flow with a step-by-step guide.",
+  "让助手记住对话": "Add conversation memory",
+  "为助手添加记忆，让对话接得上": "Give your assistant memory to keep the conversation going.",
+  "让助手使用工具": "Put tools to work",
+  "从查询时间开始，让助手动手做事": "Start with the current time, then let your assistant take action.",
+  "也可以直接在下方输入，和当前 Agent 对话。": "Or type below to chat with your current Agent."
 }

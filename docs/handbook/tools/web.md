@@ -55,6 +55,8 @@
   output: $answer
 ```
 
+<a name="web-search"></a>
+
 ## web.search
 
 通过选定的搜索服务查找标题、链接和摘要，适合发现后续要读取的页面。支持 Mwmbl、Tavily 和博查；步骤参数相同，密钥从运行环境自动读取。

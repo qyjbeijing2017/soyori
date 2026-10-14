@@ -17,6 +17,7 @@ import {
   saveEnvironment,
 } from "soyori-storage/environment";
 import type { AiSettings, BrowserAiHost } from "./ai-host";
+import { ChatWelcome } from "./ChatWelcome";
 import { formatChatOutput } from "./chat-contract";
 import {
   appendExecution,
@@ -428,17 +429,7 @@ export function AgentChat({
       ) : (
         <>
           <div className="chat-scroll" aria-live="polite">
-            {!messages.length && !viewBusy && (
-              <div className="chat-empty">
-                <img
-                  src={`${import.meta.env.BASE_URL}brand/soyori-logo.png?v=breeze-1`}
-                  width="72"
-                  height="72"
-                  alt=""
-                />
-                <h1>{tr("开始对话")}</h1>
-              </div>
-            )}
+            {!messages.length && !viewBusy && <ChatWelcome mobile={mobile} />}
             {messages.map((message, i) => (
               // biome-ignore lint/suspicious/noArrayIndexKey: The transcript is append-only and messages have no editable local state.
               <article className={`chat-message ${message.role}`} key={`${i}:${message.role}`}>

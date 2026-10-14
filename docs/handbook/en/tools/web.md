@@ -45,6 +45,8 @@ Returns url (final after redirects), status, headers, and body. JSON responses p
   output: $answer
 ```
 
+<a name="web-search"></a>
+
 ## web.search
 
 Search with Mwmbl, Tavily, or Bocha. The inputs are shared; provider credentials come automatically from the run environment.

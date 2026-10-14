@@ -248,6 +248,8 @@
   output: $answer
 ```
 
+<a name="array-concat"></a>
+
 ## array.concat
 
 依次合并多个列表，只展开一层。
@@ -297,6 +299,8 @@
     end: 3
   output: $answer
 ```
+
+<a name="array-length"></a>
 
 ## array.length
 

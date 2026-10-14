@@ -95,6 +95,8 @@ In Chat, click the Agent name at the bottom right of the input, just left of the
 
 A new conversation has a different ID and starts a separate history.
 
+<a name="5-yaml-cli"></a>
+
 ## 5. YAML + CLI
 
 This lesson uses the new `memory` interface. The published npm 0.1.0 packages still use `messages`. Until a newer release is published, build the project source with `pnpm build` and use `pnpm cli` instead of `soyori`. Set example paths to where you saved them.

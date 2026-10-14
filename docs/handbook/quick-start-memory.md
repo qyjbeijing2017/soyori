@@ -109,6 +109,8 @@ memory 输入是当前的整份记忆，message 输入是 AI 这一次返回的�
 
 新建另一段对话会分配另一个编号，不会读取刚才那段对话的记忆。
 
+<a name="5-yaml-cli-写法"></a>
+
 ## 5. YAML + CLI 写法
 
 本课使用新版 memory 接口。已发布的 npm 0.1.0 仍使用 messages；新版发布前，CLI 需使用本项目源码构建的版本。在项目目录运行 `pnpm build` 后，可用 `pnpm cli` 替代下文的 `soyori`；示例文件路径请按实际保存位置填写。
