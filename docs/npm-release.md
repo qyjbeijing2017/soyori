@@ -2,7 +2,7 @@
 
 发布六个无 scope 的公开包：`soyori-core`、`soyori-storage`、`soyori-script`、`soyori-tools`、`soyori-ai`、`soyori-cli`。初始版本 `0.1.0`，许可证 MIT。版本统一配置在根 `package.json` 的 `soyoriRelease.version`；包名沿用各包的 package.json，不添加个人或组织前缀。
 
-> **发布状态：等待 npm 账号验证。** 2026-10-14 源码已推送至 `5ff959f`，六个 0.1.0 包已完成打包和工作区外独立安装验证。首个包的正式发布被 npm 以 E403 拒绝：当前账号 qiuyj 未启用双重验证。此次尚未发布任何包；完成账号验证后重试同一批已验证产物。不能把打包成功当作已经发布。
+> **发布状态：已发布。** 2026-10-14 六个 soyori-* 包的 0.1.0 已由 qiuyj 发布到 npm 公共注册表，latest 指向 0.1.0。注册表完整性与本地已验证产物一致；已在工作区外从官方注册表重新安装 soyori-cli@0.1.0，验证命令入口、YAML、字段映射、相对子流程、脚本 Worker 和公开 exports。对应发布源码提交为 `5ff959f`。
 
 开发工作区仍为 private，内部依赖使用 `workspace:*`。发布脚本从编译结果生成独立发布目录，移除 private，并将内部依赖改为本次精确版本，例如 `soyori-core: 0.1.0`。开发和发布使用相同的包名，不再需要 npm alias。用户入口为 `npm install -g soyori-cli`，安装后执行 `soyori`。
 
@@ -50,7 +50,7 @@ npm 要求发布者启用账号双重验证（2FA），或使用具备发布权�
 
 ## 4. 发布后的用户入口
 
-六个包正式发布并验证注册表安装后，用户执行：
+用户执行：
 
 ```powershell
 npm install -g soyori-cli

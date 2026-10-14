@@ -38,6 +38,8 @@
 
 2026-10-14 字段声明映射：用户确认 fields 改用“字段名: 配置”，分组用 type: group 区分，分组内部 fields 使用相同映射。分组映射键是标识，name 仅为可选显示名称，省略时显示键；改显示名称保留标识。普通字段仍全局唯一、用 $字段名 引用，分组不创建作用域。保留旧字段列表读取，Editor 新建与保存统一为映射，schemaVersion 仍为 1；步骤和工具接口参数保持有序列表。字段顺序只影响展示，普通名称保留插入顺序，整数形式键遵循 JavaScript 对象枚举顺序。本条替代历史中 Editor 输出 fields 数组的说明。
 
+2026-10-14 npm 首发：六个 soyori-core/storage/script/tools/ai/cli 包的 0.1.0 已发布，latest 为 0.1.0，发布账号 qiuyj。已核对全部注册表 integrity，并通过官方注册表全新安装验证命令入口、YAML、字段映射、相对子流程和脚本 Worker。用户使用 npm install -g soyori-cli，无需源码或 pnpm；Editor 不随 CLI 包发布。发布状态和后续步骤见 [npm 打包与发布](npm-release.md)。
+
 ## 1. 项目为什么存在
 
 2026-10-13 CLI 与运行环境调整（替代前面的 CLI thread/OS 规则）：run/validate 支持重复 --env NAME=value，仅本次生效；有效环境按 --env > OS 环境 > 持久全局配置，取消 CLI --thread-id 与输入 threadId 环境选择，CLI env 管理只保存全局。网页对话/文件作用域保持。共享 env.override 临时赋值、env.load 按调用流程相对路径读取约定 JSON，影响后续 LLM 与子流程，不持久保存、不自动加载文件；远端调用不能加载本地配置。原值运行环境工具不直接开放给网页助手模型。
