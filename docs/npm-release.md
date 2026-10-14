@@ -2,7 +2,7 @@
 
 发布六个无 scope 的公开包：`soyori-core`、`soyori-storage`、`soyori-script`、`soyori-tools`、`soyori-ai`、`soyori-cli`。初始版本 `0.1.0`，许可证 MIT。版本统一配置在根 `package.json` 的 `soyoriRelease.version`；包名沿用各包的 package.json，不添加个人或组织前缀。
 
-> **发布状态：首发准备中。** 用户已确认使用 soyori-* 名称，并授权 Git 推送与 npm 发布。当前账号 qiuyj；包名可用性、产物及注册表安装需要在每次发布时实际核验，不能把打包成功当作已经发布。
+> **发布状态：等待 npm 账号验证。** 2026-10-14 源码已推送至 `5ff959f`，六个 0.1.0 包已完成打包和工作区外独立安装验证。首个包的正式发布被 npm 以 E403 拒绝：当前账号 qiuyj 未启用双重验证。此次尚未发布任何包；完成账号验证后重试同一批已验证产物。不能把打包成功当作已经发布。
 
 开发工作区仍为 private，内部依赖使用 `workspace:*`。发布脚本从编译结果生成独立发布目录，移除 private，并将内部依赖改为本次精确版本，例如 `soyori-core: 0.1.0`。开发和发布使用相同的包名，不再需要 npm alias。用户入口为 `npm install -g soyori-cli`，安装后执行 `soyori`。
 
@@ -46,6 +46,8 @@ npm whoami
 
 按 npm 的登录与二次验证提示操作。使用 artifacts.json 中的真实 filename，依次以 core、storage、script、tools、ai、cli 顺序执行 `npm publish ./文件名.tgz --access public`。同一个包的同一版本不能重复发布。全部源码由一个 Git 仓库管理：先验证、提交并推送对应源码，再发布同一批已验证产物，不再使用子仓库或子模块指针。
 
+npm 要求发布者启用账号双重验证（2FA），或使用具备发布权限且开启 Bypass 2FA 的 granular token。仅 `npm login` 成功不代表可以发布；若收到对应 E403，应先完成账号验证，不修改包名或反复重打包。验证码、token 和恢复码仅在 npm 网站或本机终端输入，不写入仓库。
+
 ## 4. 发布后的用户入口
 
 六个包正式发布并验证注册表安装后，用户执行：
@@ -58,4 +60,4 @@ soyori run ./translate.yaml --json --timeout 10m
 
 用户只需要 Node 24 和 npm，无需 pnpm 或源码。CLI 快速入门与命令参考使用 npm 安装及 `soyori` 命令；仓库 README 另外保留源码开发方式。发布后需在新的临时目录从官方注册表安装 `soyori-cli@0.1.0`，检查帮助、YAML、脚本和子流程；并核对注册表 tarball integrity 与已验证产物一致。域名、一键安装脚本和独立运行时发行包不属于本次范围。
 
-参考：[npm package.json](https://docs.npmjs.com/cli/v11/configuring-npm/package-json/)、[npm 公开包](https://docs.npmjs.com/about-public-packages/)。
+参考：[npm package.json](https://docs.npmjs.com/cli/v11/configuring-npm/package-json/)、[npm 公开包](https://docs.npmjs.com/about-public-packages/)、[npm 发布验证要求](https://docs.npmjs.com/requiring-2fa-for-package-publishing-and-settings-modification/)。
