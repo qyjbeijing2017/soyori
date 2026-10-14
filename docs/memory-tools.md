@@ -6,25 +6,25 @@ soyori-ai 提供 createMemoryTools() 与 MEMORY_TOOL_DEFINITIONS，CLI 和 Edito
 | --- | --- | --- |
 | memory.init | threadId、prefix=memory、可选 system/prompt | 读取历史、替换 system、追加 user 后的 memory |
 | memory.save | threadId、prefix=memory、memory | 保存消息数组，无输出字段 |
-| memory.setSystem | messages、text 系统提示 | 替换所有已有 system 消息，最前面只保留一条 |
-| memory.addUser | messages、input 用户文本 | 追加 user 消息后的 messages |
-| memory.addAssistant | messages、message（LLM 输出） | 追加 assistant 消息后的 messages |
-| memory.addTools | messages、results（tools.execute 输出） | 追加 tool 消息后的 messages |
+| memory.setSystem | memory、text 系统提示 | 替换所有已有 system 消息，最前面只保留一条 |
+| memory.addUser | memory、input 用户文本 | 追加 user 消息后的 memory |
+| memory.addAssistant | memory、message（LLM 输出） | 追加 assistant 消息后的 memory |
+| memory.addTools | memory、results（tools.execute 输出） | 追加 tool 消息后的 memory |
 
-messages 省略或为 null 时从空数组开始。工具返回新数组，不修改输入，保留 system 消息、模型内容块及工具请求。用户 input 必须非空，模型 message 必须为 assistant 消息。
+memory 省略或为 null 时从空数组开始。工具返回新数组，不修改输入，保留 system 消息、模型内容块及工具请求。用户 input 必须非空，模型 message 必须为 assistant 消息。
 
-setSystem 的 text 必须是非空文本，原文保留；每次删除已有 system 消息并在最前面设置一条，其他消息顺序不变。工具只组装当前 messages，不设置应用全局配置，也不负责存储。可以在 storage.read 后、memory.addUser 前调用，每轮替换系统提示；它不追加对话消息，因此允许在合法的待执行工具请求上下文中设置系统提示。
+setSystem 的 text 必须是非空文本，原文保留；每次删除已有 system 消息并在最前面设置一条，其他消息顺序不变。工具只组装当前 memory，不设置应用全局配置，也不负责存储。可以在 storage.read 后、memory.addUser 前调用，每轮替换系统提示；它不追加对话消息，因此允许在合法的待执行工具请求上下文中设置系统提示。
 
 ```yaml
 - type: call
   target: memory.setSystem
   inputs:
-    messages: $messages
+    memory: $memory
     text: |
       你是 Soyori 的本地助手。
       使用中文回答，不编造工具执行结果。
   outputs:
-    messages: $messages
+    memory: $memory
 ```
 
 addTools 按调用 ID 和 target 校验，要求每个尚未完成的请求恰有一个结果，按请求顺序加入消息。成功结果的 content 是结果的 JSON 文本，失败是 {error: {message}} 的 JSON 文本，toolCallId 保留请求 ID。未完成请求时不能追加用户或模型消息；孤立、缺失、重复及错配结果明确报错。空请求与空结果是无操作。
@@ -33,9 +33,11 @@ addTools 按调用 ID 和 target 校验，要求每个尚未完成的请求恰�
 
 memory.init/save 的 key 为 prefix/threadId，prefix 默认 memory，允许空字符串或末尾一个 /；threadId 必须为单个合法 key 片段，组合后仍受通用存储 key 限制。init 缺失历史时从空数组开始，存在但损坏的历史明确报错；省略 system 保留已有提示，提供时替换旧 system，省略 prompt 不追加用户消息，提供的 system/prompt 必须非空。init 不写存储。save 只接受消息数组，并要求所有工具请求已有结果；沿用存储 JSON 校验及错误。两者不做摘要压缩、不维护隐藏记忆。
 
+旧版组装工具的 messages 输入和输出已改为 memory。已有流程需修改对应的 inputs/outputs 键；误用旧输入会明确报错，不会把已有记忆当成空列表继续执行。此调整不改变已保存的消息数组和存储 key。
+
 ## 默认流程
 
-新建流程默认使用 llm.auto，按有效环境与网页供应商设置选择模型；消息组装工具的 messages 参数及输出名保持不变，映射到 $memory 运行变量。
+新建流程默认使用 llm.auto，按有效环境与网页供应商设置选择模型；所有记忆组装工具统一使用 memory 输入和输出，映射到 $memory 字段。单条模型回复仍使用 message，工具执行结果仍使用 results。
 
 五个外层步骤：memory.init → llm.auto → memory.addAssistant → 工具循环 → memory.save。工具循环执行 tools.execute → memory.addTools → llm.auto → memory.addAssistant，直到 toolCalls 为空。
 

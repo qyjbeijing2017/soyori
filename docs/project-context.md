@@ -12,6 +12,10 @@
 
 2026-10-11 正式手册：用户确认 Document 入口位于设置上方，内容源统一放在 docs/handbook，覆盖快速入门、流程完整参考、脚本、工具、CLI、Agent 与调试。人类阅读器和 project.docs 共用同一版本内容，目录轻量加载，章节与全文搜索索引按需加载，不把方向与历史文档作为默认手册。工具区分两端共享、环境差异与 Editor 专属，未实现能力明确标记。暂不推进嵌入 SDK，先完善现有产品基础。
 
+2026-10-14 Document 英文：手册跟随界面语言设置，补齐 45 个英文对应章节及目录、示例名称和独立全文搜索索引。英文源位于 docs/handbook/en，章节 ID 与示例 ID 保持对应；保留中文源路径兼容与双向小节别名，切换语言不重建执行宿主。project.docs 使用当前语言的同一内容。用户指出配图仍为中文后，77 张独立配图已在英文界面重拍，覆盖桌面、手机、源码、环境和工具设置，存入 docs/handbook/images/en；英文页不再引用中文界面图。流程语法与执行结果不变。
+
+2026-10-14 英文示例补全：用户要求替换示例中不必要的中文。英文正文、命令占位符及 22 组英文下载示例的名称、说明、提示词和消息均使用英文；中文仅保留为翻译练习输入。英文示例单独位于 docs/handbook/en/examples，ID、相对文件结构和流程语义与中文版对应；导入按钮按当前语言选源，语言切换不改写已导入文件或其他用户流程。受影响的 43 张英文截图同步重拍，测试从逐字相同改为结构一致、可解析及实际运行结果验证。
+
 2026-10-11 助手工作区能力：Editor 新增 project.docs/tools、workspace 文件操作、flow.inspect/run 宿主工具，复用 IndexedDB 与 Core。助手可查询打包文档、保存文件、校验并运行已保存流程；文件替换采用原子版本检查并通知 UI 刷新。目标运行有步骤、时间与记录限制，不读取未保存草稿，不恢复现场。CLI 尚未提供这些 Editor 工具。本地模型以接口查询按需发现工具，复杂任务可靠性待实际模型验证。详细接口与限制见上述文档。
 
 2026-10-11 创建流程补充：助手明确项目中的流程与 Library 根目录含义；新增 flow.create，复用新建流程模板和保存接口，省略名称时自动生成唯一名称，默认根目录保存。本地模型直接获得此工具定义，减少从通用文件写入反推创建流程的负担。工具契约与模型任务表现分别验证。
@@ -40,7 +44,15 @@
 
 2026-10-14 npm 首发：六个 soyori-core/storage/script/tools/ai/cli 包的 0.1.0 已发布，latest 为 0.1.0，发布账号 qiuyj。已核对全部注册表 integrity，并通过官方注册表全新安装验证命令入口、YAML、字段映射、相对子流程和脚本 Worker。用户使用 npm install -g soyori-cli，无需源码或 pnpm；Editor 不随 CLI 包发布。发布状态和后续步骤见 [npm 打包与发布](npm-release.md)。
 
+2026-10-14 记忆工具命名：memory.setSystem/addUser/addAssistant/addTools 的整份记忆输入、输出统一由 messages 改为 memory，与 init/save 一致。单条模型回复仍叫 message，工具执行结果仍叫 results；Editor 参数预填使用 $memory、$assistantMessage、$toolResults。同步内置助手、新建模板、示例和手册；不自动改写用户已保存流程，旧输入明确报错并提示替换，存储内容与 key 不变。此决策替代此前只修改模板字段、保留 messages 工具接口的约定。
+
+2026-10-14 搜索范围收缩：用户确认暂时移除 Brave 与百度支持，仅保留博查、Tavily 和免 Key 的 Mwmbl。删除共享适配、参数说明、配置表与正向测试，显式指定已移除供应商时报 SEARCH_CONFIG，不自动切换；保留用户已保存的环境变量，不增加代理。此条替代前述四家供应商同时支持的方案。
+
 ## 1. 项目为什么存在
+
+2026-10-14 搜索供应商配置：web.search 新增 Brave、Tavily、百度与博查适配，继续保留免 Key 的 Mwmbl。步骤 provider > 当前有效 SEARCH_PROVIDER > mwmbl；凭据从运行环境自动读取，Editor 与 CLI 共享实现，env.override/load 对后续搜索生效。新增高级摘要长度限制，默认 240 保持原行为。保持 query/limit 和 results[{title,url,snippet}]，不引入代理、自动故障转移、并行搜索或结果合并。浏览器仍受 CORS 限制，无效 Key 探测不代表有效搜索验证；用户将自行在环境页面填写真实 Key。
+
+2026-10-14 连续入门教程：用户要求新增快速入门 2（记忆）与 3（工具）。第二课用 memory.init → llm.auto → memory.addAssistant → memory.save 解释消息历史与对话编号，第三课先直接查询时间，再组合 AI 工具循环；均提供实际 Editor 截图、可导入流程及 npm CLI 命令。第一课的电脑、手机、CLI 入口和原章节 ID 保留，通过链接串起三课，不要求新手先读协议参考。
 
 2026-10-13 CLI 与运行环境调整（替代前面的 CLI thread/OS 规则）：run/validate 支持重复 --env NAME=value，仅本次生效；有效环境按 --env > OS 环境 > 持久全局配置，取消 CLI --thread-id 与输入 threadId 环境选择，CLI env 管理只保存全局。网页对话/文件作用域保持。共享 env.override 临时赋值、env.load 按调用流程相对路径读取约定 JSON，影响后续 LLM 与子流程，不持久保存、不自动加载文件；远端调用不能加载本地配置。原值运行环境工具不直接开放给网页助手模型。
 

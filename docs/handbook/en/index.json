@@ -1,0 +1,873 @@
+{
+  "version": "2026-10-14",
+  "chapters": [
+    {
+      "id": "introduction",
+      "path": "docs/handbook/en/introduction.md",
+      "title": "What is Soyori?",
+      "group": "Getting started",
+      "summary": "What Soyori does, how Agents work, and where to start reading.",
+      "sectionAliases": {
+        "什么是-soyori": "what-is-soyori",
+        "手册阅读路线": "reading-this-handbook",
+        "ai-agent-的基本结构": "the-basic-structure-of-an-ai-agent",
+        "流程是怎么工作的": "how-a-flow-works",
+        "流程-一轮问答-运行一次": "flow-one-run-for-each-message",
+        "步骤-把事情拆开做": "steps-break-the-task-into-actions",
+        "工具-给步骤提供能力": "tools-give-steps-their-capabilities"
+      }
+    },
+    {
+      "id": "quick-start",
+      "path": "docs/handbook/en/quick-start.md",
+      "title": "Quick start: Editor",
+      "group": "Getting started",
+      "summary": "Create a desktop flow with fields, a text template, and a model call.",
+      "sectionAliases": {
+        "快速入门-editor": "quick-start-editor",
+        "1-准备模型-可选": "1-prepare-a-model-optional",
+        "2-新建流程": "2-create-a-flow",
+        "3-清空默认内容": "3-clear-the-default-content",
+        "4-创建三个字段": "4-create-three-fields",
+        "4-1-输入-chatin": "4-1-input-chatin",
+        "4-2-中间值-prompt": "4-2-intermediate-value-prompt",
+        "4-3-输出-chatout": "4-3-output-chatout",
+        "5-拼合提示词": "5-assemble-the-prompt",
+        "6-调用模型": "6-call-the-model",
+        "7-运行并查看结果": "7-run-and-inspect-the-result",
+        "8-修改后再运行": "8-edit-and-run-again"
+      }
+    },
+    {
+      "id": "quick-start-mobile",
+      "path": "docs/handbook/en/quick-start-mobile.md",
+      "title": "Quick start: Editor on mobile",
+      "group": "Getting started",
+      "summary": "Build the same translation assistant using the phone layout.",
+      "sectionAliases": {
+        "快速入门-editor-手机端": "quick-start-editor-on-mobile",
+        "1-准备模型-可选": "1-prepare-a-model-optional",
+        "2-新建流程": "2-create-a-flow",
+        "3-清空默认内容": "3-clear-the-default-content",
+        "4-创建三个字段": "4-create-three-fields",
+        "4-1-输入-chatin": "4-1-input-chatin",
+        "4-2-中间值-prompt": "4-2-intermediate-value-prompt",
+        "4-3-输出-chatout": "4-3-output-chatout",
+        "5-拼合提示词": "5-assemble-the-prompt",
+        "6-调用模型": "6-call-the-model",
+        "7-运行并查看结果": "7-run-and-inspect-the-result",
+        "8-修改后再运行": "8-edit-and-run-again"
+      }
+    },
+    {
+      "id": "quick-start-cli",
+      "path": "docs/handbook/en/quick-start-cli.md",
+      "title": "Quick start: YAML + CLI",
+      "group": "Getting started",
+      "summary": "Write and run a translation flow with YAML and terminal commands.",
+      "sectionAliases": {
+        "快速入门-yaml-cli": "quick-start-yaml-cli",
+        "1-准备-cli": "1-prepare-the-cli",
+        "2-准备模型-可选": "2-prepare-a-model-optional",
+        "3-新建流程文件": "3-create-the-flow-file",
+        "4-创建三个字段": "4-create-three-fields",
+        "5-拼合提示词": "5-assemble-the-prompt",
+        "6-调用模型": "6-call-the-model",
+        "7-运行并查看结果": "7-run-and-inspect-the-result",
+        "8-修改后再运行": "8-edit-and-run-again",
+        "9-查看中间值-可选": "9-inspect-intermediate-values-optional",
+        "完整-yaml": "complete-yaml"
+      }
+    },
+    {
+      "id": "quick-start-memory",
+      "path": "docs/handbook/en/quick-start-memory.md",
+      "title": "Quick start 2: Using memory",
+      "group": "Getting started",
+      "summary": "Read and save message history so an assistant remembers earlier turns.",
+      "examples": ["quick-memory"],
+      "sectionAliases": {
+        "快速入门-2-使用记忆": "quick-start-2-using-memory",
+        "1-记忆为什么需要读取和保存": "1-why-memory-needs-reading-and-saving",
+        "2-新建流程和字段": "2-create-the-flow-and-fields",
+        "3-按顺序添加四个调用步骤": "3-add-four-call-steps-in-order",
+        "第一步-memory-init-读取记忆并加入问题": "step-1-memory-init-reads-history-and-adds-the-question",
+        "第二步-llm-auto-让模型阅读历史": "step-2-llm-auto-reads-the-history",
+        "第三步-memory-addassistant-把回复加入历史": "step-3-memory-addassistant-appends-the-reply",
+        "第四步-memory-save-保存更新后的历史": "step-4-memory-save-saves-the-updated-history",
+        "4-运行两轮-检查是否记住名字": "4-test-two-turns",
+        "5-yaml-cli-写法": "5-yaml-cli",
+        "6-换一份记忆与常见问题": "6-start-fresh-and-troubleshoot"
+      }
+    },
+    {
+      "id": "quick-start-tools",
+      "path": "docs/handbook/en/quick-start-tools.md",
+      "title": "Quick start 3: Using tools",
+      "group": "Getting started",
+      "summary": "Call a time tool directly, then let AI request and use its real results.",
+      "examples": ["quick-tools", "quick-tools-agent"],
+      "sectionAliases": {
+        "快速入门-3-使用工具": "quick-start-3-using-tools",
+        "1-先做一个不需要模型的时间流程": "1-a-time-flow-without-a-model",
+        "第一步-调用-time-now": "step-1-call-time-now",
+        "第二步-用模板组织文字": "step-2-format-the-reply",
+        "运行并查看结果": "run-and-inspect",
+        "2-直接调用的完整-yaml": "2-complete-yaml-for-a-direct-call",
+        "3-让-ai-自己决定是否调用工具": "3-let-ai-choose-when-to-call-a-tool",
+        "修改一-准备工具结果字段-并开放时间工具": "change-1-add-toolresults-and-enable-time-now",
+        "修改二-在加入回复之后-保存记忆之前插入循环": "change-2-insert-a-loop-before-saving",
+        "修改三-保留最后的保存步骤": "change-3-keep-the-final-save",
+        "4-测试-ai-是否真的使用了工具": "4-verify-actual-tool-use",
+        "5-ai-使用工具的完整-yaml": "5-complete-yaml-for-ai-tool-use",
+        "6-常见问题": "6-troubleshooting"
+      }
+    },
+    {
+      "id": "flow-language",
+      "path": "docs/handbook/en/flows/language.md",
+      "title": "Overview",
+      "group": "1. Flows",
+      "summary": "Understand flows, fields, steps, and the basic YAML file structure.",
+      "examples": ["constants"],
+      "sectionAliases": {
+        "概览": "overview",
+        "从哪里开始": "where-to-start",
+        "字段-存放要用到的内容": "fields-hold-the-content-you-need",
+        "步骤-安排要做的事情": "steps-arrange-the-actions-to-perform",
+        "编辑器": "editor",
+        "yaml-文件": "yaml-file"
+      }
+    },
+    {
+      "id": "field-types",
+      "path": "docs/handbook/en/flows/types.md",
+      "title": "Fields: Types",
+      "group": "1. Flows",
+      "summary": "Why types matter, how they are detected, and why you need not learn them first.",
+      "examples": ["constants", "objects"],
+      "sectionAliases": {
+        "字段-类型": "fields-types",
+        "为什么要有类型": "why-types-exist",
+        "自动识别-不用先选类型": "detected-automatically-without-choosing-a-type",
+        "通常只需关注要填什么": "usually-focus-on-what-you-want-to-enter"
+      }
+    },
+    {
+      "id": "constants",
+      "path": "docs/handbook/en/flows/constants.md",
+      "title": "Fields: Constants",
+      "group": "1. Flows",
+      "summary": "Use fixed values in field defaults and step inputs.",
+      "examples": ["constants"],
+      "sectionAliases": {
+        "字段-常量": "fields-constants",
+        "在哪里使用": "where-to-use-constants",
+        "完整示例": "complete-example"
+      }
+    },
+    {
+      "id": "variables",
+      "path": "docs/handbook/en/flows/variables.md",
+      "title": "Fields: Variables",
+      "group": "1. Flows",
+      "summary": "Declare named fields, read their current values, and save results.",
+      "examples": ["variables"],
+      "sectionAliases": {
+        "字段-变量": "fields-variables",
+        "声明": "declare-a-variable",
+        "引用": "reference-a-variable",
+        "完整示例": "complete-example",
+        "规则与常见问题": "rules-and-common-questions"
+      }
+    },
+    {
+      "id": "objects",
+      "path": "docs/handbook/en/flows/objects.md",
+      "title": "Fields: Objects and lists",
+      "group": "1. Flows",
+      "summary": "Store named details in objects and ordered items in lists.",
+      "examples": ["objects"],
+      "sectionAliases": {
+        "字段-对象与列表": "fields-objects-and-lists",
+        "在-editor-中操作": "in-the-editor",
+        "yaml-与基本示例": "yaml-and-basic-example",
+        "规则与常见问题": "rules-and-common-questions"
+      }
+    },
+    {
+      "id": "assignment",
+      "path": "docs/handbook/en/flows/assignment.md",
+      "title": "Steps: Field operations",
+      "group": "1. Flows",
+      "summary": "Replace a value or append one item for later steps to use.",
+      "examples": ["assignment"],
+      "sectionAliases": {
+        "步骤-字段操作": "steps-field-operations",
+        "在-editor-中操作": "in-the-editor",
+        "yaml-与基本示例": "yaml-and-basic-example",
+        "规则与常见问题": "rules-and-common-questions"
+      }
+    },
+    {
+      "id": "control",
+      "path": "docs/handbook/en/flows/control.md",
+      "title": "Steps: Flow control",
+      "group": "1. Flows",
+      "summary": "Choose branches with If and repeat actions with While.",
+      "examples": ["control"],
+      "sectionAliases": {
+        "步骤-流程控制": "steps-flow-control",
+        "在-editor-中操作": "in-the-editor",
+        "yaml-与基本示例": "yaml-and-basic-example",
+        "条件步骤的写法": "writing-an-if-step",
+        "规则与常见问题": "rules-and-common-questions"
+      }
+    },
+    {
+      "id": "text",
+      "path": "docs/handbook/en/flows/text.md",
+      "title": "Steps: Text processing",
+      "group": "1. Flows",
+      "summary": "Combine fixed text with field values to build prompts and replies.",
+      "examples": ["text"],
+      "sectionAliases": {
+        "步骤-文本处理": "steps-text-processing",
+        "在-editor-中操作": "in-the-editor",
+        "yaml-与基本示例": "yaml-and-basic-example",
+        "规则与常见问题": "rules-and-common-questions"
+      }
+    },
+    {
+      "id": "math",
+      "path": "docs/handbook/en/flows/math.md",
+      "title": "Steps: Arithmetic",
+      "group": "1. Flows",
+      "summary": "Add, subtract, multiply, and divide, saving the result to a field.",
+      "examples": ["math"],
+      "sectionAliases": {
+        "步骤-数学运算": "steps-arithmetic",
+        "在-editor-中操作": "in-the-editor",
+        "yaml-与基本示例": "yaml-and-basic-example",
+        "规则与常见问题": "rules-and-common-questions"
+      }
+    },
+    {
+      "id": "comparison",
+      "path": "docs/handbook/en/flows/comparison.md",
+      "title": "Steps: Comparisons",
+      "group": "1. Flows",
+      "summary": "Compare equality or numeric order and produce a true/false result.",
+      "examples": ["comparison"],
+      "sectionAliases": {
+        "步骤-比较": "steps-comparisons",
+        "在-editor-中操作": "in-the-editor",
+        "yaml-与基本示例": "yaml-and-basic-example",
+        "规则与常见问题": "rules-and-common-questions"
+      }
+    },
+    {
+      "id": "logic",
+      "path": "docs/handbook/en/flows/logic.md",
+      "title": "Steps: Logic",
+      "group": "1. Flows",
+      "summary": "Combine conditions using And, Or, and Not.",
+      "examples": ["logic"],
+      "sectionAliases": {
+        "步骤-逻辑运算": "steps-logic",
+        "在-editor-中操作": "in-the-editor",
+        "yaml-与基本示例": "yaml-and-basic-example",
+        "规则与常见问题": "rules-and-common-questions"
+      }
+    },
+    {
+      "id": "calling",
+      "path": "docs/handbook/en/flows/calling.md",
+      "title": "Steps: Calls",
+      "group": "1. Flows",
+      "summary": "Choose a tool or subflow, supply inputs, and map returned values.",
+      "examples": ["calling"],
+      "sectionAliases": {
+        "步骤-调用": "steps-calls",
+        "在-editor-中操作": "in-the-editor",
+        "yaml-与基本示例": "yaml-and-basic-example",
+        "规则与常见问题": "rules-and-common-questions",
+        "只保存结果-还是保存整个返回对象": "save-one-result-or-the-complete-return-object"
+      }
+    },
+    {
+      "id": "groups",
+      "path": "docs/handbook/en/flows/groups.md",
+      "title": "Steps: Groups and descriptions",
+      "group": "1. Flows",
+      "summary": "Organize fields and steps into collapsible groups with descriptions.",
+      "examples": ["groups"],
+      "sectionAliases": {
+        "步骤-分组与说明": "steps-groups-and-descriptions",
+        "在-editor-中操作": "in-the-editor",
+        "yaml-与基本示例": "yaml-and-basic-example",
+        "规则与常见问题": "rules-and-common-questions",
+        "字段分组": "field-groups",
+        "步骤分组与说明": "step-groups-and-descriptions"
+      }
+    },
+    {
+      "id": "operands",
+      "path": "docs/handbook/en/flows/operands.md",
+      "title": "Fields and data paths",
+      "group": "1. Flows",
+      "summary": "Look up references, escapes, templates, nested writes, and path limits.",
+      "sectionAliases": {
+        "字段与数据路径": "fields-and-data-paths",
+        "editor-与-yaml-中的路径": "paths-in-editor-and-yaml",
+        "读取与常量": "reads-and-constants",
+        "写入": "writes",
+        "文本模板": "text-templates",
+        "调用输出与错误": "call-outputs-and-errors"
+      }
+    },
+    {
+      "id": "subflows",
+      "path": "docs/handbook/en/flows/subflows.md",
+      "title": "Subflows and calls",
+      "group": "1. Flows",
+      "summary": "Reuse a flow through local imports, inputs, outputs, and nested debugging.",
+      "examples": ["subflows"],
+      "sectionAliases": {
+        "子流程与调用": "subflows-and-calls",
+        "在-editor-中操作": "in-the-editor",
+        "完整例子": "complete-example",
+        "来源和作用域": "sources-and-scope",
+        "输入输出": "inputs-and-outputs",
+        "进阶-单步与调用栈": "advanced-stepping-and-the-call-stack"
+      }
+    },
+    {
+      "id": "editor-chat",
+      "path": "docs/handbook/en/editor/chat.md",
+      "title": "Chat: Assistants, threads, and execution records",
+      "group": "2. Editor",
+      "summary": "Choose an Agent, manage conversations, and inspect execution records.",
+      "sectionAliases": {
+        "对话-助手-thread-与执行记录": "chat-assistants-threads-and-execution-records",
+        "选择助手或自己的流程": "choose-an-assistant-or-your-own-flow",
+        "thread-一段对话": "thread-one-conversation",
+        "执行记录与错误": "execution-records-and-errors",
+        "让助手修改与验证": "ask-the-assistant-to-edit-and-verify"
+      }
+    },
+    {
+      "id": "workspace",
+      "path": "docs/handbook/en/workspace.md",
+      "title": "Library: Files, uploads, and downloads",
+      "group": "2. Editor",
+      "summary": "Organize browser files, edit source, upload, and export projects.",
+      "sectionAliases": {
+        "文件库-文件-上传与下载": "library-files-uploads-and-downloads",
+        "文件保存在哪里": "where-files-are-stored",
+        "浏览文件与文件夹": "browse-files-and-folders",
+        "流程文件": "flow-files",
+        "脚本与其他文件": "scripts-and-other-files",
+        "编辑与运行": "edit-and-run",
+        "上传与导入": "upload-and-import",
+        "下载与导出工程": "download-and-export-projects",
+        "用流程开始对话": "start-a-conversation-with-a-flow"
+      }
+    },
+    {
+      "id": "editor-values",
+      "path": "docs/handbook/en/editor/values.md",
+      "title": "Editing flows: Fields and current values",
+      "group": "2. Editor",
+      "summary": "Configure fields and distinguish saved defaults from current test values.",
+      "sectionAliases": {
+        "流程编辑-字段与当前值": "editing-flows-fields-and-current-values",
+        "添加与设置字段": "add-and-configure-fields",
+        "修改字段的当前值": "edit-current-values",
+        "引用与敏感值": "references-and-sensitive-values"
+      }
+    },
+    {
+      "id": "editor-flow",
+      "path": "docs/handbook/en/editor/flow.md",
+      "title": "Editing flows: Steps, source, and saving",
+      "group": "2. Editor",
+      "summary": "Edit ordered and nested steps, change source, and save the intended version.",
+      "sectionAliases": {
+        "流程编辑-步骤-源码与保存": "editing-flows-steps-source-and-saving",
+        "添加和编辑步骤": "add-and-edit-steps",
+        "顺序-嵌套与分组": "order-nesting-and-groups",
+        "编辑源码与保存": "edit-source-and-save",
+        "选择正确版本运行": "run-the-intended-version"
+      }
+    },
+    {
+      "id": "debugging",
+      "path": "docs/handbook/en/debugging/guide.md",
+      "title": "Running and debugging",
+      "group": "2. Editor",
+      "summary": "Step through a run, locate errors, inspect nested calls, and record CLI traces.",
+      "examples": ["debugging"],
+      "sectionAliases": {
+        "运行与调试": "running-and-debugging",
+        "推荐顺序": "recommended-approach",
+        "用一个真实错误练习": "practice-with-a-real-error",
+        "常见失败": "common-failures",
+        "进阶-嵌套调用定位": "advanced-locate-nested-failures",
+        "cli-trace": "cli-trace",
+        "进阶-助手如何验证修复": "advanced-how-the-assistant-verifies-a-fix"
+      }
+    },
+    {
+      "id": "editor-settings",
+      "path": "docs/handbook/en/editor/settings.md",
+      "title": "Settings: Models and saved data",
+      "group": "2. Editor",
+      "summary": "Configure model connections, prepare local inference, and back up browser data.",
+      "sectionAliases": {
+        "设置-模型连接与数据保存": "settings-models-and-saved-data",
+        "模型连接": "model-connections",
+        "本地模型准备": "prepare-a-local-model",
+        "数据保存与备份": "data-and-backups"
+      }
+    },
+    {
+      "id": "cli",
+      "path": "docs/handbook/en/cli/guide.md",
+      "title": "CLI usage and command reference",
+      "group": "3. CLI",
+      "summary": "Install the CLI and look up commands, options, loading rules, output, and traces.",
+      "sectionAliases": {
+        "cli-使用与命令参考": "cli-usage-and-command-reference",
+        "安装-cli": "install-the-cli",
+        "命令": "commands",
+        "流程命令参数": "flow-command-options",
+        "流程与模块加载": "load-flows-and-modules",
+        "机器结果与错误": "machine-results-and-errors",
+        "存储配置与调试": "storage-settings-and-debugging"
+      }
+    },
+    {
+      "title": "Environment variables and sensitive values",
+      "id": "environment",
+      "group": "4. Environment variables",
+      "path": "docs/handbook/en/agents/environment.md",
+      "summary": "Understand environment scope, precedence, model connections, and sensitive values.",
+      "sectionAliases": {
+        "环境变量与敏感值": "environment-variables-and-sensitive-values",
+        "配置来源与作用域": "configuration-sources-and-scope",
+        "在流程中读取": "read-values-in-a-flow",
+        "标记敏感值": "mark-sensitive-values",
+        "llm-自动读取连接配置": "llm-connection-fallback",
+        "自动选择模型工具": "automatic-model-selection",
+        "助手环境工具": "assistant-environment-tools",
+        "cli-设置环境": "set-cli-environments",
+        "流程内临时覆盖与文件加载": "temporary-overrides-and-file-loading"
+      }
+    },
+    {
+      "id": "environment-cli",
+      "path": "docs/handbook/en/environment/cli.md",
+      "title": "Environment variables: CLI",
+      "group": "4. Environment variables",
+      "summary": "Combine global, OS, and command settings; load JSON or override within a run.",
+      "sectionAliases": {
+        "环境变量-cli": "environment-variables-cli",
+        "配置与优先级": "configuration-and-priority",
+        "系统环境与临时覆盖": "os-environment-and-temporary-overrides",
+        "文件加载与运行内覆盖": "load-files-and-override-within-a-run"
+      }
+    },
+    {
+      "id": "environment-editor",
+      "path": "docs/handbook/en/environment/editor.md",
+      "title": "Environment variables: Editor",
+      "group": "4. Environment variables",
+      "summary": "Configure global, conversation, and file-test environments with screenshots.",
+      "sectionAliases": {
+        "环境变量-editor": "environment-variables-editor",
+        "全局默认配置": "global-defaults",
+        "当前对话环境": "current-conversation-environment",
+        "当前文件测试环境": "current-file-test-environment",
+        "生效时机与敏感标记": "when-settings-take-effect-and-sensitivity"
+      }
+    },
+    {
+      "id": "tool-contract",
+      "path": "docs/handbook/en/tools/contract.md",
+      "title": "Tool contracts and platform support",
+      "group": "5. Built-in tools",
+      "summary": "Tool definitions, calling rules, discovery, and actual CLI/Editor support.",
+      "sectionAliases": {
+        "工具契约与平台支持": "tool-contracts-and-platform-support",
+        "工具定义": "tool-definitions",
+        "统一调用规则": "shared-calling-rules",
+        "实际支持矩阵": "actual-support-matrix",
+        "如何发现工具": "discover-tools"
+      }
+    },
+    {
+      "id": "tool-reference",
+      "path": "docs/handbook/en/tools/reference.md",
+      "title": "Built-in tool reference",
+      "group": "5. Built-in tools",
+      "summary": "Learn input and output mappings, then find tools by capability.",
+      "sectionAliases": {
+        "工具完整参考": "built-in-tool-reference",
+        "如何阅读工具说明": "how-to-read-tool-documentation",
+        "按能力查阅完整说明": "full-guides-by-capability",
+        "数学-文本-数组": "math-text-and-arrays",
+        "日期与时间": "date-and-time",
+        "网络": "web",
+        "存储与-token": "storage-and-tokens",
+        "记忆编排": "memory",
+        "模型": "models",
+        "工具批量执行": "batch-tool-execution",
+        "脚本": "scripts"
+      }
+    },
+    {
+      "id": "tools-basic",
+      "path": "docs/handbook/en/tools/basic.md",
+      "title": "Math, text, and lists",
+      "group": "5. Built-in tools",
+      "summary": "Individual math, text, and list tools with parameters, results, and examples.",
+      "sectionAliases": {
+        "数学-文本与列表": "math-text-and-lists",
+        "使用前先了解": "before-you-start",
+        "math-abs": "math-abs",
+        "math-floor": "math-floor",
+        "math-ceil": "math-ceil",
+        "math-round": "math-round",
+        "math-min": "math-min",
+        "math-max": "math-max",
+        "math-clamp": "math-clamp",
+        "math-random": "math-random",
+        "text-trim": "text-trim",
+        "text-split": "text-split",
+        "text-replace": "text-replace",
+        "array-concat": "array-concat",
+        "array-slice": "array-slice",
+        "array-length": "array-length"
+      }
+    },
+    {
+      "id": "tools-web",
+      "path": "docs/handbook/en/tools/web.md",
+      "title": "Time and web",
+      "group": "5. Built-in tools",
+      "summary": "Query time, make HTTP requests, and configure Mwmbl, Tavily, or Bocha search.",
+      "examples": ["web-search"],
+      "sectionAliases": {
+        "时间与网络": "time-and-web",
+        "使用前先了解": "before-you-start",
+        "time-now": "time-now",
+        "web-fetch": "web-fetch",
+        "web-search": "web-search",
+        "配置搜索服务": "configure-a-search-service"
+      }
+    },
+    {
+      "id": "tools-storage",
+      "path": "docs/handbook/en/tools/storage.md",
+      "title": "Storage and tokens",
+      "group": "5. Built-in tools",
+      "summary": "Read and write JSON records, list keys, and distinguish token counts from estimates.",
+      "sectionAliases": {
+        "存储与-token": "storage-and-tokens",
+        "使用前先了解": "before-you-start",
+        "tokens-count": "tokens-count",
+        "storage-read": "storage-read",
+        "storage-write": "storage-write",
+        "storage-delete": "storage-delete",
+        "storage-list": "storage-list"
+      }
+    },
+    {
+      "id": "tools-memory",
+      "path": "docs/handbook/en/tools/memory.md",
+      "title": "Memory orchestration",
+      "group": "5. Built-in tools",
+      "summary": "Initialize history, add messages and tool results, and save complete memory.",
+      "sectionAliases": {
+        "记忆编排": "memory-orchestration",
+        "使用前先了解": "before-you-start",
+        "memory-init": "memory-init",
+        "memory-save": "memory-save",
+        "memory-setsystem": "memory-setsystem",
+        "memory-adduser": "memory-adduser",
+        "memory-addassistant": "memory-addassistant",
+        "memory-addtools": "memory-addtools"
+      }
+    },
+    {
+      "id": "tools-models",
+      "path": "docs/handbook/en/tools/models.md",
+      "title": "Model calls",
+      "group": "5. Built-in tools",
+      "summary": "Call local, OpenAI-compatible, Anthropic, or automatically selected models.",
+      "sectionAliases": {
+        "模型调用": "model-calls",
+        "使用前先了解": "before-you-start",
+        "llm-local": "llm-local",
+        "llm-openai": "llm-openai",
+        "llm-anthropic": "llm-anthropic",
+        "llm-auto": "llm-auto"
+      }
+    },
+    {
+      "id": "tools-environment",
+      "path": "docs/handbook/en/tools/environment.md",
+      "title": "Runtime environment",
+      "group": "5. Built-in tools",
+      "summary": "Read runtime values, override or load settings, and inspect assistant environments.",
+      "sectionAliases": {
+        "运行环境": "runtime-environment",
+        "使用前先了解": "before-you-start",
+        "env-get": "env-get",
+        "env-override": "env-override",
+        "env-load": "env-load",
+        "助手专属-env-list": "assistant-only-env-list",
+        "助手专属-env-inspect": "assistant-only-env-inspect",
+        "助手专属-env-set": "assistant-only-env-set"
+      }
+    },
+    {
+      "id": "tools-execution",
+      "path": "docs/handbook/en/tools/execution.md",
+      "title": "Tool execution and scripts",
+      "group": "5. Built-in tools",
+      "summary": "Return JavaScript results and execute model-requested tools with shared limits.",
+      "sectionAliases": {
+        "工具执行与脚本": "tool-execution-and-scripts",
+        "使用前先了解": "before-you-start",
+        "script-run": "script-run",
+        "tools-execute": "tools-execute"
+      }
+    },
+    {
+      "id": "assistant-tools",
+      "path": "docs/handbook/en/tools/assistant.md",
+      "title": "Assistant file and debugging tools",
+      "group": "5. Built-in tools",
+      "summary": "Handbook access, tool discovery, Library operations, and saved-flow verification.",
+      "sectionAliases": {
+        "助手文件与调试工具": "assistant-file-and-debugging-tools",
+        "阅读文档与工具": "read-documentation-and-tool-definitions",
+        "文件读写": "read-and-write-files",
+        "创建-检查-运行": "create-inspect-and-run",
+        "自主修改与验证": "edit-and-verify-independently",
+        "各工具基本示例": "basic-examples-for-each-tool",
+        "使用前先了解": "before-you-start",
+        "flow-create": "flow-create",
+        "project-docs": "project-docs",
+        "project-tools": "project-tools",
+        "workspace-list": "workspace-list",
+        "workspace-read": "workspace-read",
+        "workspace-write": "workspace-write",
+        "workspace-mkdir": "workspace-mkdir",
+        "workspace-move": "workspace-move",
+        "workspace-copy": "workspace-copy",
+        "workspace-delete": "workspace-delete",
+        "flow-inspect": "flow-inspect",
+        "flow-run": "flow-run"
+      }
+    },
+    {
+      "id": "scripts",
+      "path": "docs/handbook/en/scripts/development.md",
+      "title": "Script development",
+      "group": "6. Scripts",
+      "summary": "Use JavaScript input/result, import modules, and debug across browser and CLI.",
+      "examples": ["scripts"],
+      "sectionAliases": {
+        "脚本开发": "script-development",
+        "输入和输出": "input-and-output",
+        "模块和完整工程": "modules-and-a-complete-project",
+        "依赖解析规则": "dependency-resolution",
+        "浏览器与-cli": "browser-and-cli",
+        "编写与调试": "write-and-debug"
+      }
+    },
+    {
+      "id": "agents",
+      "path": "docs/handbook/en/agents/models.md",
+      "title": "Models and Agent tool loops",
+      "group": "7. Agent examples",
+      "summary": "Compose model calls, actual tool execution, message history, and an explicit loop.",
+      "examples": ["agent"],
+      "sectionAliases": {
+        "模型与-agent-工具循环": "models-and-agent-tool-loops",
+        "配置网页助手": "configure-the-web-assistant",
+        "单次模型调用": "a-single-model-call",
+        "消息与返回": "messages-and-returns",
+        "显式工具循环": "an-explicit-tool-loop",
+        "本地模型与资源": "local-model-and-resources",
+        "完整可导入流程": "complete-importable-flow"
+      }
+    },
+    {
+      "id": "storage",
+      "path": "docs/handbook/en/agents/storage.md",
+      "title": "Storage and conversation memory",
+      "group": "7. Agent examples",
+      "summary": "Distinguish live fields, transcripts, and flow memory; understand storage and tokens.",
+      "sectionAliases": {
+        "存储与对话记忆": "storage-and-conversation-memory",
+        "存储-key-与数据": "storage-keys-and-data",
+        "平台位置": "platform-locations",
+        "原始对话与流程记忆": "raw-conversations-and-flow-memory",
+        "token-计数": "token-counting"
+      }
+    },
+    {
+      "id": "architecture",
+      "path": "docs/handbook/en/architecture.md",
+      "title": "Architecture and capability boundaries",
+      "group": "Appendix",
+      "summary": "Package responsibilities, public Core APIs, documentation, and platform boundaries.",
+      "sectionAliases": {
+        "架构与能力边界": "architecture-and-capability-boundaries",
+        "包与职责": "packages-and-responsibilities",
+        "从文件到结果": "from-file-to-result",
+        "当前公开内核能力": "current-public-core-api",
+        "document-与助手": "document-and-the-assistant",
+        "平台与发布边界": "platforms-and-releases"
+      }
+    }
+  ],
+  "examples": [
+    {
+      "id": "translate",
+      "title": "Single-turn translator",
+      "entry": "translate.yaml",
+      "files": ["translate.yaml"]
+    },
+    {
+      "id": "hello",
+      "title": "Your first flow",
+      "entry": "hello.yaml",
+      "files": ["hello.yaml"]
+    },
+    {
+      "id": "counter",
+      "title": "Loop counter",
+      "entry": "counter.yaml",
+      "files": ["counter.yaml"]
+    },
+    {
+      "id": "subflows",
+      "title": "Subflow calls",
+      "entry": "main.yaml",
+      "files": ["main.yaml", "add-one.yaml"]
+    },
+    {
+      "id": "scripts",
+      "title": "Scripts and modules",
+      "entry": "flow.yaml",
+      "files": ["flow.yaml", "lib/greet.js"]
+    },
+    {
+      "id": "debugging",
+      "title": "Fix division by zero",
+      "entry": "broken.yaml",
+      "files": ["broken.yaml", "fixed.yaml"]
+    },
+    {
+      "id": "constants",
+      "title": "Fields: Constants",
+      "entry": "constants.yaml",
+      "files": ["constants.yaml"]
+    },
+    {
+      "id": "variables",
+      "title": "Fields: Variables",
+      "entry": "variables.yaml",
+      "files": ["variables.yaml"]
+    },
+    {
+      "id": "objects",
+      "title": "Fields: Objects and lists",
+      "entry": "objects.yaml",
+      "files": ["objects.yaml"]
+    },
+    {
+      "id": "assignment",
+      "title": "Steps: Field operations",
+      "entry": "assignment.yaml",
+      "files": ["assignment.yaml"]
+    },
+    {
+      "id": "control",
+      "title": "Steps: Flow control",
+      "entry": "control.yaml",
+      "files": ["control.yaml"]
+    },
+    {
+      "id": "text",
+      "title": "Steps: Text processing",
+      "entry": "text.yaml",
+      "files": ["text.yaml"]
+    },
+    {
+      "id": "math",
+      "title": "Steps: Arithmetic",
+      "entry": "math.yaml",
+      "files": ["math.yaml"]
+    },
+    {
+      "id": "comparison",
+      "title": "Steps: Comparisons",
+      "entry": "comparison.yaml",
+      "files": ["comparison.yaml"]
+    },
+    {
+      "id": "logic",
+      "title": "Steps: Logic",
+      "entry": "logic.yaml",
+      "files": ["logic.yaml"]
+    },
+    {
+      "id": "calling",
+      "title": "Steps: Calls",
+      "entry": "calling.yaml",
+      "files": ["calling.yaml"]
+    },
+    {
+      "id": "groups",
+      "title": "Steps: Groups and descriptions",
+      "entry": "groups.yaml",
+      "files": ["groups.yaml"]
+    },
+    {
+      "id": "agent",
+      "title": "Models, tool loops, and memory",
+      "entry": "agent.yaml",
+      "files": ["agent.yaml"]
+    },
+    {
+      "id": "quick-memory",
+      "title": "Lesson 2: Memory assistant",
+      "entry": "memory-chat.yaml",
+      "files": ["memory-chat.yaml"]
+    },
+    {
+      "id": "quick-tools",
+      "title": "Lesson 3: Direct time query",
+      "entry": "time-tool.yaml",
+      "files": ["time-tool.yaml"]
+    },
+    {
+      "id": "quick-tools-agent",
+      "title": "Lesson 3: AI time assistant",
+      "entry": "tool-agent.yaml",
+      "files": ["tool-agent.yaml"]
+    },
+    {
+      "id": "web-search",
+      "title": "Test a search provider",
+      "entry": "search.yaml",
+      "files": ["search.yaml"]
+    }
+  ]
+}

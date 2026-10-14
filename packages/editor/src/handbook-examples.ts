@@ -1,15 +1,23 @@
 import { stringify } from "yaml";
+import english from "../../../docs/handbook/en/index.json";
 import catalog from "../../../docs/handbook/index.json";
 import { readFlowFile } from "./flow-files";
+import i18n from "./i18n";
 import { listFiles, newFile, writeFiles } from "./workspace-files";
 
 export const handbookExamples = catalog.examples;
-const sources = import.meta.glob<string>("../../../docs/handbook/examples/**/*.{yaml,js}", {
-  query: "?raw",
-  import: "default",
-});
-export async function importHandbookExample(id: string) {
-  const example = handbookExamples.find((example) => example.id === id);
+const sources = import.meta.glob<string>(
+  [
+    "../../../docs/handbook/examples/**/*.{yaml,js}",
+    "../../../docs/handbook/en/examples/**/*.{yaml,js}",
+  ],
+  { query: "?raw", import: "default" },
+);
+export async function importHandbookExample(id: string, language = i18n.language) {
+  const sourceDirectory =
+    language === "en" ? "docs/handbook/en/examples" : "docs/handbook/examples";
+  const examples = language === "en" ? english.examples : handbookExamples;
+  const example = examples.find((example) => example.id === id);
   if (!example) throw Error("EXAMPLE_NOT_FOUND");
   const existing = await listFiles();
   const names = new Set<string>();
@@ -31,7 +39,7 @@ export async function importHandbookExample(id: string) {
     directory = `${base}-${n}`;
   const files = [];
   for (const path of example.files) {
-    const load = sources[`../../../docs/handbook/examples/${id}/${path}`];
+    const load = sources[`../../../${sourceDirectory}/${id}/${path}`];
     if (!load) throw Error(`EXAMPLE_NOT_FOUND: ${path}`);
     let content = await load();
     if (/\.ya?ml$/i.test(path)) {

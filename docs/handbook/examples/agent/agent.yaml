@@ -41,10 +41,10 @@ steps:
   - type: call
     target: memory.addAssistant
     inputs:
-      messages: $memory
+      memory: $memory
       message: $assistantMessage
     outputs:
-      messages: $memory
+      memory: $memory
   - type: while
     condition: $assistantMessage.toolCalls.length
     description: 有工具请求时执行一批，再将结果交回模型。
@@ -58,10 +58,10 @@ steps:
       - type: call
         target: memory.addTools
         inputs:
-          messages: $memory
+          memory: $memory
           results: $toolResults
         outputs:
-          messages: $memory
+          memory: $memory
       - type: call
         target: llm.auto
         inputs:
@@ -77,10 +77,10 @@ steps:
       - type: call
         target: memory.addAssistant
         inputs:
-          messages: $memory
+          memory: $memory
           message: $assistantMessage
         outputs:
-          messages: $memory
+          memory: $memory
   - type: call
     target: memory.save
     inputs:

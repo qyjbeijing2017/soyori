@@ -6,6 +6,8 @@ Soyori 帮助你把 AI 和工具组合成能完成任务的助手，也就是 AI
 
 从一个单轮翻译助手开始：[电脑端 Editor 入门](quick-start.md)、[手机端 Editor 入门](quick-start-mobile.md) 或 [YAML + CLI 入门](quick-start-cli.md)。
 
+完成第一课后，继续[快速入门 2：使用记忆](quick-start-memory.md)，再学习[快速入门 3：使用工具](quick-start-tools.md)。两课都包含 Editor 操作、完整 YAML 和 CLI 命令。
+
 一份 YAML/JSON 流程文件的完整内容称为**流程（Flow）**，其中 **字段（Fields）**保存数据，**步骤（Steps）**定义按顺序执行的操作。Editor 用同名区域编辑这两部分，文件格式仍使用 `fields` 和 `steps`。
 
 ## 手册阅读路线

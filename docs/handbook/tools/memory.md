@@ -6,7 +6,7 @@
 
 ## 使用前先了解
 
-- **已有消息**：messages 是当前消息列表，包含用户问题、AI 回复和工具结果。组装工具返回新的列表，不直接修改传入列表；要继续使用，需将返回的 messages 保存回字段。
+- **已有消息**：memory 是当前消息列表，包含用户问题、AI 回复和工具结果。组装工具返回新的列表，不直接修改传入列表；要继续使用，需将返回的 memory 保存回字段。
 - **记忆位置**：threadId 是对话编号，prefix 默认 memory，共同决定保存名称。memory.init 只读取，memory.save 才保存。
 - **工具请求**：AI 请求工具后，需要先执行所有请求，再用 memory.addTools 加入一一对应的结果，才能继续下一次模型调用或保存。
 - **使用限制**：提供的文字不能为空。工具不会自动缩短或压缩消息历史；消息格式不合法报 MEMORY_INPUT，未配置存储报 MEMORY_STORAGE。
@@ -70,18 +70,18 @@
 
 | 参数 | 类型 | 是否必填与默认值 | 说明 |
 | --- | --- | --- | --- |
-| messages | JSON | 可选 | 已有上下文；未设置或 null 时从空数组开始。 |
+| memory | JSON | 可选 | 已有上下文；未设置或 null 时从空数组开始。 |
 | text | string | 必填 | 要处理的文字 |
 
-返回：{messages: [{role: "system", content: "请简洁回答"}]}。
+返回：{memory: [{role: "system", content: "请简洁回答"}]}。
 
-命名输出属性：`messages`。可用 outputs 分别映射；也可用 output 保存完整对象。
+命名输出属性：`memory`。可用 outputs 分别映射；也可用 output 保存完整对象。
 
 ```yaml
 - type: call
   target: memory.setSystem
   inputs:
-    messages: []
+    memory: []
     text: 请简洁回答
   output: $answer
 ```
@@ -92,18 +92,18 @@
 
 | 参数 | 类型 | 是否必填与默认值 | 说明 |
 | --- | --- | --- | --- |
-| messages | JSON | 可选 | 已有上下文；未设置或 null 时从空数组开始。 |
+| memory | JSON | 可选 | 已有上下文；未设置或 null 时从空数组开始。 |
 | input | string | 必填 | 要加入消息列表的本轮用户文字 |
 
-返回：{messages: [{role: "user", content: "你好"}]}。
+返回：{memory: [{role: "user", content: "你好"}]}。
 
-命名输出属性：`messages`。可用 outputs 分别映射；也可用 output 保存完整对象。
+命名输出属性：`memory`。可用 outputs 分别映射；也可用 output 保存完整对象。
 
 ```yaml
 - type: call
   target: memory.addUser
   inputs:
-    messages: []
+    memory: []
     input: 你好
   output: $answer
 ```
@@ -114,18 +114,18 @@
 
 | 参数 | 类型 | 是否必填与默认值 | 说明 |
 | --- | --- | --- | --- |
-| messages | JSON | 可选 | 已有上下文；未设置或 null 时从空数组开始。 |
+| memory | JSON | 可选 | 已有上下文；未设置或 null 时从空数组开始。 |
 | message | JSON | 必填 | 模型返回的完整 assistant 消息 |
 
-返回：{messages: 新消息数组}，不修改输入数组。
+返回：{memory: 新消息数组}，不修改输入数组。
 
-命名输出属性：`messages`。可用 outputs 分别映射；也可用 output 保存完整对象。
+命名输出属性：`memory`。可用 outputs 分别映射；也可用 output 保存完整对象。
 
 ```yaml
 - type: call
   target: memory.addAssistant
   inputs:
-    messages:
+    memory:
       - role: user
         content: 你好
     message:
@@ -140,18 +140,18 @@
 
 | 参数 | 类型 | 是否必填与默认值 | 说明 |
 | --- | --- | --- | --- |
-| messages | JSON | 可选 | 已有上下文；未设置或 null 时从空数组开始。 |
+| memory | JSON | 可选 | 已有上下文；未设置或 null 时从空数组开始。 |
 | results | JSON | 必填 | 与待处理请求 id/target 匹配的执行结果列表 |
 
-返回：{messages: 包含工具结果的新消息数组}。
+返回：{memory: 包含工具结果的新消息数组}。
 
-命名输出属性：`messages`。可用 outputs 分别映射；也可用 output 保存完整对象。
+命名输出属性：`memory`。可用 outputs 分别映射；也可用 output 保存完整对象。
 
 ```yaml
 - type: call
   target: memory.addTools
   inputs:
-    messages:
+    memory:
       - role: user
         content: 取绝对值
       - role: assistant
@@ -164,10 +164,9 @@
     results:
       - id: one
         target: math.abs
-        ok: true
-        value:
+        result:
           result: 2
   output: $answer
 ```
 
-实际循环中引用当前 messages 和 tools.execute 返回的 results，不要手工伪造工具成功。
+实际循环中引用当前 memory 和 tools.execute 返回的 results，不要手工伪造工具成功。

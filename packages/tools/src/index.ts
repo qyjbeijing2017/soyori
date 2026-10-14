@@ -1,8 +1,8 @@
 import { describeTools, type RuntimeFunction, type ToolDefinition } from "soyori-core";
-import { createSearchTool, SEARCH_TOOL_DEFINITION } from "./search.js";
-import { createWebTool, WEB_TOOL_DEFINITION, type WebOptions } from "./web.js";
+import { createSearchTool, SEARCH_TOOL_DEFINITION, type SearchOptions } from "./search.js";
+import { createWebTool, WEB_TOOL_DEFINITION } from "./web.js";
 
-export { SEARCH_TOOL_DEFINITION } from "./search.js";
+export { SEARCH_TOOL_DEFINITION, type SearchOptions } from "./search.js";
 export { WEB_TOOL_DEFINITION } from "./web.js";
 
 const MAX_ITEMS = 100000;
@@ -180,7 +180,7 @@ export const BASIC_TOOL_DEFINITIONS: Record<string, ToolDefinition> = {
   "web.fetch": WEB_TOOL_DEFINITION,
   "web.search": SEARCH_TOOL_DEFINITION,
 };
-export function createBasicTools(options: WebOptions = {}) {
+export function createBasicTools(options: SearchOptions = {}) {
   return describeTools(
     {
       ...handlers,

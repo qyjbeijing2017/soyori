@@ -1,0 +1,46 @@
+schemaVersion: 1
+name: 会记忆的助手
+description: 读取历史、回答问题、追加完整回复，再保存，供同一对话下一轮使用。
+fields:
+  chatIn:
+    input: true
+    initial: 我叫小明，请记住我的名字。
+  threadId:
+    input: true
+    initial: quick-memory-demo
+  chatOut:
+    output: true
+  memory:
+    description: 本轮交给 AI 的消息历史。
+  assistantMessage:
+    description: AI 返回的完整消息，用来加入历史。
+steps:
+  - type: call
+    target: memory.init
+    inputs:
+      threadId: $threadId
+      prefix: quick-start-memory
+      system: 请用中文简短回答，结合对话历史中用户已经告诉你的信息。
+      prompt: $chatIn
+    outputs:
+      memory: $memory
+  - type: call
+    target: llm.auto
+    inputs:
+      input: $memory
+    outputs:
+      result: $chatOut
+      message: $assistantMessage
+  - type: call
+    target: memory.addAssistant
+    inputs:
+      memory: $memory
+      message: $assistantMessage
+    outputs:
+      memory: $memory
+  - type: call
+    target: memory.save
+    inputs:
+      threadId: $threadId
+      prefix: quick-start-memory
+      memory: $memory

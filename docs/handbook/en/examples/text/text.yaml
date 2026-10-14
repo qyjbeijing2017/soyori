@@ -1,0 +1,12 @@
+schemaVersion: 1
+name: Text processing
+fields:
+  name:
+    initial: Alex
+    input: true
+  message:
+    output: true
+steps:
+  - type: template
+    template: Hello, $name$! Price $$99
+    output: $message

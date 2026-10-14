@@ -109,7 +109,7 @@ Editor 的 LLM 参数将必填项放在外层：本地仅 input；远程为 inpu
 
 ## 消息组装
 
-createMemoryTools(storage) 注册 memory.init/save 以及 memory.setSystem/addUser/addAssistant/addTools；init/save 按 prefix/threadId 使用注入的通用存储后端，其余工具组装消息并校验调用 ID；详见 [消息组装](../../docs/memory-tools.md)。
+createMemoryTools(storage) 注册 memory.init/save 以及 memory.setSystem/addUser/addAssistant/addTools；init/save 按 prefix/threadId 使用注入的通用存储后端，其余工具统一以 memory 输入和输出整份记忆，message 仅表示单条模型回复，results 表示工具执行结果，并校验调用 ID；详见 [消息组装](../../docs/memory-tools.md)。
 
 浏览器宿主可使用 soyori-ai/local 的 configureBrowserModelCache(cacheName) 接入预下载完整文件缓存；此模式禁止模型文件的隐式远程加载，缺失必需文件会报错。模型与 tokens.count 使用共享固定 LOCAL_REVISION，防止分块跨版本混用。Editor 的下载管理与 CLI 普通下载缓存互相独立。Editor 将版本匹配的 ORT WASM/mjs 随应用打包，从同源加载，避免会话初始化依赖外部 CDN。
 

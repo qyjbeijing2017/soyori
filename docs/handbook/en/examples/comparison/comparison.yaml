@@ -1,0 +1,13 @@
+schemaVersion: 1
+name: Comparisons
+fields:
+  age:
+    initial: 20
+    input: true
+  adult:
+    output: true
+steps:
+  - type: greaterThanOrEqual
+    left: $age
+    right: 18
+    output: $adult

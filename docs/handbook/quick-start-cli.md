@@ -6,7 +6,7 @@
 
 ## 1. 准备 CLI
 
-安装 Node.js 24 或更新版本（包含 npm），然后执行：
+安装 [Node.js 24 或更新版本](https://nodejs.org/zh-cn/download)（包含 npm），然后执行：
 
 ```powershell
 npm install -g soyori-cli
@@ -151,6 +151,8 @@ soyori run ./translate.yaml --set-string "chatIn=今天的天气很好。" --tim
 > **trace 使用新文件名**：再次记录时改为 `translate-run-002.jsonl`，已有文件不会被覆盖。`--trace-values` 会记录输入等运行数据。
 
 你已完成“创建字段 → 拼合提示词 → 调用模型 → 修改流程”。运行失败时查看错误信息，检查 YAML 缩进、模型配置和网络；完整参数见 [CLI 使用](cli/guide.md)。
+
+接下来学习[快速入门 2：使用记忆](quick-start-memory.md)，再学习[快速入门 3：使用工具](quick-start-tools.md)。两课都提供可保存的 YAML 和 CLI 命令。
 
 ## 完整 YAML
 

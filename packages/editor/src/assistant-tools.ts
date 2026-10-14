@@ -160,7 +160,8 @@ export function createAssistantTools(options: {
         signal.throwIfAborted();
         let text = content;
         if (input.section !== undefined) {
-          const section = string(input.section);
+          const requested = string(input.section);
+          const section = entry.sectionAliases?.[requested] ?? requested;
           const start = headings.findIndex((h) => h.id === section);
           if (start < 0)
             throw Error("DOC_SECTION_NOT_FOUND: Use a heading id returned by project.docs.");

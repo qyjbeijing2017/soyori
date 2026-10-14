@@ -1,0 +1,15 @@
+schemaVersion: 1
+name: Field operations
+fields:
+  items:
+    initial: []
+    output: true
+steps:
+  - type: set
+    field: $items
+    value: []
+  - type: append
+    field: $items
+    value:
+      - 1
+      - 2

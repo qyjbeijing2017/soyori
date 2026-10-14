@@ -1,0 +1,22 @@
+schemaVersion: 1
+name: Counter example
+fields:
+  count:
+    initial: 0
+    output: true
+steps:
+  - type: lessThan
+    left: $count
+    right: 3
+    output: $continue
+  - type: while
+    condition: $continue
+    body:
+      - type: add
+        left: $count
+        right: 1
+        output: $count
+      - type: lessThan
+        left: $count
+        right: 3
+        output: $continue

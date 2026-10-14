@@ -6,7 +6,7 @@
 
 - **执行工具请求**：模型提出的请求交给 tools.execute，结果再交给 memory.addTools；tools.execute 不会自己修改消息历史。
 - **选择允许的工具**：tools 参数省略时不额外限制，填 [] 则禁止全部目标。每个请求的 inputs 是已准备好的 JSON 数据，不再次解释里面的 $。
-- **失败和限制**：普通工具失败会成为 ok=false 的结果；模型失败、预算耗尽等可能终止批次。每次运行模型和工具调用分别最多 64 次，单批最多 32 项，工具子流程最多 2000 步，工具执行嵌套最多 8 层。
+- **失败和限制**：每个工具请求成功时返回 result，失败时返回 error；取消或预算耗尽时，剩余请求也会记录为错误结果。每次运行模型和工具调用分别最多 64 次，单批最多 32 项，工具子流程最多 2000 步，工具执行嵌套最多 8 层。
 - **脚本返回**：script.run 直接返回代码中 result(...) 设置的 JSON 内容；不调用时返回 null。多次调用以最后一次为准，调用 result 后代码仍继续执行，之后报错仍会失败。脚本写法见[脚本开发](../scripts/development.md)。
 
 以下 YAML 是单个工具的**步骤片段**，不能直接作为流程文件运行。把它放进完整流程的 `steps` 下，并准备 answer 输出字段。完整写法和结果保存方式见[如何阅读工具说明](reference.md#如何阅读工具说明)。
@@ -43,7 +43,7 @@
 | calls | JSON | 必填 | 工具请求列表，每项含 id、target、inputs |
 | tools | string[] | 可选 | 省略时不额外限制；填写列表后只允许其中的目标，填写 [] 则禁止全部目标。 |
 
-返回：{results: [{id: "one", target: "math.abs", ok: true, value: {result: 2}}]}。
+返回：`{results: [{id: "one", target: "math.abs", result: {result: 2}}]}`。
 
 命名输出属性：`results`。可用 outputs 分别映射；也可用 output 保存完整对象。
 

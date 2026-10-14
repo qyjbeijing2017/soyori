@@ -53,10 +53,10 @@ input 是非空文字或非空消息数组。普通消息为 `{role: system|user
 - type: call
   target: memory.addTools
   inputs:
-    messages: $memory
+    memory: $memory
     results: $toolResults
   outputs:
-    messages: $memory
+    memory: $memory
 - type: call
   target: llm.openai
   inputs:
@@ -70,10 +70,10 @@ input 是非空文字或非空消息数组。普通消息为 `{role: system|user
 - type: call
   target: memory.addAssistant
   inputs:
-    messages: $memory
+    memory: $memory
     message: $assistantMessage
   outputs:
-    messages: $memory
+    memory: $memory
 ```
 
 这段是循环体片段，不是独立流程。首次模型调用也需提供同样的 tools。条件可使用 `$assistantMessage.toolCalls.length`。memory.addTools 负责把执行结果转成正确消息，不由 tools.execute 隐式拼接。
@@ -142,10 +142,10 @@ steps:
   - type: call
     target: memory.addAssistant
     inputs:
-      messages: $memory
+      memory: $memory
       message: $assistantMessage
     outputs:
-      messages: $memory
+      memory: $memory
   - type: while
     condition: $assistantMessage.toolCalls.length
     description: 有工具请求时执行一批，再将结果交回模型。
@@ -159,10 +159,10 @@ steps:
       - type: call
         target: memory.addTools
         inputs:
-          messages: $memory
+          memory: $memory
           results: $toolResults
         outputs:
-          messages: $memory
+          memory: $memory
       - type: call
         target: llm.auto
         inputs:
@@ -178,10 +178,10 @@ steps:
       - type: call
         target: memory.addAssistant
         inputs:
-          messages: $memory
+          memory: $memory
           message: $assistantMessage
         outputs:
-          messages: $memory
+          memory: $memory
   - type: call
     target: memory.save
     inputs:

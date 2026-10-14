@@ -44,22 +44,22 @@ test("CLI executes imported tools and continues a failed call without interpreti
       type: "call",
       target: "memory.addUser",
       inputs: { input: "check" },
-      outputs: { messages: "$messages" },
+      outputs: { memory: "$messages" },
     },
     {
       type: "call",
       target: "memory.addAssistant",
       inputs: {
-        messages: "$messages",
+        memory: "$messages",
         message: { role: "assistant", content: "", toolCalls: root.steps[0].inputs.calls },
       },
-      outputs: { messages: "$messages" },
+      outputs: { memory: "$messages" },
     },
     {
       type: "call",
       target: "memory.addTools",
-      inputs: { messages: "$messages", results: "$result" },
-      outputs: { messages: "$messages" },
+      inputs: { memory: "$messages", results: "$result" },
+      outputs: { memory: "$messages" },
     },
   );
   writeFileSync(join(dir, "flow.json"), JSON.stringify(root));

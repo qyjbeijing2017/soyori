@@ -1,10 +1,21 @@
 import type { ToolDefinition } from "soyori-core";
 import { createWebTool, type WebOptions } from "./web.js";
 
+export interface SearchOptions extends WebOptions {
+  /** Read at call time, so runtime overrides affect subsequent searches. */
+  environment?: Readonly<Record<string, string>>;
+}
+const providers = ["mwmbl", "tavily", "bocha"] as const;
+type Provider = (typeof providers)[number];
+const keyNames = {
+  tavily: "TAVILY_API_KEY",
+  bocha: "BOCHA_API_KEY",
+} as const;
+
 export const SEARCH_TOOL_DEFINITION: ToolDefinition = {
   name: "web.search",
   description:
-    "Search the web for information, news, documentation or facts using keywords. Returns titles, source URLs and short snippets from Mwmbl. Results may be old; publication dates and latest news are not guaranteed. Empty results mean nothing was found.",
+    "Search the web for information, news, documentation or facts using keywords. Uses SEARCH_PROVIDER from the runtime environment. Returns source titles, URLs and snippets. Results may be old; empty results mean nothing was found. Never request or pass API keys as tool arguments.",
   inputs: [
     {
       name: "query",
@@ -19,59 +30,156 @@ export const SEARCH_TOOL_DEFINITION: ToolDefinition = {
       defaultValue: 3,
       description: "Number of results, 1 to 5.",
     },
+    {
+      type: "group",
+      name: "高级设置",
+      collapsed: true,
+      fields: [
+        {
+          name: "provider",
+          valueType: "string",
+          description:
+            "mwmbl, tavily or bocha. Omit to use SEARCH_PROVIDER, or mwmbl if unset. No automatic fallback on failure.",
+        },
+        {
+          name: "maxSnippetChars",
+          valueType: "integer",
+          defaultValue: 240,
+          description:
+            "Maximum characters per result snippet, 1 to 10000. Increase for richer search context; longer snippets use more model tokens.",
+        },
+      ],
+    },
   ],
   outputs: [
     {
       name: "results",
       valueType: "JSON",
       description:
-        "Array of { title, url, snippet }. Titles up to 160 characters, snippets up to 240; source URLs retained. Not full pages.",
+        "Array of { title, url, snippet }. Titles up to 160 characters; snippets limited by maxSnippetChars. Source URLs retained. Not full pages.",
     },
   ],
 };
 
-export function createSearchTool(options: WebOptions) {
+function record(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+function entry(value: unknown) {
+  if (!record(value)) throw Error("SEARCH_RESPONSE: Invalid search result entry.");
+  return value;
+}
+function result(title: unknown, url: unknown, snippet: unknown, maxSnippetChars: number) {
+  if (typeof title !== "string" || typeof url !== "string" || typeof snippet !== "string")
+    throw Error("SEARCH_RESPONSE: Invalid search result entry.");
+  let address: URL;
+  try {
+    address = new URL(url);
+  } catch {
+    throw Error("SEARCH_RESPONSE: Invalid source URL.");
+  }
+  if (!["http:", "https:"].includes(address.protocol) || address.username || address.password)
+    throw Error("SEARCH_RESPONSE: Unsupported source URL.");
+  return { title: title.slice(0, 160), url, snippet: snippet.slice(0, maxSnippetChars) };
+}
+function items(body: unknown, provider: Provider): unknown[] {
+  if (!record(body)) throw Error("SEARCH_RESPONSE: Invalid search results.");
+  let values: unknown;
+  switch (provider) {
+    case "mwmbl":
+    case "tavily":
+      values = body.results;
+      break;
+    case "bocha": {
+      if (body.code !== 200 || !record(body.data))
+        throw Error("SEARCH_RESPONSE: bocha reported a search failure.");
+      const pages = body.data.webPages;
+      values = record(pages) ? pages.value : pages === undefined ? [] : undefined;
+      break;
+    }
+  }
+  if (!Array.isArray(values)) throw Error("SEARCH_RESPONSE: Invalid search results.");
+  return values;
+}
+
+export function createSearchTool(options: SearchOptions) {
   const request = createWebTool(options);
-  return async ({ query, limit = 3 }: Record<string, unknown>) => {
+  return async ({
+    query,
+    limit = 3,
+    provider: selected,
+    maxSnippetChars = 240,
+  }: Record<string, unknown>) => {
     if (typeof query !== "string" || !query.trim() || query.length > 500)
       throw Error("SEARCH_INPUT: Expected nonempty query up to 500 characters.");
     if (typeof limit !== "number" || !Number.isSafeInteger(limit) || limit < 1 || limit > 5)
       throw Error("SEARCH_INPUT: Expected limit between 1 and 5.");
+    if (
+      typeof maxSnippetChars !== "number" ||
+      !Number.isSafeInteger(maxSnippetChars) ||
+      maxSnippetChars < 1 ||
+      maxSnippetChars > 10000
+    )
+      throw Error("SEARCH_INPUT: Expected maxSnippetChars between 1 and 10000.");
+    const environment = options.environment ?? {};
+    const configured = selected ?? environment.SEARCH_PROVIDER ?? "mwmbl";
+    if (typeof configured !== "string" || !providers.includes(configured.trim() as Provider))
+      throw Error("SEARCH_CONFIG: Expected provider mwmbl, tavily or bocha.");
+    const provider = configured.trim() as Provider;
     const keywords = query.trim();
-    const address = new URL("https://api.mwmbl.org/api/v2/search/");
-    address.searchParams.set("q", keywords);
-    const response = await request({ url: address.href });
-    if (response.status < 200 || response.status >= 300)
-      throw Error(`SEARCH_HTTP: Search service returned HTTP ${response.status}.`);
-    const body = response.body;
-    if (!body || typeof body !== "object" || !("results" in body) || !Array.isArray(body.results))
-      throw Error("SEARCH_RESPONSE: Invalid search results.");
-    const results = body.results.slice(0, limit).map((item: unknown) => {
-      if (
-        !item ||
-        typeof item !== "object" ||
-        !("title" in item) ||
-        typeof item.title !== "string" ||
-        !("url" in item) ||
-        typeof item.url !== "string" ||
-        !("content" in item) ||
-        typeof item.content !== "string"
-      )
-        throw Error("SEARCH_RESPONSE: Invalid search result entry.");
-      let url: URL;
-      try {
-        url = new URL(item.url);
-      } catch {
-        throw Error("SEARCH_RESPONSE: Invalid source URL.");
+    let input: Record<string, unknown>;
+    if (provider === "mwmbl") {
+      const address = new URL("https://api.mwmbl.org/api/v2/search/");
+      address.searchParams.set("q", keywords);
+      input = { url: address.href };
+    } else {
+      const keyName = keyNames[provider];
+      const key = environment[keyName]?.trim();
+      if (!key)
+        throw Error(`SEARCH_CONFIG: Set ${keyName} in the runtime environment for ${provider}.`);
+      const headers = { Authorization: `Bearer ${key}` };
+      switch (provider) {
+        case "tavily":
+          input = {
+            url: "https://api.tavily.com/search",
+            method: "POST",
+            headers,
+            body: {
+              query: keywords,
+              max_results: limit,
+              search_depth: "basic",
+              include_answer: false,
+              include_raw_content: false,
+            },
+          };
+          break;
+        case "bocha":
+          input = {
+            url: "https://api.bocha.cn/v1/web-search",
+            method: "POST",
+            headers,
+            body: { query: keywords, count: limit, summary: true, freshness: "noLimit" },
+          };
+          break;
       }
-      if (!["http:", "https:"].includes(url.protocol) || url.username || url.password)
-        throw Error("SEARCH_RESPONSE: Unsupported source URL.");
-      return {
-        title: item.title.slice(0, 160),
-        url: item.url,
-        snippet: item.content.slice(0, 240),
-      };
-    });
+    }
+    const response = await request(input);
+    if (response.status < 200 || response.status >= 300)
+      throw Error(
+        `SEARCH_HTTP: ${provider} returned HTTP ${response.status}; check credentials, quota and service availability.`,
+      );
+    const results = items(response.body, provider)
+      .slice(0, limit)
+      .map((raw) => {
+        const item = entry(raw);
+        if (provider === "bocha")
+          return result(
+            item.name,
+            item.url,
+            typeof item.summary === "string" && item.summary ? item.summary : (item.snippet ?? ""),
+            maxSnippetChars,
+          );
+        return result(item.title, item.url, item.content, maxSnippetChars);
+      });
     return { results };
   };
 }

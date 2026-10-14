@@ -1,0 +1,20 @@
+schemaVersion: 1
+name: 查询当前时间
+description: 直接调用时间工具，再用模板展示真实返回的日期、时间和时区。不需要 AI 模型。
+fields:
+  date: {}
+  time: {}
+  zone: {}
+  chatOut:
+    output: true
+steps:
+  - type: call
+    target: time.now
+    inputs: {}
+    outputs:
+      date: $date
+      time: $time
+      timeZone: $zone
+  - type: template
+    template: 当前日期：$date$；时间：$time$；时区：$zone$。
+    output: $chatOut

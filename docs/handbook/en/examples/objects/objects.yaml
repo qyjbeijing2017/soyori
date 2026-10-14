@@ -1,0 +1,15 @@
+schemaVersion: 1
+name: Objects and lists
+fields:
+  user:
+    initial:
+      name: Alex
+  items:
+    initial: []
+    output: true
+steps:
+  - type: append
+    field: $items
+    value:
+      name: $user.name
+      price: 2

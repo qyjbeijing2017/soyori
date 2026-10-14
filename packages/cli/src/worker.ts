@@ -123,7 +123,11 @@ async function execute(request: Request): Promise<void> {
     ...createStorageTools(storage),
     ...environment.tools,
     ...createMemoryTools(storage),
-    ...createBasicTools(),
+    ...createBasicTools({
+      get environment() {
+        return environment.strings();
+      },
+    }),
   };
   const reserved = ["script.run", ...Object.keys(aiTools), ...Object.keys(storageTools)].find(
     (name) => Object.hasOwn(functions, name),

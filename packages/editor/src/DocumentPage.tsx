@@ -5,11 +5,11 @@ import { useTranslation } from "react-i18next";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { DocEntry, Documentation } from "./documentation";
-import { handbookExamples, importHandbookExample } from "./handbook-examples";
+import { importHandbookExample } from "./handbook-examples";
 import { tr } from "./i18n";
-import { projectDocs } from "./project-docs";
+import { getHandbookExamples, getProjectDocs, projectDocs } from "./project-docs";
 
-const handbookImages = import.meta.glob<string>("../../../docs/handbook/images/*.{jpg,svg}", {
+const handbookImages = import.meta.glob<string>("../../../docs/handbook/images/**/*.{jpg,svg}", {
   query: "?url",
   import: "default",
   eager: true,
@@ -44,7 +44,9 @@ export default function DocumentPage({
 }: {
   onOpenExample: (path: string) => Promise<void>;
 }) {
-  useTranslation();
+  const { i18n } = useTranslation();
+  const docs = getProjectDocs(i18n.language);
+  const handbookExamples = getHandbookExamples(i18n.language);
   const mobile = useMediaQuery("(max-width: 48em)");
   const [selected, setSelected] = useState(() => route().id);
   const [section, setSection] = useState(() => route().section);
@@ -82,7 +84,7 @@ export default function DocumentPage({
     setArticle(undefined);
     setError("");
     setNotice("");
-    void projectDocs
+    void docs
       .read(selected)
       .then((value) => {
         if (active) setArticle(value);
@@ -93,10 +95,13 @@ export default function DocumentPage({
     return () => {
       active = false;
     };
-  }, [selected, retry]);
+  }, [selected, retry, docs]);
   useEffect(() => {
     if (article) {
-      if (section) document.getElementById(`doc-${section}`)?.scrollIntoView({ block: "start" });
+      if (section)
+        document
+          .getElementById(`doc-${article.entry.sectionAliases?.[section] ?? section}`)
+          ?.scrollIntoView({ block: "start" });
       else articleRef.current?.scrollTo({ top: 0 });
     }
   }, [article, section]);
@@ -110,7 +115,7 @@ export default function DocumentPage({
     }
     setSearching(true);
     const timer = setTimeout(() => {
-      void projectDocs
+      void docs
         .search(query)
         .then((items) => {
           if (active) setResults(items);
@@ -126,7 +131,7 @@ export default function DocumentPage({
       active = false;
       clearTimeout(timer);
     };
-  }, [query]);
+  }, [query, docs]);
   async function copy(value: string) {
     try {
       await navigator.clipboard.writeText(value);
@@ -332,7 +337,7 @@ export default function DocumentPage({
                       onClick={() => {
                         setImporting(true);
                         setNotice("");
-                        void importHandbookExample(id)
+                        void importHandbookExample(id, i18n.language)
                           .then((path) => {
                             setImported((current) => ({ ...current, [id]: path }));
                             setNotice(tr("示例已导入：{{path}}", { path }));

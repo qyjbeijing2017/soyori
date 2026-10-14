@@ -1,0 +1,17 @@
+schemaVersion: 1
+name: Groups and descriptions
+fields:
+  result:
+    type: group
+    name: Results
+    fields:
+      answer:
+        output: true
+steps:
+  - type: group
+    name: Prepare result
+    description: Run the enclosed steps in order
+    steps:
+      - type: set
+        field: $answer
+        value: 3

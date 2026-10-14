@@ -1,0 +1,12 @@
+schemaVersion: 1
+name: Tool call
+fields:
+  clean:
+    output: true
+steps:
+  - type: call
+    target: text.trim
+    inputs:
+      text: "  Hello  "
+    outputs:
+      result: $clean

@@ -1,0 +1,9 @@
+schemaVersion: 1
+name: Field constants
+fields:
+  answer:
+    output: true
+steps:
+  - type: set
+    field: $answer
+    value: 10

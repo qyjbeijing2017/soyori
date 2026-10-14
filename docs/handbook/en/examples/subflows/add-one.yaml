@@ -1,0 +1,12 @@
+schemaVersion: 1
+name: Add-one subflow
+fields:
+  count:
+    initial: 0
+    input: true
+    output: true
+steps:
+  - type: add
+    left: $count
+    right: 1
+    output: $count

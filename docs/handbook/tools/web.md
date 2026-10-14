@@ -57,12 +57,14 @@
 
 ## web.search
 
-通过 Mwmbl 查找标题、链接和摘要，适合发现后续要读取的页面。
+通过选定的搜索服务查找标题、链接和摘要，适合发现后续要读取的页面。支持 Mwmbl、Tavily 和博查；步骤参数相同，密钥从运行环境自动读取。
 
 | 参数 | 类型 | 是否必填与默认值 | 说明 |
 | --- | --- | --- | --- |
 | query | string | 必填 | 搜索文字 |
 | limit | integer | 可选；默认 3 | 最多返回几条搜索结果；填写 1–5 的整数 |
+| provider | string | 可选；高级设置 | mwmbl、tavily 或 bocha；留空时使用环境变量 SEARCH_PROVIDER，未配置时使用 mwmbl |
+| maxSnippetChars | integer | 可选；默认 240；高级设置 | 每条摘要最多保留多少字符，范围 1–10000；例如 1200。较长摘要占用更多模型上下文 |
 
 返回：{results: [{title, url, snippet}]}；无匹配为 []，时效不保证。
 
@@ -75,4 +77,56 @@
     query: Soyori
     limit: 3
   output: $answer
+```
+
+## 配置搜索服务
+
+先选一家服务，填写对应的两项环境变量即可，不需要一次填写所有 Key。
+
+| 服务 | SEARCH_PROVIDER 的值 | 需要填写并勾选“敏感值”的 Key |
+| --- | --- | --- |
+| 博查 | bocha | BOCHA_API_KEY |
+| Tavily | tavily | TAVILY_API_KEY |
+| Mwmbl，免 Key 体验 | mwmbl | 无 |
+
+例如先测试博查：
+
+1. 打开 Editor 中的测试流程，点击顶栏右上角的环境图标。
+2. 添加 `SEARCH_PROVIDER`，值填 `bocha`，可以取消“敏感值”。
+3. 添加 `BOCHA_API_KEY`，值填你申请的真实 Key，保留“敏感值”。环境会自动保存。
+4. 回到步骤，选择 `web.search`，填写 query，再点击“运行测试”。不需要先用 env.get 读取 Key，也不要把 Key 填进搜索词或流程字段。
+
+希望所有流程都能使用时，改在“设置 → 全局环境变量”填写。文件测试环境和对话环境分别覆盖全局；在 Editor 文件里填的配置不会自动用于对话。图文入口见[Editor 环境](../environment/editor.md)。
+
+高级设置中的 provider 可以单独指定本步骤的供应商；留空才读取 SEARCH_PROVIDER。该值区分大小写，例如填写 `bocha`，不能填“博查”。配置后服务出错会明确失败，不会切换到其他供应商。
+
+![web.search 的供应商和摘要长度设置](../images/search-provider-settings.jpg)
+
+浏览器需要搜索接口允许跨域访问。出现网络或 CORS 错误时，环境变量不能绕过浏览器限制。CLI 没有浏览器跨域限制。
+
+2026-10-14 实际配置 Key 后的 Editor 验证：博查和 Tavily 均已完成真实搜索。测试使用同一关键词“Node.js 官方文档”，各取前三条结果；它只验证本机当前浏览器的调用，不代表各地区访问状况或整体搜索质量。
+
+
+Key 缺失时报 SEARCH_CONFIG，并提示缺少哪个变量；HTTP 401/403 通常需检查 Key、权限或余额，429 需检查额度或频率。服务错误不会作为“没有搜索结果”返回，也不会将接口错误正文里的凭据回显。
+
+下面的完整流程读取你配置的供应商，输出搜索结果，不调用模型。可以用本页“导入示例”直接打开：
+
+```yaml
+schemaVersion: 1
+name: 测试搜索服务
+fields:
+  query:
+    input: true
+    initial: Soyori AI Agent
+  results:
+    output: true
+steps:
+  - type: call
+    target: web.search
+    inputs:
+      query: $query
+      limit: 3
+      maxSnippetChars: 1200
+    outputs:
+      results: $results
 ```

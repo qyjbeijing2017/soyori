@@ -18,6 +18,47 @@ const { BrowserAiHost, initialAiSettings } = await import("../src/ai-host.ts");
 const { newFile, writeFiles } = await import("../src/workspace-files.ts");
 hook.deregister();
 
+test("browser searches use file/thread runtime credentials and later environment overrides without model initialization", async (t) => {
+  const requests = [];
+  t.mock.method(globalThis, "fetch", async (address, options) => {
+    requests.push({ url: String(address), headers: options.headers });
+    return Response.json(
+      String(address).includes("bocha.cn")
+        ? {
+            code: 200,
+            data: {
+              webPages: {
+                value: [{ name: "source", url: "https://example.com", snippet: "found" }],
+              },
+            },
+          }
+        : { results: [{ title: "source", url: "https://example.com", content: "found" }] },
+    );
+  });
+  const host = new BrowserAiHost();
+  const tools = host.tools(
+    initialAiSettings,
+    new AbortController().signal,
+    () => {},
+    undefined,
+    undefined,
+    undefined,
+    false,
+    {
+      SEARCH_PROVIDER: { value: "bocha", sensitive: false },
+      BOCHA_API_KEY: { value: "browser-search-key", sensitive: true },
+    },
+  );
+  assert.equal((await tools["web.search"]({ query: "test" })).results[0].snippet, "found");
+  assert.equal(requests[0].headers.get("authorization"), "Bearer browser-search-key");
+  await tools["env.override"]({ name: "SEARCH_PROVIDER", value: "tavily", sensitive: false });
+  await tools["env.override"]({ name: "TAVILY_API_KEY", value: "runtime-search-key" });
+  await tools["web.search"]({ query: "test" });
+  assert.equal(requests[1].url, "https://api.tavily.com/search");
+  assert.equal(requests[1].headers.get("authorization"), "Bearer runtime-search-key");
+  assert.equal(host.getSnapshot().status, "idle");
+});
+
 test("remote calls use settings credentials and endpoints without initializing the local worker", async () => {
   const originalFetch = globalThis.fetch;
   const settings = structuredClone(initialAiSettings);

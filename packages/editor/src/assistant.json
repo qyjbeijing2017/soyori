@@ -53,11 +53,11 @@
       "type": "call",
       "target": "memory.addAssistant",
       "inputs": {
-        "messages": "$messages",
+        "memory": "$messages",
         "message": "$assistantMessage"
       },
       "outputs": {
-        "messages": "$messages"
+        "memory": "$messages"
       }
     },
     {
@@ -79,11 +79,11 @@
           "type": "call",
           "target": "memory.addTools",
           "inputs": {
-            "messages": "$messages",
+            "memory": "$messages",
             "results": "$toolResults"
           },
           "outputs": {
-            "messages": "$messages"
+            "memory": "$messages"
           }
         },
         {
@@ -103,11 +103,11 @@
           "type": "call",
           "target": "memory.addAssistant",
           "inputs": {
-            "messages": "$messages",
+            "memory": "$messages",
             "message": "$assistantMessage"
           },
           "outputs": {
-            "messages": "$messages"
+            "memory": "$messages"
           }
         }
       ]

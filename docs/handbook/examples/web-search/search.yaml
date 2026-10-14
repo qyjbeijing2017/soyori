@@ -1,0 +1,17 @@
+schemaVersion: 1
+name: 测试搜索服务
+fields:
+  query:
+    input: true
+    initial: Soyori AI Agent
+  results:
+    output: true
+steps:
+  - type: call
+    target: web.search
+    inputs:
+      query: $query
+      limit: 3
+      maxSnippetChars: 1200
+    outputs:
+      results: $results

@@ -1,0 +1,10 @@
+schemaVersion: 1
+name: Division-by-zero example
+fields:
+  answer:
+    output: true
+steps:
+  - type: divide
+    left: 10
+    right: 0
+    output: $answer

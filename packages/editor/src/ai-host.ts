@@ -128,7 +128,13 @@ export class BrowserAiHost {
       return text;
     });
     Object.assign(registry, {
-      ...createBasicTools({ signal, browser: true }),
+      ...createBasicTools({
+        signal,
+        browser: true,
+        get environment() {
+          return runEnvironment.strings();
+        },
+      }),
       ...createBrowserScriptTools(() => scope.source() ?? graph?.source, signal),
       ...createStorageTools(storage),
       ...runEnvironment.tools,

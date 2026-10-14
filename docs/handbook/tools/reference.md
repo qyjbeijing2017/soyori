@@ -85,7 +85,7 @@ steps:
 
 timeoutMs 默认 10000，范围 1–60000；请求体和解压后响应分别最多 2 MiB。字符集读取响应头，默认 UTF-8。网络、超时、取消、大小、类型、编码和坏 JSON 分别使用 WEB_NETWORK/TIMEOUT/CANCELLED/SIZE/TYPE/ENCODING/JSON。浏览器无法自行绕过 CORS。
 
-`web.search({query, limit?=3})` 返回 `{results: [{title,url,snippet}]}`。query 最多 500 字符，limit 1–5，使用 Mwmbl 公共搜索。结果不是全文，时效不保证；空数组表示未找到，不是执行失败。
+`web.search({query, limit?=3, provider?, maxSnippetChars?=240})` 返回 `{results: [{title,url,snippet}]}`。query 最多 500 字符，limit 1–5；provider 可选 mwmbl/tavily/bocha，省略时读取 SEARCH_PROVIDER，未配置时用免 Key 的 Mwmbl。密钥由环境自动读取，配置表见[网页与搜索](web.md#web-search)。结果不是全文，时效不保证；空数组表示未找到，不是执行失败。
 
 ## 存储与 token
 
@@ -107,10 +107,10 @@ storage 只接受 JSON。tokens.count 的 mode 默认 local，使用当前本地
 | --- | --- | --- |
 | memory.init | threadId、prefix?=memory、system?、prompt? | memory |
 | memory.save | threadId、memory、prefix?=memory | 无命名输出 |
-| memory.setSystem | messages?、text | messages |
-| memory.addUser | messages?、input | messages |
-| memory.addAssistant | messages?、message | messages |
-| memory.addTools | messages?、results | messages |
+| memory.setSystem | memory?、text | memory |
+| memory.addUser | memory?、input | memory |
+| memory.addAssistant | memory?、message | memory |
+| memory.addTools | memory?、results | memory |
 
 组装返回新数组，不修改输入。save 要求工具请求已有完整结果；init 读取但不保存。system/text/prompt/user input 提供时须是非空文字。详见 [存储与记忆](../agents/storage.md)。
 
@@ -128,7 +128,7 @@ storage 只接受 JSON。tokens.count 的 mode 默认 local，使用当前本地
 
 `tools.execute({calls, tools?})` 接收 `[{id,target,inputs}]`，inputs 必须是字面 JSON 输入对象，不再次解释 `$`。tools 省略不额外限制，显式空数组禁止全部目标；只能调用当前作用域中有定义的函数或导入流程。
 
-返回 `{results}`，每项包含请求 id、target、ok，成功 value 或失败 error。单个普通工具失败作为结果返回，不自动停止整个批次；模型调用失败和预算耗尽等按执行器规则终止。它不返回 messages，转换由 memory.addTools 完成。
+返回 `{results}`，每项包含请求 id、target，以及成功时的 result 或失败时的 error。单个普通工具失败作为结果返回，不自动停止整个批次；取消或预算耗尽时，本批剩余请求也会记录为错误结果。它不返回 messages，转换由 memory.addTools 完成。
 
 共享预算每次运行最多 64 次模型调用、64 次工具调用，批次最多 32 请求，工具子流程最多 2000 步，工具执行嵌套最多 8 层。不要把默认开放理解为无限制。
 

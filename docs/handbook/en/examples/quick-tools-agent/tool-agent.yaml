@@ -1,0 +1,88 @@
+schemaVersion: 1
+name: Tool assistant
+description: Extend the memory lesson with time queries. Execute requests and return real results to the model.
+fields:
+  chatIn:
+    input: true
+    initial: Use the time tool to check the current date and time.
+  threadId:
+    input: true
+    initial: quick-tools-demo
+  chatOut:
+    output: true
+  memory:
+    description: Complete message history sent to the model.
+  assistantMessage:
+    description: Current model message, including text and tool requests.
+  toolResults:
+    description: Actual results or errors from this batch of tool calls.
+steps:
+  - type: call
+    target: memory.init
+    inputs:
+      threadId: $threadId
+      prefix: quick-start-tools
+      system: Answer briefly in English. For the current date or time, call time.now instead of guessing. Use actual tool results; answer other questions normally.
+      prompt: $chatIn
+    outputs:
+      memory: $memory
+  - type: call
+    target: llm.auto
+    inputs:
+      input: $memory
+      maxTokens: 512
+      tools:
+        - time.now
+    outputs:
+      result: $chatOut
+      message: $assistantMessage
+  - type: call
+    target: memory.addAssistant
+    inputs:
+      memory: $memory
+      message: $assistantMessage
+    outputs:
+      memory: $memory
+  - type: while
+    condition: $assistantMessage.toolCalls.length
+    description: Execute pending tool requests, then return the results to the model.
+    body:
+      - type: call
+        target: tools.execute
+        inputs:
+          calls: $assistantMessage.toolCalls
+          tools:
+            - time.now
+        outputs:
+          results: $toolResults
+      - type: call
+        target: memory.addTools
+        inputs:
+          memory: $memory
+          results: $toolResults
+        outputs:
+          memory: $memory
+      - type: call
+        target: llm.auto
+        inputs:
+          input: $memory
+          maxTokens: 512
+          tools:
+            - time.now
+        outputs:
+          result: $chatOut
+          message: $assistantMessage
+      - type: call
+        target: memory.addAssistant
+        inputs:
+          memory: $memory
+          message: $assistantMessage
+        outputs:
+          memory: $memory
+  - type: call
+    target: memory.save
+    inputs:
+      threadId: $threadId
+      prefix: quick-start-tools
+      memory: $memory
+    outputs: {}

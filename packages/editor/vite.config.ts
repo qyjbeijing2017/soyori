@@ -16,12 +16,16 @@ export default defineConfig({
         }
       },
       resolveId(id) {
-        if (id === "virtual:handbook-search") return "\0handbook-search";
+        if (id === "virtual:handbook-search" || id === "virtual:handbook-search/en")
+          return `\0${id.slice("virtual:".length)}`;
       },
       async load(id) {
-        if (id !== "\0handbook-search") return;
+        if (id !== "\0handbook-search" && id !== "\0handbook-search/en") return;
         const catalogPath = fileURLToPath(
-          new URL("../../docs/handbook/index.json", import.meta.url),
+          new URL(
+            `../../docs/handbook/${id.endsWith("/en") ? "en/" : ""}index.json`,
+            import.meta.url,
+          ),
         );
         this.addWatchFile(catalogPath);
         const catalog = JSON.parse(await readFile(catalogPath, "utf8")) as {

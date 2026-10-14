@@ -1,0 +1,88 @@
+schemaVersion: 1
+name: 会使用工具的助手
+description: 延续记忆入门，只允许查询当前时间；有工具请求时执行，再把结果交回 AI。
+fields:
+  chatIn:
+    input: true
+    initial: 请使用时间工具查询现在的日期和时间。
+  threadId:
+    input: true
+    initial: quick-tools-demo
+  chatOut:
+    output: true
+  memory:
+    description: 交给模型的完整消息上下文。
+  assistantMessage:
+    description: 模型本轮返回的消息，包含文本和工具请求。
+  toolResults:
+    description: 本批工具调用的成功结果或错误。
+steps:
+  - type: call
+    target: memory.init
+    inputs:
+      threadId: $threadId
+      prefix: quick-start-tools
+      system: 请用中文简短回答。需要当前日期或时间时，必须调用 time.now，不能猜测。根据实际工具结果回答；其他问题正常回答。
+      prompt: $chatIn
+    outputs:
+      memory: $memory
+  - type: call
+    target: llm.auto
+    inputs:
+      input: $memory
+      maxTokens: 512
+      tools:
+        - time.now
+    outputs:
+      result: $chatOut
+      message: $assistantMessage
+  - type: call
+    target: memory.addAssistant
+    inputs:
+      memory: $memory
+      message: $assistantMessage
+    outputs:
+      memory: $memory
+  - type: while
+    condition: $assistantMessage.toolCalls.length
+    description: 有工具请求时执行一批，再将结果交回模型。
+    body:
+      - type: call
+        target: tools.execute
+        inputs:
+          calls: $assistantMessage.toolCalls
+          tools:
+            - time.now
+        outputs:
+          results: $toolResults
+      - type: call
+        target: memory.addTools
+        inputs:
+          memory: $memory
+          results: $toolResults
+        outputs:
+          memory: $memory
+      - type: call
+        target: llm.auto
+        inputs:
+          input: $memory
+          maxTokens: 512
+          tools:
+            - time.now
+        outputs:
+          result: $chatOut
+          message: $assistantMessage
+      - type: call
+        target: memory.addAssistant
+        inputs:
+          memory: $memory
+          message: $assistantMessage
+        outputs:
+          memory: $memory
+  - type: call
+    target: memory.save
+    inputs:
+      threadId: $threadId
+      prefix: quick-start-tools
+      memory: $memory
+    outputs: {}

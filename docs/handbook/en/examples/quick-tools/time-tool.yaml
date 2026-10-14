@@ -1,0 +1,20 @@
+schemaVersion: 1
+name: Current time query
+description: Call the time tool and display its actual date, time, and timezone. No AI model is needed.
+fields:
+  date: {}
+  time: {}
+  zone: {}
+  chatOut:
+    output: true
+steps:
+  - type: call
+    target: time.now
+    inputs: {}
+    outputs:
+      date: $date
+      time: $time
+      timeZone: $zone
+  - type: template
+    template: Date $date$; time $time$; timezone $zone$.
+    output: $chatOut

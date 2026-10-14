@@ -1,0 +1,15 @@
+schemaVersion: 1
+name: Script example
+fields:
+  chatOut:
+    output: true
+steps:
+  - type: call
+    target: script.run
+    inputs:
+      code: |
+        import { greet } from './lib/greet.js';
+        result(greet(input.name));
+      input:
+        name: Alex
+    output: $chatOut

@@ -5,6 +5,31 @@ export interface DocEntry {
   group: string;
   summary: string;
   examples?: string[];
+  sectionAliases?: Partial<Record<string, string>>;
+}
+// Keep the host's documentation identity stable while selecting a locale per request.
+export function localizeDocumentation(
+  variants: Record<string, Documentation>,
+  language: () => string,
+): Documentation {
+  const current = () => variants[language()] ?? variants["zh-CN"];
+  return {
+    get version() {
+      return current().version;
+    },
+    get entries() {
+      return current().entries;
+    },
+    read(path) {
+      const id = Object.values(variants)
+        .flatMap((docs) => docs.entries)
+        .find((entry) => entry.path === path)?.id;
+      return current().read(id ?? path);
+    },
+    search(query) {
+      return current().search(query);
+    },
+  };
 }
 export interface DocHeading {
   id: string;

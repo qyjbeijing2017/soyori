@@ -1,0 +1,46 @@
+schemaVersion: 1
+name: Memory assistant
+description: Read history, answer, append the complete reply, and save it for the next turn.
+fields:
+  chatIn:
+    input: true
+    initial: My name is Alex. Please remember my name.
+  threadId:
+    input: true
+    initial: quick-memory-demo
+  chatOut:
+    output: true
+  memory:
+    description: Message history sent to AI for this turn.
+  assistantMessage:
+    description: Complete AI reply to append to history.
+steps:
+  - type: call
+    target: memory.init
+    inputs:
+      threadId: $threadId
+      prefix: quick-start-memory
+      system: Answer briefly in English, using what the user has already told you in this conversation.
+      prompt: $chatIn
+    outputs:
+      memory: $memory
+  - type: call
+    target: llm.auto
+    inputs:
+      input: $memory
+    outputs:
+      result: $chatOut
+      message: $assistantMessage
+  - type: call
+    target: memory.addAssistant
+    inputs:
+      memory: $memory
+      message: $assistantMessage
+    outputs:
+      memory: $memory
+  - type: call
+    target: memory.save
+    inputs:
+      threadId: $threadId
+      prefix: quick-start-memory
+      memory: $memory

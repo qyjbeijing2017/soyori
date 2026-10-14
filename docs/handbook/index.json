@@ -30,6 +30,22 @@
       "summary": "逐步编写 YAML：创建字段、拼合提示词、调用模型及查看运行记录。"
     },
     {
+      "id": "quick-start-memory",
+      "path": "docs/handbook/quick-start-memory.md",
+      "title": "快速入门 2：使用记忆",
+      "group": "开始使用",
+      "summary": "读取和保存消息历史，让同一段对话记住用户说过的话。",
+      "examples": ["quick-memory"]
+    },
+    {
+      "id": "quick-start-tools",
+      "path": "docs/handbook/quick-start-tools.md",
+      "title": "快速入门 3：使用工具",
+      "group": "开始使用",
+      "summary": "先直接查询时间，再让 AI 请求工具、读取结果并继续回答。",
+      "examples": ["quick-tools", "quick-tools-agent"]
+    },
+    {
       "id": "flow-language",
       "path": "docs/handbook/flows/language.md",
       "title": "概览",
@@ -245,7 +261,8 @@
       "path": "docs/handbook/tools/web.md",
       "title": "时间与网络",
       "group": "5. 内置工具",
-      "summary": "逐个说明时间与网络工具的用途、参数、返回、示例与错误。"
+      "summary": "逐个说明时间与网络工具的用途、参数、返回、示例与错误。",
+      "examples": ["web-search"]
     },
     {
       "id": "tools-storage",
@@ -428,6 +445,30 @@
       "title": "模型、工具循环与记忆",
       "entry": "agent.yaml",
       "files": ["agent.yaml"]
+    },
+    {
+      "id": "quick-memory",
+      "title": "入门 2：会记忆的助手",
+      "entry": "memory-chat.yaml",
+      "files": ["memory-chat.yaml"]
+    },
+    {
+      "id": "quick-tools",
+      "title": "入门 3：直接查询时间",
+      "entry": "time-tool.yaml",
+      "files": ["time-tool.yaml"]
+    },
+    {
+      "id": "quick-tools-agent",
+      "title": "入门 3：AI 使用时间工具",
+      "entry": "tool-agent.yaml",
+      "files": ["tool-agent.yaml"]
+    },
+    {
+      "id": "web-search",
+      "title": "测试搜索服务",
+      "entry": "search.yaml",
+      "files": ["search.yaml"]
     }
   ]
 }

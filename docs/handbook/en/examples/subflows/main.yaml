@@ -1,0 +1,14 @@
+schemaVersion: 1
+name: Subflow example
+imports:
+  increment: ./add-one.yaml
+fields:
+  answer:
+    output: true
+steps:
+  - type: call
+    target: increment
+    inputs:
+      count: 2
+    outputs:
+      count: $answer

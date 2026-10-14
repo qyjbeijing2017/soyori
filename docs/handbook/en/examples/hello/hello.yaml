@@ -1,0 +1,13 @@
+schemaVersion: 1
+name: Greeting example
+description: Take a name and return a greeting.
+fields:
+  name:
+    input: true
+    initial: World
+  chatOut:
+    output: true
+steps:
+  - type: template
+    template: Hello, $name$!
+    output: $chatOut

@@ -1,6 +1,6 @@
 # 通用基础工具
 
-CLI 与 Editor 共用 soyori-tools，所有能力通过普通 call 节点提供，既可直接编排，也可提供给模型调用。web.search 封装 Mwmbl 公共搜索接口，不搭建代理或自有搜索服务。
+CLI 与 Editor 共用 soyori-tools，所有能力通过普通 call 节点提供，既可直接编排，也可提供给模型调用。web.search 支持 Mwmbl、Tavily 与博查，不搭建代理或自有搜索服务。
 
 ## 日期
 
@@ -22,11 +22,22 @@ Editor 遵循网站 CORS、浏览器禁用请求头及响应头可见性规则�
 
 ## 信息查询
 
-`web.search({query, limit?})` 接受未编码的非空关键词或问题，最多 500 个 UTF-16 单元；limit 默认 3，范围 1–5。底层复用 web.fetch，GET Mwmbl 公共接口，自动编码关键词，不调用日期工具。
+`web.search({query, limit?, provider?, maxSnippetChars?})` 接受未编码的非空关键词或问题，最多 500 个 UTF-16 单元；limit 默认 3，范围 1–5。底层复用 web.fetch，不调用日期工具。provider 优先于当前有效环境 SEARCH_PROVIDER；未设置时使用免 Key 的 mwmbl。不根据已有 Key 自动猜测供应商，不在失败后切换其他供应商。
 
-仅返回 results，每项为 title、url、snippet；关键词保留在调用输入记录中，不重复输出。标题取前 160 个 UTF-16 单元、摘要取前 240 个，链接保留；它们是搜索摘要，不是全文，不保证发布日期、时效或新闻覆盖。空结果返回空数组；HTTP 非 2xx 报 SEARCH_HTTP，异常数据报 SEARCH_RESPONSE，网络、超时、取消、大小限制沿用 web.fetch。CLI 与 Editor 注册同名工具，Editor 表单从共享定义生成。
+| provider | 环境变量 | 请求与结果 |
+| --- | --- | --- |
+| mwmbl | 无 | GET 公共接口，读取 results |
+| tavily | TAVILY_API_KEY | POST /search，固定 basic，不生成答案或读取全文，读取 results |
+| bocha | BOCHA_API_KEY | POST https://api.bocha.cn/v1/web-search，summary=true，读取 data.webPages.value，优先使用 summary |
 
-搜索词发送给 Mwmbl，默认不带认证与浏览器凭据；浏览器仍遵守 CORS。供应商不可用时明确失败，不切换其他网站。当前不增加 skill 加载机制。
+宿主在每次工具调用时读取有效环境，env.override/load 对后续调用生效，子流程继承同一运行环境。Key 仅放请求头，不作为 web.search 参数、流程字段或返回值。不新增通用 Base URL、代理或自动故障转移。请求协议见 [Tavily](https://docs.tavily.com/documentation/api-reference/endpoint/search)、[博查](https://github.com/bocha-ai/dsh-web-search-bocha/blob/main/README.zh.md)。
+
+仅返回 results，每项为 title、url、snippet；关键词保留在调用输入记录中，不重复输出。标题取前 160 个 UTF-16 单元、摘要默认前 240 个，maxSnippetChars 可设 1–10000，链接保留；它们是搜索摘要，不是全文，不保证发布日期、时效或新闻覆盖。空结果返回空数组；供应商或 Key 缺失/无效配置报 SEARCH_CONFIG，HTTP 非 2xx 报 SEARCH_HTTP，异常数据及服务业务错误报 SEARCH_RESPONSE，错误不回显服务响应正文。网络、超时、取消、大小限制沿用 web.fetch。CLI 与 Editor 注册同名工具，Editor 表单从共享定义生成。
+
+搜索词发送给选定的供应商，不发送浏览器登录凭据；浏览器仍遵守 CORS。网络或 CORS 错误不能靠环境变量绕过。当前不增加 skill 加载机制。
+
+2026-10-14 用户配置 Key 后在实际 Editor 中验证：同一关键词“Node.js 官方文档”、limit=3、maxSnippetChars=1200，博查和 Tavily 均完成真实搜索并返回三条结果。Tavily 本次命中 nodejs.org 官方页面，博查前三条为较旧的中文教程/转载；单一关键词不代表总体质量排名。全局 SEARCH_PROVIDER=bocha 保持原样。
+
 
 ## 编排基础库
 
