@@ -3,7 +3,7 @@ name: 手册子流程
 imports:
   increment: ./add-one.yaml
 fields:
-  - name: answer
+  answer:
     output: true
 steps:
   - type: call

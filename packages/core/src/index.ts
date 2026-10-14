@@ -1,6 +1,6 @@
 export type { RuntimeErrorCode, RuntimeErrorFrame, RuntimeFailure } from "./errors.js";
 export { RuntimeError } from "./errors.js";
-export { fieldDefinitions, fieldEntries, withFieldDefinitions } from "./fields.js";
+export { fieldDefinitions, fieldEntries, keyedFields, withFieldDefinitions } from "./fields.js";
 export type * from "./flow.js";
 export { inspectFlow } from "./inspection.js";
 export { createRuntime } from "./runtime.js";

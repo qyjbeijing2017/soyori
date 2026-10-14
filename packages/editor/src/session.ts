@@ -76,7 +76,7 @@ export function errorAdvice(code: string) {
     case "LOOP_LIMIT":
       return "循环次数已达到上限。检查循环内是否更新了判断条件。";
     case "INVALID_PATH":
-      return "数据位置写法有误。请检查 $ 开头的变量路径。";
+      return "数据位置写法有误。请检查 $ 开头的字段路径。";
     default:
       return "检查这一步的参数和引用的数据，修改后重新运行。";
   }

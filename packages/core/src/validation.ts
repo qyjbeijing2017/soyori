@@ -62,6 +62,7 @@ export function prepareFlow(value: unknown): FlowDefinition {
       invalid(`${path}.collapsed`, "Expected a boolean.");
   };
   const definition = (name: string, value: unknown, path: string, named = false) => {
+    if (!name.trim()) invalid(path, "Expected a nonempty field name.");
     const item = record(value, path);
     keys(
       item,
@@ -77,7 +78,22 @@ export function prepareFlow(value: unknown): FlowDefinition {
     Object.defineProperty(fields, name, { value: item, enumerable: true, configurable: true });
   };
   const declarations = (value: unknown, path: string) => {
-    if (!Array.isArray(value)) invalid(path, "Expected a field array.");
+    if (!Array.isArray(value)) {
+      for (const [name, raw] of Object.entries(record(value, path))) {
+        const location = `${path}.${name}`;
+        if (!name.trim()) invalid(location, "Expected a nonempty field or group key.");
+        const item = record(raw, location);
+        if (item.type === "group") {
+          keys(item, ["type", "name", "description", "collapsed", "fields"], location);
+          groupMetadata(
+            { ...item, name: Object.hasOwn(item, "name") ? item.name : name },
+            location,
+          );
+          declarations(item.fields, `${location}.fields`);
+        } else definition(name, item, location);
+      }
+      return;
+    }
     value.forEach((raw, index) => {
       const location = `${path}[${index}]`;
       const item = record(raw, location);
@@ -92,10 +108,7 @@ export function prepareFlow(value: unknown): FlowDefinition {
       }
     });
   };
-  if (Array.isArray(flow.fields)) declarations(flow.fields, "fields");
-  else
-    for (const [name, value] of Object.entries(record(flow.fields, "fields")))
-      definition(name, value, `fields.${name}`);
+  declarations(flow.fields, "fields");
 
   const field = (name: unknown, path: string): void => {
     if (typeof name !== "string") {
@@ -108,13 +121,16 @@ export function prepareFlow(value: unknown): FlowDefinition {
     }
     if (!Object.hasOwn(fields, name as string)) {
       if (Array.isArray(flow.fields)) flow.fields.push({ name });
-      else
+      else {
+        if (Object.hasOwn(flow.fields as object, name as string))
+          invalid(path, `Field name conflicts with a group key: ${name}.`);
         Object.defineProperty(flow.fields, name as string, {
           value: {},
           enumerable: true,
           configurable: true,
           writable: true,
         });
+      }
       // Collected roots are own data properties, including names like toString.
       Object.defineProperty(fields, name as string, {
         value: {},

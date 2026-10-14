@@ -1,0 +1,17 @@
+schemaVersion: 1
+name: 步骤：分组与说明
+fields:
+  result:
+    type: group
+    name: 结果
+    fields:
+      answer:
+        output: true
+steps:
+  - type: group
+    name: 准备结果
+    description: 顺序执行内部步骤
+    steps:
+      - type: set
+        field: $answer
+        value: 3

@@ -2,32 +2,26 @@
   "schemaVersion": 1,
   "name": "Soyori 助手",
   "description": "Soyori 内置助手，使用设置中的模型连接。",
-  "fields": [
-    {
-      "name": "chatIn",
+  "fields": {
+    "chatIn": {
       "input": true
     },
-    {
-      "name": "threadId",
+    "threadId": {
       "input": true
     },
-    {
-      "name": "chatOut",
+    "chatOut": {
       "output": true
     },
-    {
-      "name": "messages",
+    "messages": {
       "description": "交给模型的完整消息上下文。"
     },
-    {
-      "name": "assistantMessage",
+    "assistantMessage": {
       "description": "模型本轮返回的消息，包含文本和工具请求。"
     },
-    {
-      "name": "toolResults",
+    "toolResults": {
       "description": "本批工具调用的成功结果或错误。"
     }
-  ],
+  },
   "steps": [
     {
       "type": "call",

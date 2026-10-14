@@ -1,5 +1,5 @@
 {
-  "version": "2026-10-13",
+  "version": "2026-10-14",
   "chapters": [
     {
       "id": "introduction",
@@ -13,122 +13,310 @@
       "path": "docs/handbook/quick-start.md",
       "title": "快速入门：Editor（电脑端）",
       "group": "开始使用",
-      "summary": "从新建流程开始，创建变量、拼合提示词、调用模型并查看回复。"
+      "summary": "从新建流程开始，创建字段、拼合提示词、调用模型并查看回复。"
     },
     {
       "id": "quick-start-mobile",
       "path": "docs/handbook/quick-start-mobile.md",
       "title": "快速入门：Editor（手机端）",
       "group": "开始使用",
-      "summary": "手机图文入门：新建流程、创建变量、拼合提示词并调用模型。"
+      "summary": "手机图文入门：新建流程、创建字段、拼合提示词并调用模型。"
     },
     {
       "id": "quick-start-cli",
       "path": "docs/handbook/quick-start-cli.md",
       "title": "快速入门：YAML + CLI",
       "group": "开始使用",
-      "summary": "逐步编写 YAML：创建变量、拼合提示词、调用模型及查看运行记录。"
-    },
-    {
-      "id": "workspace",
-      "path": "docs/handbook/workspace.md",
-      "title": "文件库与编辑器",
-      "group": "开始使用",
-      "summary": "Library、草稿与保存、文件路径、工程包和对话。"
+      "summary": "逐步编写 YAML：创建字段、拼合提示词、调用模型及查看运行记录。"
     },
     {
       "id": "flow-language",
       "path": "docs/handbook/flows/language.md",
-      "title": "流程结构与全部节点",
-      "group": "流程参考",
-      "summary": "schemaVersion、字段声明、全部节点参数与执行行为。",
-      "examples": ["hello", "counter"]
+      "title": "概览",
+      "group": "1. 流程",
+      "summary": "流程是什么、如何编辑，以及 YAML 文件的基本组织方式。",
+      "examples": ["constants"]
+    },
+    {
+      "id": "field-types",
+      "path": "docs/handbook/flows/types.md",
+      "title": "字段：类型",
+      "group": "1. 流程",
+      "summary": "了解类型的用途与自动识别；无需先学会类型，也能开始使用字段。",
+      "examples": ["constants", "objects"]
+    },
+    {
+      "id": "constants",
+      "path": "docs/handbook/flows/constants.md",
+      "title": "字段：常量",
+      "group": "1. 流程",
+      "summary": "认识直接填写的固定值，以及常量的填写位置和使用方式。",
+      "examples": ["constants"]
+    },
+    {
+      "id": "variables",
+      "path": "docs/handbook/flows/variables.md",
+      "title": "字段：变量",
+      "group": "1. 流程",
+      "summary": "认识变量的用途，学习声明字段、读取当前值和保存结果。",
+      "examples": ["variables"]
+    },
+    {
+      "id": "objects",
+      "path": "docs/handbook/flows/objects.md",
+      "title": "字段：对象与列表",
+      "group": "1. 流程",
+      "summary": "把一个人的多项信息放进对象，把多个项目放进列表，并读取其中内容。",
+      "examples": ["objects"]
+    },
+    {
+      "id": "assignment",
+      "path": "docs/handbook/flows/assignment.md",
+      "title": "步骤：字段操作",
+      "group": "1. 流程",
+      "summary": "设置字段内容，或在列表末尾追加一项，供后面的步骤使用。",
+      "examples": ["assignment"]
+    },
+    {
+      "id": "control",
+      "path": "docs/handbook/flows/control.md",
+      "title": "步骤：流程控制",
+      "group": "1. 流程",
+      "summary": "根据条件选择做什么，或重复执行一组步骤直到条件不再成立。",
+      "examples": ["control"]
+    },
+    {
+      "id": "text",
+      "path": "docs/handbook/flows/text.md",
+      "title": "步骤：文本处理",
+      "group": "1. 流程",
+      "summary": "把固定文字和字段内容拼成提示词或回复，了解两种引用写法。",
+      "examples": ["text"]
+    },
+    {
+      "id": "math",
+      "path": "docs/handbook/flows/math.md",
+      "title": "步骤：数学运算",
+      "group": "1. 流程",
+      "summary": "进行加、减、乘、除，把结果保存到字段。",
+      "examples": ["math"]
+    },
+    {
+      "id": "comparison",
+      "path": "docs/handbook/flows/comparison.md",
+      "title": "步骤：比较",
+      "group": "1. 流程",
+      "summary": "判断是否相等或大小关系，得到“是 / 否”的结果。",
+      "examples": ["comparison"]
+    },
+    {
+      "id": "logic",
+      "path": "docs/handbook/flows/logic.md",
+      "title": "步骤：逻辑运算",
+      "group": "1. 流程",
+      "summary": "组合多个条件：全部满足、任一满足或取反。",
+      "examples": ["logic"]
+    },
+    {
+      "id": "calling",
+      "path": "docs/handbook/flows/calling.md",
+      "title": "步骤：调用",
+      "group": "1. 流程",
+      "summary": "选择工具或子流程，填写输入，并把需要的结果保存到字段。",
+      "examples": ["calling"]
+    },
+    {
+      "id": "groups",
+      "path": "docs/handbook/flows/groups.md",
+      "title": "步骤：分组与说明",
+      "group": "1. 流程",
+      "summary": "把相关字段或步骤收进分组，折叠查看并添加说明。",
+      "examples": ["groups"]
     },
     {
       "id": "operands",
       "path": "docs/handbook/flows/operands.md",
-      "title": "变量与数据路径",
-      "group": "流程参考",
+      "title": "字段：路径与边界参考",
+      "group": "1. 流程",
       "summary": "$ 引用、$$ 转义、模板、对象数组与写入边界。"
     },
     {
       "id": "subflows",
       "path": "docs/handbook/flows/subflows.md",
       "title": "子流程与调用",
-      "group": "流程参考",
-      "summary": "imports、输入输出映射、作用域和嵌套执行。",
+      "group": "1. 流程",
+      "summary": "把可重复使用的操作保存为子流程，传入内容并接收结果。",
       "examples": ["subflows"]
     },
     {
-      "id": "scripts",
-      "path": "docs/handbook/scripts/development.md",
-      "title": "脚本开发",
-      "group": "工具与 Agent",
-      "summary": "script.run、input/result、模块导入、Worker、错误与平台差异。",
-      "examples": ["scripts"]
+      "id": "editor-chat",
+      "path": "docs/handbook/editor/chat.md",
+      "title": "对话：助手、thread 与执行记录",
+      "group": "2. 编辑器",
+      "summary": "选择 Agent、发送消息、管理对话和查看运行记录。"
     },
     {
-      "id": "tool-contract",
-      "path": "docs/handbook/tools/contract.md",
-      "title": "工具契约与平台支持",
-      "group": "工具与 Agent",
-      "summary": "共享工具的定义、调用规则、实际平台支持和宿主差异。"
+      "id": "workspace",
+      "path": "docs/handbook/workspace.md",
+      "title": "文件库：文件、上传与下载",
+      "group": "2. 编辑器",
+      "summary": "保存和整理浏览器中的文件，编辑源码、上传文件和备份工程。"
     },
     {
-      "id": "tool-reference",
-      "path": "docs/handbook/tools/reference.md",
-      "title": "工具完整参考",
-      "group": "工具与 Agent",
-      "summary": "基础、网络、AI、存储、记忆、脚本和工具执行接口。"
+      "id": "editor-values",
+      "path": "docs/handbook/editor/values.md",
+      "title": "流程编辑：字段与当前值",
+      "group": "2. 编辑器",
+      "summary": "添加字段、设置输入输出，区分默认值与当前测试值。"
     },
     {
-      "id": "assistant-tools",
-      "path": "docs/handbook/tools/assistant.md",
-      "title": "助手文件与调试工具",
-      "group": "工具与 Agent",
-      "summary": "project.docs/tools、workspace、flow.create/inspect/run 的完整接口与修复闭环。"
-    },
-    {
-      "id": "agents",
-      "path": "docs/handbook/agents/models.md",
-      "title": "模型与 Agent 工具循环",
-      "group": "工具与 Agent",
-      "summary": "DeepSeek 等兼容 API 配置、模型消息、工具请求和显式 while 循环。"
-    },
-    {
-      "title": "环境变量与敏感值",
-      "id": "environment",
-      "group": "工具与 Agent",
-      "path": "docs/handbook/agents/environment.md",
-      "summary": "全局与 thread 环境、env.get、敏感遮挡与导出边界。"
-    },
-    {
-      "id": "storage",
-      "path": "docs/handbook/agents/storage.md",
-      "title": "存储与对话记忆",
-      "group": "工具与 Agent",
-      "summary": "键值存储、threads 原始记录、memory 编排和 token 计数。"
+      "id": "editor-flow",
+      "path": "docs/handbook/editor/flow.md",
+      "title": "流程编辑：步骤、源码与保存",
+      "group": "2. 编辑器",
+      "summary": "步骤表单、嵌套块、源码编辑和保存。"
     },
     {
       "id": "debugging",
       "path": "docs/handbook/debugging/guide.md",
-      "title": "运行与调试",
-      "group": "运行与理解",
+      "title": "流程编辑：运行与调试",
+      "group": "2. 编辑器",
       "summary": "逐步执行、错误定位、脚本修复、嵌套调用栈、预算和 trace。",
       "examples": ["debugging"]
+    },
+    {
+      "id": "editor-settings",
+      "path": "docs/handbook/editor/settings.md",
+      "title": "设置：模型连接与数据保存",
+      "group": "2. 编辑器",
+      "summary": "模型连接、本地模型准备、浏览器数据与备份。"
     },
     {
       "id": "cli",
       "path": "docs/handbook/cli/guide.md",
       "title": "CLI 使用与命令参考",
-      "group": "运行与理解",
+      "group": "3. CLI",
       "summary": "工作区安装、所有命令、参数、存储配置、输出协议与 trace。"
+    },
+    {
+      "title": "环境变量：共同原理与运行覆盖",
+      "id": "environment",
+      "group": "4. 环境变量",
+      "path": "docs/handbook/agents/environment.md",
+      "summary": "区分运行配置与字段，了解覆盖顺序、模型连接和敏感值。"
+    },
+    {
+      "id": "environment-cli",
+      "path": "docs/handbook/environment/cli.md",
+      "title": "环境变量：CLI",
+      "group": "4. 环境变量",
+      "summary": "全局配置、操作系统、--env 与临时覆盖。"
+    },
+    {
+      "id": "environment-editor",
+      "path": "docs/handbook/environment/editor.md",
+      "title": "环境变量：Editor",
+      "group": "4. 环境变量",
+      "summary": "全局、对话和当前文件测试环境的图文操作。"
+    },
+    {
+      "id": "tool-contract",
+      "path": "docs/handbook/tools/contract.md",
+      "title": "工具调用约定与平台支持",
+      "group": "5. 内置工具",
+      "summary": "共享工具的定义、调用规则、实际平台支持和宿主差异。"
+    },
+    {
+      "id": "tool-reference",
+      "path": "docs/handbook/tools/reference.md",
+      "title": "内置工具总览",
+      "group": "5. 内置工具",
+      "summary": "从完整例子学会使用工具，再按用途查阅具体参数与返回内容。"
+    },
+    {
+      "id": "tools-basic",
+      "path": "docs/handbook/tools/basic.md",
+      "title": "数学、文本与列表",
+      "group": "5. 内置工具",
+      "summary": "逐个说明数学、文本与列表工具的用途、参数、返回、示例与错误。"
+    },
+    {
+      "id": "tools-web",
+      "path": "docs/handbook/tools/web.md",
+      "title": "时间与网络",
+      "group": "5. 内置工具",
+      "summary": "逐个说明时间与网络工具的用途、参数、返回、示例与错误。"
+    },
+    {
+      "id": "tools-storage",
+      "path": "docs/handbook/tools/storage.md",
+      "title": "存储与 token",
+      "group": "5. 内置工具",
+      "summary": "逐个说明存储与 token 工具的用途、参数、返回、示例与错误。"
+    },
+    {
+      "id": "tools-memory",
+      "path": "docs/handbook/tools/memory.md",
+      "title": "记忆编排",
+      "group": "5. 内置工具",
+      "summary": "逐个说明记忆编排工具的用途、参数、返回、示例与错误。"
+    },
+    {
+      "id": "tools-models",
+      "path": "docs/handbook/tools/models.md",
+      "title": "模型调用",
+      "group": "5. 内置工具",
+      "summary": "逐个说明模型调用工具的用途、参数、返回、示例与错误。"
+    },
+    {
+      "id": "tools-environment",
+      "path": "docs/handbook/tools/environment.md",
+      "title": "运行环境",
+      "group": "5. 内置工具",
+      "summary": "逐个说明运行环境工具的用途、参数、返回、示例与错误。"
+    },
+    {
+      "id": "tools-execution",
+      "path": "docs/handbook/tools/execution.md",
+      "title": "工具执行与脚本",
+      "group": "5. 内置工具",
+      "summary": "逐个说明工具执行与脚本工具的用途、参数、返回、示例与错误。"
+    },
+    {
+      "id": "assistant-tools",
+      "path": "docs/handbook/tools/assistant.md",
+      "title": "助手文件与调试工具",
+      "group": "5. 内置工具",
+      "summary": "project.docs/tools、workspace、flow.create/inspect/run 的完整接口与修复闭环。"
+    },
+    {
+      "id": "scripts",
+      "path": "docs/handbook/scripts/development.md",
+      "title": "脚本开发",
+      "group": "6. 脚本",
+      "summary": "需要自定义处理时使用 JavaScript，学习传入数据、返回结果和导入文件。",
+      "examples": ["scripts"]
+    },
+    {
+      "id": "agents",
+      "path": "docs/handbook/agents/models.md",
+      "title": "模型与 Agent 工具循环",
+      "group": "7. Agent 组合示例",
+      "summary": "理解模型怎样请求工具，并用流程把执行结果交回模型。",
+      "examples": ["agent"]
+    },
+    {
+      "id": "storage",
+      "path": "docs/handbook/agents/storage.md",
+      "title": "存储与对话记忆",
+      "group": "7. Agent 组合示例",
+      "summary": "保存下次还要使用的数据，区分聊天记录、流程记忆与当前字段。"
     },
     {
       "id": "architecture",
       "path": "docs/handbook/architecture.md",
       "title": "架构与能力边界",
-      "group": "运行与理解",
+      "group": "附录",
       "summary": "Core、CLI、Editor 与工具包的职责，当前公开 API 与未实现能力。"
     }
   ],
@@ -168,6 +356,78 @@
       "title": "修复除零错误",
       "entry": "broken.yaml",
       "files": ["broken.yaml", "fixed.yaml"]
+    },
+    {
+      "id": "constants",
+      "title": "字段：常量",
+      "entry": "constants.yaml",
+      "files": ["constants.yaml"]
+    },
+    {
+      "id": "variables",
+      "title": "字段：声明与引用",
+      "entry": "variables.yaml",
+      "files": ["variables.yaml"]
+    },
+    {
+      "id": "objects",
+      "title": "字段：对象与列表",
+      "entry": "objects.yaml",
+      "files": ["objects.yaml"]
+    },
+    {
+      "id": "assignment",
+      "title": "步骤：字段操作",
+      "entry": "assignment.yaml",
+      "files": ["assignment.yaml"]
+    },
+    {
+      "id": "control",
+      "title": "步骤：流程控制",
+      "entry": "control.yaml",
+      "files": ["control.yaml"]
+    },
+    {
+      "id": "text",
+      "title": "步骤：文本处理",
+      "entry": "text.yaml",
+      "files": ["text.yaml"]
+    },
+    {
+      "id": "math",
+      "title": "步骤：数学运算",
+      "entry": "math.yaml",
+      "files": ["math.yaml"]
+    },
+    {
+      "id": "comparison",
+      "title": "步骤：比较",
+      "entry": "comparison.yaml",
+      "files": ["comparison.yaml"]
+    },
+    {
+      "id": "logic",
+      "title": "步骤：逻辑运算",
+      "entry": "logic.yaml",
+      "files": ["logic.yaml"]
+    },
+    {
+      "id": "calling",
+      "title": "步骤：调用",
+      "entry": "calling.yaml",
+      "files": ["calling.yaml"]
+    },
+    {
+      "id": "groups",
+      "title": "步骤：分组与说明",
+      "entry": "groups.yaml",
+      "files": ["groups.yaml"]
+    },
+    {
+      "id": "agent",
+      "title": "模型、工具循环与记忆",
+      "entry": "agent.yaml",
+      "files": ["agent.yaml"]
     }
   ]
 }

@@ -79,7 +79,8 @@ try {
     join(directory, "package.json"),
     '{"name":"soyori-install-check","private":true,"type":"module"}\n',
   );
-  const cli = artifacts.find((item) => item.name.endsWith("/cli"));
+  const cli = artifacts.find((item) => item.bin?.soyori);
+  assert.ok(cli, "CLI package with soyori command is missing.");
   console.log(`Installing ${cli.name}@${cli.version} outside the workspace: ${directory}`);
   await runNode(
     [
@@ -100,7 +101,7 @@ try {
   assert.match(help.stdout, /soyori/);
   await writeFile(
     join(directory, "hello.yaml"),
-    "schemaVersion: 1\nname: install-check\nfields:\n  - name: answer\n    output: true\nsteps:\n  - type: template\n    template: 安装成功\n    output: $answer\n",
+    "schemaVersion: 1\nname: install-check\nfields:\n  answer:\n    output: true\nsteps:\n  - type: template\n    template: 安装成功\n    output: $answer\n",
   );
   const hello = await runNode([entry, "run", "hello.yaml", "--json"], { cwd: directory });
   assert.deepEqual(JSON.parse(hello.stdout).result, { answer: "安装成功" });
@@ -109,7 +110,7 @@ try {
     JSON.stringify({
       schemaVersion: 1,
       name: "script-check",
-      fields: [{ name: "answer", output: true }],
+      fields: { answer: { output: true } },
       steps: [
         {
           type: "call",
@@ -127,7 +128,7 @@ try {
     JSON.stringify({
       schemaVersion: 1,
       name: "ai-check",
-      fields: [{ name: "answer", output: true }],
+      fields: { answer: { output: true } },
       steps: [
         {
           type: "call",
@@ -177,12 +178,13 @@ try {
     "tools",
     "core",
   ]) {
-    await runNode(
-      ["--input-type=module", "-e", `await import('${cli.name.split("/")[0]}/${suffix}')`],
-      {
-        cwd: directory,
-      },
-    );
+    const [name, ...subpath] = suffix.split("/");
+    const artifact = artifacts.find((item) => item.repository.directory === `packages/${name}`);
+    assert.ok(artifact, `Missing public package: ${name}`);
+    const specifier = [artifact.name, ...subpath].join("/");
+    await runNode(["--input-type=module", "-e", `await import('${specifier}')`], {
+      cwd: directory,
+    });
   }
   const bin = process.platform === "win32" ? "soyori.cmd" : "soyori";
   await readFile(join(directory, "node_modules/.bin", bin));

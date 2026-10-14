@@ -34,6 +34,6 @@ export function valueKind(value: unknown, literal: boolean): string {
   if (typeof value === "number") return "数字";
   if (typeof value === "boolean") return "布尔值";
   if (!literal && typeof value === "string" && value.startsWith("$") && !value.startsWith("$$"))
-    return "变量引用";
+    return "字段引用";
   return "文本";
 }

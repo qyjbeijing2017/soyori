@@ -4,7 +4,6 @@ import { join } from "node:path";
 import { npmCli, packages, root, runNode } from "./npm-runtime.mjs";
 
 const config = JSON.parse(await readFile(join(root, "package.json"), "utf8")).soyoriRelease;
-assert.match(config.scope, /^@[a-z0-9-]+$/);
 assert.match(config.version, /^\d+\.\d+\.\d+(?:-[a-z0-9.-]+)?$/);
 const destination = join(root, "output/npm", `${config.version}-${Date.now()}`);
 // Exclusive directory creation prevents publishing stale files from an earlier pack.
@@ -15,16 +14,17 @@ for (const suffix of packages) {
   const source = join(root, "packages", suffix);
   const staging = join(destination, suffix);
   const original = JSON.parse(await readFile(join(source, "package.json"), "utf8"));
+  assert.equal(original.name, `soyori-${suffix}`);
   const dependencies = Object.fromEntries(
     Object.entries(original.dependencies ?? {}).map(([name, value]) => {
       if (!value.startsWith("workspace:")) return [name, value];
       const target = name.replace(/^soyori-/, "");
       assert.ok(packages.includes(target), `Unknown workspace dependency: ${name}`);
-      return [name, `npm:${config.scope}/${target}@${config.version}`];
+      return [name, config.version];
     }),
   );
   const manifest = {
-    name: `${config.scope}/${suffix}`,
+    name: original.name,
     version: config.version,
     type: "module",
     description: original.description ?? `Soyori ${suffix} tools and runtime.`,

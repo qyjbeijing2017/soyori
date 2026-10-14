@@ -2,29 +2,26 @@
   "schemaVersion": 1,
   "name": "分组示例",
   "description": "变量和步骤的分组随流程分发，运行时仍然使用平铺变量。",
-  "fields": [
-    {
-      "name": "chatIn",
+  "fields": {
+    "chatIn": {
       "input": true,
       "initial": "你好"
     },
-    {
+    "回复配置": {
       "type": "group",
       "name": "回复配置",
       "description": "可折叠的默认配置。",
       "collapsed": true,
-      "fields": [
-        {
-          "name": "prefix",
+      "fields": {
+        "prefix": {
           "initial": "收到："
         },
-        {
-          "name": "chatOut",
+        "chatOut": {
           "output": true
         }
-      ]
+      }
     }
-  ],
+  },
   "steps": [
     {
       "type": "group",

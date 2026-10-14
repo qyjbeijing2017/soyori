@@ -1,13 +1,25 @@
-# 变量与数据路径
+# 字段与数据路径
 
 步骤输入使用 JSON 常量、`$` 引用和 `$$` 转义。理解数据与代码的边界，能避免把表达式、模板和字段名混用。
+
+第一次学习可先读[常量](constants.md)、[变量](variables.md)和[对象与列表](objects.md)，本页集中查阅边界。
+
+## Editor 与 YAML 中的路径
+
+![对象与列表的 Editor 示例](../images/flow-objects-editor.jpg)
+
+查看 user 的对象值，在追加步骤中将 `$user.name` 放进新的对象。Editor 中填写或选择字段引用，YAML 中写出带 `$` 的路径；对象键 name 本身不解释引用。
+
+![对应的对象与列表 YAML](../images/flow-objects-yaml.jpg)
+
+完整可导入例子和输出见[对象与列表](objects.md)。
 
 ## 读取与常量
 
 | 输入 | 解释 |
 | --- | --- |
 | `10`、`true`、`null`、`"hello"` | 常量 |
-| `"$count"` | 变量 count |
+| `"$count"` | 字段 count |
 | `"$user.name"` | 对象属性 |
 | `"$items[0].name"` | 数组元素的属性 |
 | `'$data["a.b"]'` | 名称含点的属性 |
@@ -39,7 +51,7 @@
   output: $message
 ```
 
-模板正文使用成对的 `$path$`，这里变量名不再写额外的前导 `$`。`$$99` 输出 `$99`。未设置值转空字符串；数字、布尔值、null 转文字；普通对象与数组转 YAML。循环对象、二进制和特殊对象不能直接作为文本，报 `INVALID_TEXT`。
+模板正文使用成对的 `$path$`，这里字段名不再写额外的前导 `$`。`$$99` 输出 `$99`。未设置值转空字符串；数字、布尔值、null 转文字；普通对象与数组转 YAML。循环对象、二进制和特殊对象不能直接作为文本，报 `INVALID_TEXT`。
 
 普通 Operand 中的 `你好 $name$` 保持原文，只有 `template` 正文执行插值。旧 concat 节点已移除。
 

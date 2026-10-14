@@ -1,4 +1,4 @@
-import { type FlowDefinition, parseFlow, type Step } from "soyori-core";
+import { type FlowDefinition, keyedFields, parseFlow, type Step } from "soyori-core";
 import { createBrowserStorage } from "soyori-storage/browser";
 import { stringify } from "yaml";
 import { tools } from "./call-tools.ts";
@@ -19,7 +19,9 @@ export interface FlowDocument {
 }
 const storage = createBrowserStorage("agent-plan-library");
 export function makeDocument(flow: FlowDefinition, id: string = crypto.randomUUID()): FlowDocument {
-  return { id, flow: parseFlow(flow), updatedAt: new Date().toISOString() };
+  const definition = parseFlow(flow);
+  definition.fields = keyedFields(definition.fields);
+  return { id, flow: definition, updatedAt: new Date().toISOString() };
 }
 let saveQueue: Promise<unknown> = Promise.resolve();
 export function flowFilename(name: string): string {

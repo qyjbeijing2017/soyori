@@ -77,7 +77,7 @@ export function StepForm({
       />
     );
   }
-  const destination = (property: string, value: string, label = tr("保存到变量")) => (
+  const destination = (property: string, value: string, label = tr("保存到字段")) => (
     <label htmlFor={`${formId}-1`}>
       {label}
       <VariableInput
@@ -149,7 +149,7 @@ export function StepForm({
             data={(
               [
                 ["call", "调用工具"],
-                ["data", "变量操作"],
+                ["data", "字段操作"],
                 ["control", "流程控制"],
                 ["text", "文本处理"],
                 ["math", "数学运算"],
@@ -183,7 +183,7 @@ export function StepForm({
               checked={draft.collapsed ?? false}
               onChange={(e) => patch({ collapsed: e.currentTarget.checked })}
             />
-            <p className="muted">{tr("分组不创建变量作用域，内部步骤按顺序执行。")}</p>
+            <p className="muted">{tr("分组不创建字段作用域，内部步骤按顺序执行。")}</p>
           </section>
         )}
         {draft.type !== "call" && draft.type !== "group" && (
@@ -196,7 +196,7 @@ export function StepForm({
                 label={tr("模板正文")}
                 inputWrapperOrder={["label", "input", "description", "error"]}
                 styles={{ description: { gridColumn: 2 } }}
-                description={tr("用 $变量名$ 插入变量，$$ 显示 $；保留换行和缩进。")}
+                description={tr("用 $字段名$ 插入字段，$$ 显示 $；保留换行和缩进。")}
                 autosize
                 minRows={5}
                 maxRows={16}
@@ -228,7 +228,7 @@ export function StepForm({
               <>
                 {operand("condition", tr("判断条件"), draft.condition)}
                 <p className="muted">
-                  {tr("分支内的步骤在列表中展开编辑。引用一个判断结果变量即可。")}
+                  {tr("分支内的步骤在列表中展开编辑。引用一个判断结果字段即可。")}
                 </p>
               </>
             )}
@@ -390,7 +390,7 @@ export function StepForm({
               />
               {wholeReturn && destination("output", draft.output ?? "", tr("保存返回值"))}
               {!wholeReturn && outputNames.length === 0 && (
-                <p className="muted">{tr("此调用没有输出变量")}</p>
+                <p className="muted">{tr("此调用没有输出字段")}</p>
               )}
             </section>
           </>

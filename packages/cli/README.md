@@ -4,13 +4,23 @@
 
 Agent 流程的本地命令行工具，位于统一仓库的 packages/cli。
 
-npm 发布准备已支持独立打包和安装验证。本目录的开发包仍为 private；项目已更名 Soyori，发布候选 scope 为 @soyori，权限尚待确认；总工作区通过 `pnpm release:pack` 生成产物、`pnpm release:verify` 验证安装；流程见 [npm 发布准备](../../docs/npm-release.md)，目前仍按源码方式安装。
+## 安装
+
+需要 Node.js 24 或更新版本：
+
+```sh
+npm install -g soyori-cli
+soyori --help
+soyori run ./translate.yaml --json --timeout 10m
+```
+
+`translate.yaml` 按[CLI 入门](../../docs/handbook/quick-start-cli.md)创建。发布包和依赖统一使用 soyori-* 名称；开发工作区仍为 private，通过 `pnpm release:pack` 生成正式产物、`pnpm release:verify` 验证独立安装，见 [npm 打包与发布](../../docs/npm-release.md)。
 
 内置单次 AI 调用：`llm.auto`、`llm.openai`、`llm.anthropic`、`llm.local`。llm.auto 按应用环境 LLM_PROVIDER 选择供应商；默认为 auto，依次选择完整 OpenAI 配置、Anthropic 配置，否则本地，失败不换供应商重试。通过共享的 `soyori-ai: workspace:*` 包提供；依赖总工作区，先在总仓库 `pnpm build`。完整参数与示例见 [AI 工具说明](../ai/README.md)。远程 apiKey、baseURL、model 由每个调用步骤的 inputs 提供，可引用流程运行输入；省略参数时自动读取应用环境 OPENAI_MODEL/API_KEY/BASE_URL 或 ANTHROPIC_MODEL/API_KEY/BASE_URL；连接环境按 --env > OS 环境 > env set 全局配置选择，不根据 threadId 切换。本地无需密钥，优先 Node WebGPU + Q4F16；GPU 初始化失败释放后回退 CPU + Q4。设备选择与回退提示写 stderr，同一进程复用选择结果；生成失败不切换重试。首次下载需增加超时，例如从总工作区运行 `pnpm cli run examples/ai-local.json --json --timeout 10m`。
 
 ## 开发
 
-需要 Node.js 24 和 pnpm。当前 core 尚未发布到 npm，CLI 使用 `soyori-core: workspace:*`，因此请通过总仓库获取完整开发环境；只克隆 CLI 后直接安装依赖暂不支持。
+修改源码需要 Node.js 24 和 pnpm。开发中的 CLI 使用 `soyori-core: workspace:*`，请通过总仓库获取完整开发环境。
 
 ```sh
 git clone https://github.com/qyjbeijing2017/soyori.git
@@ -139,7 +149,7 @@ YAML 使用 1.2 core schema，支持注释、多行文本和普通锚点/别名�
 
 这不是不可信代码沙箱：函数模块具备当前用户权限，已发出的网络请求、文件写入等副作用不会回滚；宿主自行启动的其他进程不受本工具生命周期管理。
 
-未实现交互调试、恢复执行及二进制结果文件导出。源码位于统一仓库的 packages/cli，开发包仍为 private，尚未发布到 npm。
+未实现交互调试、恢复执行及二进制结果文件导出。源码位于统一仓库的 packages/cli，开发工作区保留 private；发布包由统一脚本生成。
 
 
 ### 文本模板示例

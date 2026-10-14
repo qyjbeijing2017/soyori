@@ -1,7 +1,7 @@
 schemaVersion: 1
 name: 加一子流程
 fields:
-  - name: count
+  count:
     initial: 0
     input: true
     output: true

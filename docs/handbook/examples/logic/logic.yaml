@@ -1,0 +1,11 @@
+schemaVersion: 1
+name: 步骤：逻辑运算
+fields:
+  allowed:
+    output: true
+steps:
+  - type: and
+    inputs:
+      - true
+      - 1
+    output: $allowed

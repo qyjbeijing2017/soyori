@@ -3,9 +3,12 @@ import test from "node:test";
 import {
   createRuntime,
   fieldDefinitions,
+  fieldEntries,
   inspectFlow,
+  keyedFields,
   parseFlow,
   withFieldDefinitions,
+  withoutSensitiveInitials,
 } from "../dist/index.js";
 
 const grouped = () => ({
@@ -70,7 +73,7 @@ test("groups collect undeclared fields, enforce global uniqueness and validate m
       f.steps[0].collapsed = 1;
     },
     (f) => {
-      f.fields[0].fields = {};
+      f.fields[0].fields = 1;
     },
     (f) => {
       f.steps[0].name = " ";
@@ -165,4 +168,96 @@ test("flat updates retain grouped declarations and do not mutate source", () => 
   assert.equal(fields[0].collapsed, true);
   assert.equal(fields[0].fields[0].initial, 9);
   assert.equal(flow.fields[0].fields[0].initial, 1);
+});
+
+const keyed = () => ({
+  schemaVersion: 1,
+  name: "Keyed groups",
+  fields: {
+    inputs: {
+      type: "group",
+      name: "输入",
+      collapsed: true,
+      description: "Keep this label",
+      fields: {
+        count: { input: true, initial: 2 },
+        nested: { type: "group", fields: { answer: { output: true } } },
+        secret: { sensitive: true, initial: "key" },
+      },
+    },
+  },
+  steps: [{ type: "add", left: "$count", right: 1, output: "$answer" }],
+});
+
+test("keyed groups run in a flat scope and preserve stable keys through display edits", async () => {
+  const source = keyed();
+  assert.deepEqual(parseFlow(source), source);
+  const state = await createRuntime(source, { count: 8 }).run();
+  assert.deepEqual(state.output, { answer: 9 });
+  const entries = fieldEntries(source.fields);
+  assert.equal(entries[0].key, "inputs");
+  assert.equal(entries[0].fields[1].name, "nested");
+  entries[0].name = "重命名";
+  const fields = keyedFields(entries);
+  assert.deepEqual(Object.keys(fields), ["inputs"]);
+  assert.equal(fields.inputs.name, "重命名");
+  assert.equal(source.fields.inputs.name, "输入");
+  const updated = withFieldDefinitions(source.fields, {
+    ...fieldDefinitions(source.fields),
+    count: { initial: 6, input: true },
+  });
+  assert.equal(updated.inputs.fields.count.initial, 6);
+  assert.equal(updated.inputs.collapsed, true);
+  const exported = withoutSensitiveInitials(source);
+  assert.equal(exported.fields.inputs.fields.secret.initial, undefined);
+  assert.equal(source.fields.inputs.fields.secret.initial, "key");
+});
+
+test("keyed groups reject invalid metadata, duplicate fields and implicit root collisions", () => {
+  for (const change of [
+    (flow) => {
+      flow.fields.inputs.name = null;
+    },
+    (flow) => {
+      flow.fields.inputs.fields = [];
+      flow.fields.count = { initial: 0 };
+      flow.fields.other = { type: "group", fields: { count: {} } };
+    },
+    (flow) => {
+      flow.fields.inputs.type = "folder";
+    },
+    (flow) => {
+      flow.fields.inputs.fields = "invalid";
+    },
+    (flow) => {
+      flow.steps[0].output = "$inputs";
+    },
+  ]) {
+    const flow = keyed();
+    change(flow);
+    assert.throws(() => parseFlow(flow), { code: "INVALID_FLOW" });
+  }
+  const flow = keyed();
+  flow.steps[0].output = "$extra";
+  assert.deepEqual(parseFlow(flow).fields.extra, {});
+  assert.throws(
+    () =>
+      keyedFields([
+        { type: "group", key: "answer", name: "Group", fields: [] },
+        { name: "answer" },
+      ]),
+    /Duplicate field or group key/,
+  );
+});
+
+test("legacy list declarations convert without losing duplicate group labels or field data", () => {
+  const fields = [
+    { name: "Group", initial: { literal: "$unchanged" } },
+    { type: "group", name: "Group", fields: [{ name: "a", input: true }] },
+    { type: "group", name: "Group", fields: [{ name: "b", output: true }] },
+  ];
+  const mapped = keyedFields(fields);
+  assert.deepEqual(Object.keys(mapped), ["Group", "Group_2", "Group_3"]);
+  assert.deepEqual(fieldDefinitions(mapped), fieldDefinitions(fields));
+  assert.deepEqual(keyedFields(fieldEntries(mapped)), mapped);
 });

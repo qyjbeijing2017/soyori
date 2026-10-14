@@ -1,0 +1,15 @@
+schemaVersion: 1
+name: 字段：对象与列表
+fields:
+  user:
+    initial:
+      name: 小明
+  items:
+    initial: []
+    output: true
+steps:
+  - type: append
+    field: $items
+    value:
+      name: $user.name
+      price: 2

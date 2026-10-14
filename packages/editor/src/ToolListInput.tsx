@@ -71,7 +71,7 @@ export function ToolListInput({
             !(Array.isArray(next) && next.every((v) => typeof v === "string")) &&
             !(typeof next === "string" && next.startsWith("$") && normalizeReference(next) === next)
           )
-            throw Error(tr("请选择工具列表或变量引用"));
+            throw Error(tr("请选择工具列表或字段引用"));
         }}
       />
     );
@@ -87,11 +87,11 @@ export function ToolListInput({
       placeholder={
         Array.isArray(value) && value.length === 0
           ? tr("空列表")
-          : (placeholder ?? tr("搜索工具或输入 $ 选择变量"))
+          : (placeholder ?? tr("搜索工具或输入 $ 选择字段"))
       }
       data={[
         {
-          group: tr("变量引用"),
+          group: tr("字段引用"),
           items: variables.map((name) => ({ value: `variable:${name}`, label: name })),
         },
         ...groups,

@@ -1,20 +1,39 @@
 # CLI 使用与命令参考
 
-CLI 是人和程序共用的进程接口，与 Editor 复用 Core 和部分工具包。命令在总工作区执行，路径是磁盘路径，不是浏览器 Library。
+CLI 就是通过终端输入命令来使用 Soyori，适合直接编辑 YAML 文件或批量运行流程。它与 Editor 使用相同的流程规则，但读取电脑上的文件，不能直接读取浏览器文件库。
 
-## 准备工作区
+不熟悉终端时，可以先使用[电脑端 Editor 入门](../quick-start.md)。下面是命令参考；第一次用 CLI 请先完成 [YAML + CLI 入门](../quick-start-cli.md)。
 
-使用项目规定的 Node 24 和 pnpm，检出总仓库及 core/cli 子模块，先安装并构建。包目前为 private，不能假设已发布到 npm。
+## 安装 CLI
+
+需要 Node.js 24 或更新版本（包含 npm）。在终端执行：
 
 ```powershell
-pnpm install
-pnpm build
-pnpm cli --help
-pnpm cli run --help
-pnpm cli run docs/handbook/examples/hello/hello.yaml --set name=小明 --json
+npm install -g soyori-cli
+soyori --help
+soyori run --help
 ```
 
-CLI 子仓库依赖 workspace 包，独立克隆并安装不等于可用的发布包。
+安装后，在保存流程文件的任意文件夹中执行命令，无需下载仓库或安装 pnpm。例如，新建 `hello.yaml`：
+
+```yaml
+schemaVersion: 1
+name: 第一次运行
+fields:
+  name:
+    input: true
+    initial: 小明
+  chatOut:
+    output: true
+steps:
+  - type: template
+    template: 你好，$name$！
+    output: $chatOut
+```
+
+在同一文件夹执行 `soyori run ./hello.yaml --set-string name=小明 --json`，结果中的 chatOut 为“你好，小明！”。这个例子不需要模型或密钥。
+
+需要修改 Soyori 本身的源码时，才使用仓库中的 pnpm workspace；开发安装方式见仓库 README。
 
 ## 命令
 
@@ -30,9 +49,11 @@ CLI 子仓库依赖 workspace 包，独立克隆并安装不等于可用的发�
 | `config set <name> <value>` | 设置支持的配置，当前 storage-dir |
 | `env set <name> <value>` | 保存全局环境值；--sensitive 遮挡 |
 | env list | 查看有效环境，敏感值遮挡 |
-| `env delete <name>` | 删除指定作用域的一项环境值 |
+| `env delete <name>` | 删除持久全局配置中的一项环境值 |
 
 各命令用 --help 查询完整帮助。storage 子命令支持 --storage-dir、--json，config set 支持 --json。
+
+环境设置图解之外的 CLI 规则见[CLI 环境变量](../environment/cli.md)。CLI 使用磁盘文件，网页使用 Library；工程包解压后可用 CLI 运行同一份共享流程，但不会同步环境、对话和存储。
 
 ## 流程命令参数
 
@@ -85,11 +106,13 @@ export default {
 
 ## 存储配置与调试
 
+最后一条命令使用[子流程示例](../flows/subflows.md)，先把 main.yaml 和 add-one.yaml 保存到当前文件夹：
+
 ```powershell
-pnpm cli storage info --json
-pnpm cli config set storage-dir ./agent-data --json
-pnpm cli storage list memory/ --json
-pnpm cli run docs/handbook/examples/subflows/main.yaml --trace run-002.jsonl --trace-values --timeout 30s --json
+soyori storage info --json
+soyori config set storage-dir ./agent-data --json
+soyori storage list memory/ --json
+soyori run ./main.yaml --trace run-002.jsonl --trace-values --timeout 30s --json
 ```
 
 config 更改用户配置，不移动已有数据。每次 trace 使用新文件名；--trace-values 可能写出凭据。运行子进程隔离 stdout 并可被超时终止，不是安全沙箱，外部效果不能回滚。

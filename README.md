@@ -31,7 +31,17 @@ soyori/
 
 ## 获取与安装
 
-npm 打包与工作区外安装验证已准备，许可证为 MIT。项目已更名 Soyori，开发包使用 soyori-*，发布候选 scope 为 @soyori；尚未确认 scope 权限，也尚未发布到 npm。打包、名称核查和发布前提见 [npm 发布准备](docs/npm-release.md)；目前按下面的源码方式安装。
+CLI 使用 Node.js 24 或更新版本，安装后可在流程文件所在目录执行：
+
+```sh
+npm install -g soyori-cli
+soyori --help
+soyori run ./translate.yaml --json --timeout 10m
+```
+
+不需要 pnpm 或项目源码。`translate.yaml` 按 [YAML + CLI 入门](docs/handbook/quick-start-cli.md)创建；模型文件按需下载，不包含在 npm 包中。发布包统一使用 soyori-* 名称，许可证 MIT；发布记录与验证方法见 [npm 打包与发布](docs/npm-release.md)。
+
+## 源码开发安装
 
 需要 Node.js 24 和 pnpm；包管理器版本固定在根 `package.json`。
 
@@ -74,7 +84,7 @@ pnpm cli run examples/object-values.json --json
 
 默认输出使用 Node inspector，可查看 `undefined`、二进制和循环对象；`--json` 要求结果是 JSON 数据，否则报错。JSON 模式的错误也输出到 stdout；文本模式错误写到 stderr。宿主日志始终转到 stderr。普通失败退出码为 1，超时 124，中断 130。
 
-CLI 已实现 `run`、`inspect`、`validate`、文件/内联 JSON/stdin 输入、trace 和进程隔离超时。完整协议与边界见 [CLI 文档](packages/cli/README.md)。包声明了 `soyori` 命令入口；目前标记为 private，尚未发布或全局安装。
+CLI 已实现 `run`、`inspect`、`validate`、文件/内联 JSON/stdin 输入、trace 和进程隔离超时。完整协议与边界见 [CLI 文档](packages/cli/README.md)。开发工作区保留 private，发布脚本生成同名可安装包，`soyori-cli` 提供 `soyori` 命令。
 
 ## 包职责
 

@@ -18,11 +18,14 @@ test("bundled locales have matching keys and interpolation variables", () => {
 });
 test("language switches translate UI and interpolation without changing tool identifiers", async () => {
   await i18n.changeLanguage("en");
-  assert.equal(tr("变量"), "Variables");
+  assert.equal(tr("字段"), "Fields");
+  assert.equal(tr("步骤"), "Steps");
+  assert.equal(tr("环境变量名"), "Environment variable name");
   assert.equal(tr("编辑 {{name}}", { name: "我的 flow" }), "Edit 我的 flow");
   assert.equal(stepTitle({ type: "call", target: "用户工具" }), "Call 用户工具");
   assert.equal(tr("unknown.future.key"), "unknown.future.key");
   await i18n.changeLanguage("zh-CN");
-  assert.equal(tr("变量"), "变量");
+  assert.equal(tr("字段"), "字段");
+  assert.equal(tr("步骤"), "步骤");
   assert.equal(stepTitle({ type: "call", target: "用户工具" }), "调用 用户工具");
 });

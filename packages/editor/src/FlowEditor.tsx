@@ -245,11 +245,11 @@ export function FlowEditor({
             </Modal>
             {clearing && (
               <ConfirmDelete
-                title={tr(clearing === "variables" ? "清空变量" : "清空步骤")}
+                title={tr(clearing === "variables" ? "清空字段" : "清空步骤")}
                 message={tr(
                   clearing === "variables"
-                    ? "确认删除所有变量及其默认值和运行值？"
-                    : "确认删除所有流程步骤（包括嵌套步骤）？",
+                    ? "确认删除所有字段及其默认值和当前值？"
+                    : "确认删除所有步骤（包括嵌套步骤）？",
                 )}
                 confirmLabel={tr("确认清空")}
                 onClose={() => setClearing(null)}
@@ -271,12 +271,12 @@ export function FlowEditor({
             <Modal
               opened={clearBlocked}
               onClose={() => setClearBlocked(false)}
-              title={tr("清空变量")}
+              title={tr("清空字段")}
               centered
               zIndex={400}
               closeButtonProps={{ "aria-label": tr("关闭") }}
             >
-              <p role="status">{tr("变量仍被步骤引用，请先移除引用或清空步骤。")}</p>
+              <p role="status">{tr("字段仍被步骤引用，请先移除引用或清空步骤。")}</p>
             </Modal>
             {error && (
               <p className="error" role="alert">
@@ -292,13 +292,13 @@ export function FlowEditor({
                   onClick={() => setValuesOpen(!valuesOpen)}
                 >
                   <Icon name={valuesOpen ? "down" : "chevronRight"} />
-                  {tr("运行值")}
+                  {tr("字段")}
                 </button>
                 <div className="run-values-actions">
                   {Object.keys(fieldDefinitions(flow.fields)).length > 0 && (
                     <Button
                       variant="subtle"
-                      aria-label={tr("清空变量")}
+                      aria-label={tr("清空字段")}
                       disabled={locked}
                       onClick={() => {
                         if (
@@ -397,7 +397,7 @@ export function FlowEditor({
                 />
               </div>
             </section>
-            <section className="steps-panel" aria-label={tr("流程步骤")}>
+            <section className="steps-panel" aria-label={tr("步骤")}>
               <div className="section-caption run-values-heading">
                 <button
                   className="panel-toggle"
@@ -406,7 +406,7 @@ export function FlowEditor({
                   onClick={() => setStepsOpen(!stepsOpen)}
                 >
                   <Icon name={stepsOpen ? "down" : "chevronRight"} />
-                  {tr("流程步骤")}
+                  {tr("步骤")}
                 </button>
                 {flow.steps.length > 0 && (
                   <div className="run-values-actions">

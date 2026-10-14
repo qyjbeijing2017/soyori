@@ -1,10 +1,10 @@
-# npm 发布准备
+# npm 打包与发布
 
-打包范围为 core、storage、script、tools、ai、cli 六个包；初始版本 `0.1.0`，许可证 MIT。版本与 scope 统一配置在根 `package.json` 的 `soyoriRelease`。当前配置中的 `@soyori` 是 Soyori 的发布候选 scope，尚未确认拥有发布权限，也未发布。
+发布六个无 scope 的公开包：`soyori-core`、`soyori-storage`、`soyori-script`、`soyori-tools`、`soyori-ai`、`soyori-cli`。初始版本 `0.1.0`，许可证 MIT。版本统一配置在根 `package.json` 的 `soyoriRelease.version`；包名沿用各包的 package.json，不添加个人或组织前缀。
 
-> **发布状态：尚未发布。** 项目已更名 Soyori。此前 agent-plan 与 @agent-plan/core 名称冲突，未执行发布；当前候选 @soyori 需先确认账号或组织权限，不能将本地打包成功当作注册表已经可安装。
+> **发布状态：首发准备中。** 用户已确认使用 soyori-* 名称，并授权 Git 推送与 npm 发布。当前账号 qiuyj；包名可用性、产物及注册表安装需要在每次发布时实际核验，不能把打包成功当作已经发布。
 
-本地开发包名已统一为 soyori-*，依赖仍使用 `workspace:*`，工作区仍为 private。发布脚本从编译结果生成独立发布目录，将内部依赖转换成 npm alias，例如 `soyori-core: npm:@soyori/core@0.1.0`。安装后内部 import 可以继续解析，用户安装入口是 `@soyori/cli`。
+开发工作区仍为 private，内部依赖使用 `workspace:*`。发布脚本从编译结果生成独立发布目录，移除 private，并将内部依赖改为本次精确版本，例如 `soyori-core: 0.1.0`。开发和发布使用相同的包名，不再需要 npm alias。用户入口为 `npm install -g soyori-cli`，安装后执行 `soyori`。
 
 ## 1. 构建和打包
 
@@ -35,7 +35,7 @@ CI 在 Windows/Linux 上运行打包与独立安装检查。CI 配置存在不�
 
 ## 3. 正式发布
 
-正式发布前，确定一个自己拥有权限的 npm 用户或组织 scope，将根 package.json 的 soyoriRelease.scope 改为该名称，核查六个包名，再重新执行 release:pack 和 release:verify。@soyori 产物仅供本地验证，确认 scope 权限并完成本次验证后才能发布。本准备流程不创建组织、不配置账号、不执行发布。
+正式发布前，用 `npm whoami` 确认当前账号，查询六个包的名称、版本及维护权限。首次发布需要包名可用；更新已有包需要当前账号有维护权限，并使用尚未发布的新版本。版本确定后重新执行 release:pack 和 release:verify。打包和安装验证命令不会自动发布。
 
 读取 `output/npm/latest.json`，进入其 `destination` 目录，确认该目录存在成功的 `verification.json`。先登录：
 
@@ -44,18 +44,18 @@ npm login
 npm whoami
 ```
 
-按 npm 的登录与二次验证提示操作。使用 artifacts.json 中的真实 filename，依次以 core、storage、script、tools、ai、cli 顺序执行 `npm publish ./文件名.tgz --access public`。同一个包的同一版本不能重复发布。Git 提交与 npm 发布是不同操作，Git 仍按子仓库先提交/推送、总仓库后更新指针处理。
+按 npm 的登录与二次验证提示操作。使用 artifacts.json 中的真实 filename，依次以 core、storage、script、tools、ai、cli 顺序执行 `npm publish ./文件名.tgz --access public`。同一个包的同一版本不能重复发布。全部源码由一个 Git 仓库管理：先验证、提交并推送对应源码，再发布同一批已验证产物，不再使用子仓库或子模块指针。
 
 ## 4. 发布后的用户入口
 
-以下为示意，需将 YOUR_SCOPE 替换为最终 scope，且六个包正式发布后才可用：
+六个包正式发布并验证注册表安装后，用户执行：
 
 ```powershell
-npm install -g @YOUR_SCOPE/cli
+npm install -g soyori-cli
 soyori --help
 soyori run ./translate.yaml --json --timeout 10m
 ```
 
-用户只需要 Node 24 和 npm，无需 pnpm、源码或子模块。当前快速入门仍保留源码安装方式，正式发布并验证注册表安装后再切换。域名、一键安装脚本和独立运行时发行包不属于本次范围。
+用户只需要 Node 24 和 npm，无需 pnpm 或源码。CLI 快速入门与命令参考使用 npm 安装及 `soyori` 命令；仓库 README 另外保留源码开发方式。发布后需在新的临时目录从官方注册表安装 `soyori-cli@0.1.0`，检查帮助、YAML、脚本和子流程；并核对注册表 tarball integrity 与已验证产物一致。域名、一键安装脚本和独立运行时发行包不属于本次范围。
 
-参考：[npm package.json](https://docs.npmjs.com/cli/v11/configuring-npm/package-json/)、[pnpm workspace aliases](https://pnpm.io/workspaces)。
+参考：[npm package.json](https://docs.npmjs.com/cli/v11/configuring-npm/package-json/)、[npm 公开包](https://docs.npmjs.com/about-public-packages/)。

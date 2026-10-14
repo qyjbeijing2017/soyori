@@ -1,7 +1,7 @@
 schemaVersion: 1
 name: 手册除零错误
 fields:
-  - name: answer
+  answer:
     output: true
 steps:
   - type: divide

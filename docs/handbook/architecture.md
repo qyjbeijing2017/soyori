@@ -2,11 +2,13 @@
 
 理解职责分工，可以判断错误应该修流程、工具、宿主还是界面。嵌入 SDK 暂不推进，当前工作重点是现有 CLI、Editor 和它们共享的基础。
 
+本页是给开发者的进阶参考。日常编写和运行流程不需要先理解包、调度器和运行时 API；初次使用请从[快速入门](quick-start.md)开始。
+
 ## 包与职责
 
 | 部分 | 职责 |
 | --- | --- |
-| soyori-core | 结构校验、Operand、变量、节点、调度器、子流程、状态与错误 |
+| soyori-core | 结构校验、Operand、字段、节点、调度器、子流程、状态与错误 |
 | soyori-cli | 磁盘/HTTP 来源加载、参数、宿主注册、子进程、trace、输出与退出码 |
 | soyori-editor | IndexedDB Library、步骤和源码界面、对话、浏览器宿主与调试 UI |
 | soyori-ai | 模型集成、消息编排、工具调用桥接与预算 |
@@ -40,4 +42,6 @@ Core 不自动超时、取消或重试；宿主执行环境和工具负责相应
 
 浏览器网络受 CORS，本地工具取 Library 和 IndexedDB；CLI 取磁盘和用户存储。代码执行环境也不同。跨端移植先查 [平台矩阵](tools/contract.md)。
 
-开发包统一命名为 soyori-*，依赖 pnpm workspace，Core/AI 等仍标记 private。npm 发布准备可以生成六个独立发布包并验证工作区外安装，当前候选 scope 为 @soyori，需确认发布权限；本项目尚未发布。源码统一位于 packages/*，由一个 Git 仓库管理；Core/CLI 不再是子模块。嵌入 SDK 暂不推进。Windows/macOS/iOS/Android 原生封装、目录同步、MCP、远程共享调试不属于当前承诺。
+开发包统一命名为 soyori-*，依赖 pnpm workspace，开发工作区保留 private。发布脚本生成六个同名公开 npm 包：soyori-core、soyori-storage、soyori-script、soyori-tools、soyori-ai、soyori-cli，并将内部依赖换成本次精确版本。用户通过 `npm install -g soyori-cli` 安装 CLI，不需要源码开发环境；Editor 仍是单独的网页应用，不包含在 CLI 包中。
+
+源码统一位于 packages/*，由一个 Git 仓库管理；Core/CLI 不再是子模块。嵌入 SDK 暂不推进。Windows/macOS/iOS/Android 原生封装、目录同步、MCP、远程共享调试不属于当前承诺。

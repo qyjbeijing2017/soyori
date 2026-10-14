@@ -276,7 +276,8 @@ export default function DocumentPage({
                         src ?? "",
                         `https://handbook.local/${article.entry.path}`,
                       ).pathname;
-                      return <img src={handbookImages[`../..${path}`]} alt={alt} loading="lazy" />;
+                      const image = handbookImages[`../../../${path.slice(1)}`];
+                      return <img src={image} alt={alt} loading="lazy" />;
                     },
                     pre: ({ node, children }) => (
                       <div className="document-code">

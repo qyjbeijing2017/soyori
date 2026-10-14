@@ -1,0 +1,12 @@
+schemaVersion: 1
+name: 步骤：文本处理
+fields:
+  name:
+    initial: 小明
+    input: true
+  message:
+    output: true
+steps:
+  - type: template
+    template: 你好，$name$！价格：$$99
+    output: $message

@@ -12,7 +12,7 @@ const typeColors: Record<string, string> = {
   布尔值: "orange",
   列表: "violet",
   对象: "indigo",
-  变量引用: "grape",
+  字段引用: "grape",
   空值: "gray",
   未设置: "gray",
 };

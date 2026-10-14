@@ -104,4 +104,4 @@
 
 ### Grouped declarations
 
-`fields` also accepts an ordered array of `{ name, initial?, input?, output?, description? }` declarations and `{ type: "group", name, description?, collapsed?, fields: [...] }` entries. Groups do not change reference paths or variable scope; names remain globally unique. See [groups and tool interfaces](groups-and-tools.md).
+`fields` uses a name-to-configuration mapping. Ordinary entries contain `initial?`, `input?`, `output?`, `sensitive?` and `description?`. An entry with `type: "group"` contains nested `fields` using the same mapping syntax, an optional display `name`, `description?` and `collapsed?`. Legacy arrays remain readable, while Editor saves mappings. Groups do not change reference paths or scope; ordinary field names remain globally unique. See [groups and tool interfaces](groups-and-tools.md).

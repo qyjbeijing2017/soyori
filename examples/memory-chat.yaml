@@ -2,17 +2,17 @@ schemaVersion: 1
 name: 记忆对话
 description: 带系统提示的记忆对话；可查询时间并通过 Mwmbl 搜索联网资料，工具结果加入上下文后继续回复。使用本地模型时首次运行需下载模型；超出上下文或运行预算时会报错。
 fields:
-  - name: chatIn
+  chatIn:
     input: true
-  - name: threadId
+  threadId:
     input: true
-  - name: chatOut
+  chatOut:
     output: true
-  - name: memory
+  memory:
     description: 交给模型的完整消息上下文。
-  - name: assistantMessage
+  assistantMessage:
     description: 模型本轮返回的消息，包含文本和工具请求。
-  - name: toolResults
+  toolResults:
     description: 本批工具调用的成功结果或错误。
 steps:
   - type: call

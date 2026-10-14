@@ -1,7 +1,7 @@
 schemaVersion: 1
 name: 手册计数
 fields:
-  - name: count
+  count:
     initial: 0
     output: true
 steps:

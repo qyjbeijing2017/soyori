@@ -9,6 +9,7 @@ import {
   fieldDefinitions,
   fieldEntries,
   type JsonValue,
+  keyedFields,
   parseFlow,
 } from "soyori-core";
 import { ConfirmDelete } from "./ConfirmDelete";
@@ -69,6 +70,7 @@ export function FieldsEditor({
     [],
   );
   async function save(next: Fields) {
+    next = keyedFields(next);
     parseFlow({ ...flow, fields: next });
     setError("");
     latest.current = next;
@@ -82,7 +84,7 @@ export function FieldsEditor({
   async function applyDraft(draft: Draft) {
     const name = draft.name.trim();
     if (!name || (name !== draft.original && Object.hasOwn(fieldDefinitions(latest.current), name)))
-      throw Error(tr("变量名不能为空或重复。"));
+      throw Error(tr("字段名不能为空或重复。"));
     const next = putField(
       latest.current,
       draft.original,
@@ -147,12 +149,12 @@ export function FieldsEditor({
     return (
       <section className="dialog-section dialog-identity">
         <Select
-          label={tr("变量类型")}
+          label={tr("字段类型")}
           value={groupEditing ? "group" : "field"}
           allowDeselect={false}
           data={[
-            { value: "field", label: tr("变量") },
-            { value: "group", label: tr("变量分组") },
+            { value: "field", label: tr("字段") },
+            { value: "group", label: tr("字段分组") },
           ]}
           onChange={(value) => {
             setError("");
@@ -271,7 +273,7 @@ export function FieldsEditor({
                         <UnstyledButton
                           className="parameter-name variable-label"
                           title={field.description || name}
-                          aria-label={tr("设置变量 {{name}}", { name })}
+                          aria-label={tr("设置字段 {{name}}", { name })}
                           disabled={disabled || paused}
                           onClick={() => {
                             setError("");
@@ -305,7 +307,7 @@ export function FieldsEditor({
                       </div>
                       <IconButton
                         icon="delete"
-                        label={tr("删除变量 {{name}}", { name })}
+                        label={tr("删除字段 {{name}}", { name })}
                         disabled={disabled || paused}
                         onClick={() => setDeleting(name)}
                       />
@@ -337,7 +339,7 @@ export function FieldsEditor({
                   pendingDraft.current = null;
                 }}
               >
-                {tr("＋ 添加变量")}
+                {tr("＋ 添加字段")}
               </Button>
             }
           />
@@ -347,10 +349,10 @@ export function FieldsEditor({
   }
 
   return (
-    <section className="variables-form" aria-label={tr("变量")}>
+    <section className="variables-form" aria-label={tr("字段")}>
       {deleting !== null && (
         <ConfirmDelete
-          title={tr("删除变量")}
+          title={tr("删除字段")}
           onClose={() => setDeleting(null)}
           onConfirm={async () => {
             if (disabled || paused) return;
@@ -361,7 +363,7 @@ export function FieldsEditor({
             if (
               Object.hasOwn(fieldDefinitions(parseFlow({ ...flow, fields: next }).fields), deleting)
             )
-              throw Error(tr("此变量仍被步骤引用，请先移除引用再删除。"));
+              throw Error(tr("此字段仍被步骤引用，请先移除引用再删除。"));
             await save(next);
             if (editing?.original === deleting) {
               setEditing(null);
@@ -401,7 +403,7 @@ export function FieldsEditor({
             setError("");
           }
         }}
-        title={tr(adding ? "添加变量" : groupEditing ? "编辑分组" : "编辑变量")}
+        title={tr(adding ? "添加字段" : groupEditing ? "编辑分组" : "编辑字段")}
         size="lg"
         closeButtonProps={{ "aria-label": tr("关闭") }}
       >
@@ -488,7 +490,7 @@ export function FieldsEditor({
               />
             </section>
             <section className="dialog-section">
-              <h3>{tr("变量用途")}</h3>
+              <h3>{tr("字段用途")}</h3>
               <div className="check-row">
                 <Checkbox
                   label={tr("输入")}

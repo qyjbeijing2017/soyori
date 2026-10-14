@@ -43,7 +43,7 @@ export const VariableInput = forwardRef<
   const mergedRef = useMergedRef(ref, input);
   const combobox = useCombobox({ onDropdownClose: () => combobox.resetSelectedOption() });
   const text = String(value ?? draftText);
-  const error = destination && normalizeReference(text) === null ? tr("输入的变量名不合法") : "";
+  const error = destination && normalizeReference(text) === null ? tr("输入的字段名不合法") : "";
   useEffect(() => {
     if (destination) destinationInput.current?.setCustomValidity(error);
   }, [destination, error]);
@@ -144,7 +144,7 @@ export const VariableInput = forwardRef<
             </Combobox.Option>
           ))}
           {create && (
-            <Combobox.Option value={create} aria-label={tr("新增变量 {{name}}", { name: create })}>
+            <Combobox.Option value={create} aria-label={tr("新增字段 {{name}}", { name: create })}>
               <span
                 style={{
                   display: "flex",

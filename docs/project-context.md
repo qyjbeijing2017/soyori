@@ -1,12 +1,12 @@
 # Soyori：项目目标与决策
 
-当前状态更新：2026-10-13。来源：本项目用户讨论及当前工作区代码。本文用于让新加入的 AI 窗口理解方向和已确认约束；实现状态是工作区快照，不代表已经提交、发布或部署。工作入口见 [AGENTS.md](../AGENTS.md)。日期决策保留演进背景，旧默认模型和早期能力判断不作为当前状态。
+当前状态更新：2026-10-14。来源：本项目用户讨论及当前工作区代码。本文用于让新加入的 AI 窗口理解方向和已确认约束；实现状态是工作区快照，不代表已经提交、发布或部署。工作入口见 [AGENTS.md](../AGENTS.md)。日期决策保留演进背景，旧默认模型和早期能力判断不作为当前状态。
 
 当前助手、模板、连接设置、下载和初始化生命周期见 [助手与浏览器运行](editor-assistant.md)。文末按日期保留决策历史，冲突时以最新决策和当前源码为准。
 
 2026-10-13 Soyori 命名与愿景：用户确认项目正式名称为 Soyori，替代 Agent Plan / AgentPlan。Soyori 是按语感创作的名称，没有约定的日语词源。长期愿景是为类似人的数字生命建立基础，承接此前 Furin 的探索；当前阶段提供人与各种 Agent 都能快速编辑、检查、纠错和修改的 Plan 开发与调试系统，不代表已经实现数字生命或自主成长。许可证继续使用 MIT，商业化后置，图标方向另行讨论。
 
-开发包统一为 soyori-core/cli/editor/ai/storage/script/tools，CLI 命令为 soyori，发布候选 scope 为 @soyori（权限尚未确认、未发布，需拥有权限后使用）。源码目录统一为 packages/*，GitHub 主仓库改名为 soyori；Core/CLI 子模块已合并为普通目录。浏览器 IndexedDB/localStorage、模型缓存与 CLI 默认数据目录保留旧标识，不迁移、不清空已有数据；新 SOYORI_* 环境变量优先，旧 AGENT_PLAN_* 作为兼容回退。工程包新导出 .soyori.zip，仍接受旧 .agentp.zip。
+开发包统一为 soyori-core/cli/editor/ai/storage/script/tools，CLI 命令为 soyori。2026-10-14 用户确认正式发布包统一使用无 scope 的 soyori-core/storage/script/tools/ai/cli，版本 0.1.0，发布账号 qiuyj；这替代此前 @soyori 候选 scope。开发工作区保留 private/workspace，发布脚本生成同名公开包与精确版本依赖。发布状态以 docs/npm-release.md 的实际验证记录为准。源码目录统一为 packages/*，GitHub 主仓库改名为 soyori；Core/CLI 子模块已合并为普通目录。浏览器 IndexedDB/localStorage、模型缓存与 CLI 默认数据目录保留旧标识，不迁移、不清空已有数据；新 SOYORI_* 环境变量优先，旧 AGENT_PLAN_* 作为兼容回退。工程包新导出 .soyori.zip，仍接受旧 .agentp.zip。
 
 2026-10-13 Soyori 图标确认：用户选择探索稿 01「Breeze / 风中的 S」。采用两段柔和深青绿色带与右上独立圆点的透明 PNG，替换品牌区、助手入口和 favicon；不采用种子或连续生长的其他两款。资源与说明见 packages/editor/public/brand。
 
@@ -31,6 +31,12 @@
 2026-10-13 npm 发布准备与名称冲突：用户选择 MIT，先准备 npm，不做域名或一键安装。保留开发包名及 private 工作区，生成六个 scoped 发布包和固定版本 npm alias 依赖，独立安装验证已通过。用户随后授权尝试首发；注册表核查发现 agent-plan 和 @agent-plan/core 已被其他项目使用，本机也尚未登录，未执行发布。当时配置中的 @agent-plan 仅为原计划；随后项目更名 Soyori，发布候选 scope 改为 @soyori，权限仍待确认，不能把它当作已可安装的公开包。流程见 [npm 发布准备](npm-release.md)。
 
 2026-10-13 单仓库迁移：用户确认 Core/CLI 收入 Soyori 主仓库，七个包统一到 packages/core、cli、editor、ai、storage、script、tools；根锁文件唯一，CI 只检出主仓库。旧子仓库不删除，迁移前完整 Git bundle、修改补丁和源码副本保存在本机 output/migration，旧 .git/modules 元数据亦保留，不参与当前开发。包职责与独立 npm 发布边界保持；此前子模块提交顺序规则被本决策取代。
+
+2026-10-13 手册目录整理：用户确认以开始使用、流程、编辑器、CLI、环境变量、内置工具、脚本、Agent 组合示例组织 Document。流程各知识点提供 Editor/YAML 对照图和可导入最小示例；编辑器与网页环境配实际截图，工具按能力逐项说明用途、输入、返回与示例。保留已有章节 ID 和源路径，Document 与 project.docs 继续共用 docs/handbook。
+
+2026-10-14 术语统一：流程（Flow）指一份 YAML/JSON 流程文件的完整内容，包含字段（Fields）和步骤（Steps）；Editor 原“运行值”面板改为“字段”，原“流程步骤”改为“步骤”，字段相关按钮、表单及 Document 同步。字段声明、默认值和当前值仍分别描述；环境变量保留原称谓。YAML 的 fields/steps、schemaVersion 与执行语义不变。
+
+2026-10-14 字段声明映射：用户确认 fields 改用“字段名: 配置”，分组用 type: group 区分，分组内部 fields 使用相同映射。分组映射键是标识，name 仅为可选显示名称，省略时显示键；改显示名称保留标识。普通字段仍全局唯一、用 $字段名 引用，分组不创建作用域。保留旧字段列表读取，Editor 新建与保存统一为映射，schemaVersion 仍为 1；步骤和工具接口参数保持有序列表。字段顺序只影响展示，普通名称保留插入顺序，整数形式键遵循 JavaScript 对象枚举顺序。本条替代历史中 Editor 输出 fields 数组的说明。
 
 ## 1. 项目为什么存在
 

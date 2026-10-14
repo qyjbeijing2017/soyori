@@ -18,18 +18,18 @@ test("distributed JSON/YAML groups retain metadata in inspect and real paths in 
   const flow = {
     schemaVersion: 1,
     name: "Grouped",
-    fields: [
-      {
+    fields: {
+      interface: {
         type: "group",
         name: "Interface",
         description: "Fields",
         collapsed: true,
-        fields: [
-          { name: "input", input: true },
-          { name: "result", output: true },
-        ],
+        fields: {
+          input: { input: true },
+          result: { output: true },
+        },
       },
-    ],
+    },
     steps: [
       {
         type: "group",
@@ -46,7 +46,7 @@ test("distributed JSON/YAML groups retain metadata in inspect and real paths in 
     const inspected = run("inspect", file);
     assert.equal(inspected.status, 0, inspected.stderr);
     const inspection = JSON.parse(inspected.stdout).result;
-    assert.equal(inspection.fields[0].collapsed, true);
+    assert.equal(inspection.fields.interface.collapsed, true);
     assert.equal(inspection.steps[0].name, "Work");
     const trace = join(directory, `${format}.jsonl`);
     const result = run("run", file, "--set", "input=hello", "--trace", trace);

@@ -1,6 +1,8 @@
 # 工具契约与平台支持
 
-工具通过普通 call 节点执行。共享工具使用相同的名称与接口，宿主负责不同环境的实现。当前已经存在工具定义与部分共享实现，尚未统一全部工作区工具或形成独立发布的 SDK。
+工具通过“调用”步骤执行。大部分工具在 CLI 和 Editor 中使用相同的名称和参数；少数工具只在网页助手中提供，下表列出差异。
+
+本页的“工具定义”和“统一调用规则”供编写工具或排查接口问题时参考。初次使用可先看[工具总览中的完整例子](reference.md#如何阅读工具说明)，再查具体工具。
 
 ## 工具定义
 
@@ -23,6 +25,8 @@ defaultValue 描述处理函数的默认行为，不自动写入节点；initial
 | time.now、math.*、text.*、array.* | 有 | 有 | 默认时区取当前宿主 |
 | web.fetch、web.search | 有 | 有 | 浏览器受 CORS 和请求头规则约束 |
 | storage.read/write/delete/list | 有 | 有 | 磁盘 JSON 与 IndexedDB，不自动同步 |
+| env.get/override/load | 有 | 有 | 启动配置来源不同；运行内覆盖不持久化 |
+| env.list/inspect/set | 无 | 助手专属 | 查看遮挡后的状态；set 只写当前对话 |
 | tokens.count | 有 | 有 | local 模式需 tokenizer；浏览器需允许下载 |
 | memory.init/save/setSystem/addUser/addAssistant/addTools | 有 | 有 | init/save 使用各端存储 |
 | llm.auto/openai/anthropic/local | 有 | 有 | 两端均支持参数与有效环境回退；浏览器 WebGPU，CLI 优先 GPU、初始化失败回退 CPU |

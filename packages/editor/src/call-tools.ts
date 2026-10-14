@@ -79,7 +79,8 @@ export function callParameterEntries(
     entries.flatMap<ParameterEntry>((entry) => {
       if (entry.type === "group") {
         const fields = visit(entry.fields);
-        return fields.length ? [{ ...entry, fields }] : [];
+        const { key: _key, ...metadata } = entry;
+        return fields.length ? [{ ...metadata, fields }] : [];
       }
       if (!entry[direction === "inputs" ? "input" : "output"]) return [];
       return [

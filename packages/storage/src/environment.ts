@@ -73,7 +73,7 @@ export const ENV_TOOL_DEFINITIONS: Record<string, ToolDefinition> = {
   "env.get": {
     name: "env.get",
     description:
-      "读取当前运行环境：网页对话/文件设置覆盖全局；CLI 使用 --env、系统环境、全局配置。包含运行内临时覆盖。返回原值，不自动标记流程变量。",
+      "读取当前运行环境：网页对话/文件设置覆盖全局；CLI 使用 --env、系统环境、全局配置。包含运行内临时覆盖。返回原值，不自动标记流程字段。",
     inputs: [{ name: "name", valueType: "string", required: true }],
     outputs: [
       { name: "found", valueType: "boolean" },

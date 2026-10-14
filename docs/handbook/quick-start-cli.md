@@ -2,20 +2,18 @@
 
 从一个空 YAML 文件开始，做一个**单轮翻译助手**：填写中文 → 拼合提示词 → 调用模型 → 得到英文。
 
-流程与 [电脑端 Editor](quick-start.md)、[手机端 Editor](quick-start-mobile.md) 教程相同。以下命令使用 PowerShell，在 Soyori 项目根目录执行。
+流程与 [电脑端 Editor](quick-start.md)、[手机端 Editor](quick-start-mobile.md) 教程相同。以下命令使用 PowerShell，在准备存放流程文件的文件夹中执行，不需要下载项目源码。
 
 ## 1. 准备 CLI
 
-准备 Node 24、pnpm，并检出项目和子模块。在项目根目录执行：
+安装 Node.js 24 或更新版本（包含 npm），然后执行：
 
 ```powershell
-git submodule update --init --recursive
-pnpm install
-pnpm build
-pnpm cli --help
+npm install -g soyori-cli
+soyori --help
 ```
 
-已经安装并构建过，可以跳过。CLI 目前依赖项目工作区，不能直接按已发布的 npm 包安装。
+已经安装 CLI 可以跳过。安装只准备运行程序，模型文件在需要时另行下载。后面使用 `soyori` 命令，不需要 pnpm。
 
 ## 2. 准备模型（可选）
 
@@ -25,7 +23,7 @@ pnpm cli --help
 >
 > **下载**：首次使用需要下载模型文件，耗时取决于网速；文件缓存保留时无需重新下载。
 >
-> **加载**：每次执行新的 `pnpm cli run` 命令，都会启动新进程并重新加载本地模型，可能需要等待几分钟。同一次流程运行中的多次模型调用会复用已加载的模型。
+> **加载**：每次执行新的 `soyori run` 命令，都会启动新进程并重新加载本地模型，可能需要等待几分钟。同一次流程运行中的多次模型调用会复用已加载的模型。
 
 想直接使用默认本地模型，可以跳到第 3 步。想使用 OpenAI 或兼容服务，在当前 PowerShell 窗口设置：
 
@@ -40,7 +38,7 @@ $env:OPENAI_MODEL = "替换为服务支持的模型 ID"
 
 ## 3. 新建流程文件
 
-在项目根目录新建 `translate.yaml`，先填写：
+在当前文件夹新建 `translate.yaml`，先填写：
 
 ```yaml
 schemaVersion: 1
@@ -52,17 +50,17 @@ description: 输入一句中文，翻译成英文。每次运行独立，不保�
 
 > **注意 YAML 缩进**：使用空格，不使用 Tab。下面的代码块已包含所需缩进；`fields`、`steps` 与 `schemaVersion` 顶格对齐。
 
-## 4. 创建三个变量
+## 4. 创建三个字段
 
 在文件末尾添加：
 
 ```yaml
 fields:
-  - name: chatIn
+  chatIn:
     input: true
     initial: 今天的天气很好。
-  - name: prompt
-  - name: chatOut
+  prompt: {}
+  chatOut:
     output: true
 ```
 
@@ -98,16 +96,16 @@ steps:
       result: $chatOut
 ```
 
-`input: $prompt` 读取上一步的提示词；`result: $chatOut` 将模型回复保存到输出变量。模型连接参数省略时使用已有配置或默认本地模型。
+`input: $prompt` 读取上一步的提示词；`result: $chatOut` 将模型回复保存到输出字段。模型连接参数省略时使用已有配置或默认本地模型。
 
-> **注意引用写法**：文本模板中的 `$chatIn$` 前后都有 `$`；读取整个变量的 `$prompt` 只在开头有 `$`。
+> **注意引用写法**：文本模板中的 `$chatIn$` 前后都有 `$`；读取整个字段的 `$prompt` 只在开头有 `$`。
 
 保存文件。完整 YAML 在本页末尾，可用于核对。
 
 ## 7. 运行并查看结果
 
 ```powershell
-pnpm cli run ./translate.yaml --set-string "chatIn=今天的天气很好。" --timeout 10m --json
+soyori run ./translate.yaml --set-string "chatIn=今天的天气很好。" --timeout 10m --json
 ```
 
 `--set-string` 传入文字，`--json` 输出 JSON，`--timeout 10m` 将整个运行的时限设为 10 分钟，给本地模型加载留出时间。
@@ -137,22 +135,22 @@ pnpm cli run ./translate.yaml --set-string "chatIn=今天的天气很好。" --t
 也可以只修改命令中的输入，翻译另一句话：
 
 ```powershell
-pnpm cli run ./translate.yaml --set-string "chatIn=很高兴认识你。" --timeout 10m --json
+soyori run ./translate.yaml --set-string "chatIn=很高兴认识你。" --timeout 10m --json
 ```
 
 ## 9. 查看中间值（可选）
 
-想检查生成的 `prompt`，可以记录每一步的运行值：
+想检查生成的 `prompt`，可以记录每一步的字段：
 
 ```powershell
-pnpm cli run ./translate.yaml --set-string "chatIn=今天的天气很好。" --timeout 10m --trace translate-run-001.jsonl --trace-values --json
+soyori run ./translate.yaml --set-string "chatIn=今天的天气很好。" --timeout 10m --trace translate-run-001.jsonl --trace-values --json
 ```
 
 打开 `translate-run-001.jsonl`，查看文本模板步骤（`steps[0]`）后的字段记录，其中包含 `prompt`。这是运行记录，不是可以继续执行的存档。
 
 > **trace 使用新文件名**：再次记录时改为 `translate-run-002.jsonl`，已有文件不会被覆盖。`--trace-values` 会记录输入等运行数据。
 
-你已完成“创建变量 → 拼合提示词 → 调用模型 → 修改流程”。运行失败时查看错误信息，检查 YAML 缩进、模型配置和网络；完整参数见 [CLI 使用](cli/guide.md)。
+你已完成“创建字段 → 拼合提示词 → 调用模型 → 修改流程”。运行失败时查看错误信息，检查 YAML 缩进、模型配置和网络；完整参数见 [CLI 使用](cli/guide.md)。
 
 ## 完整 YAML
 
@@ -163,11 +161,11 @@ schemaVersion: 1
 name: 单轮翻译助手
 description: 输入一句中文，翻译成英文。每次运行独立，不保存对话记忆。
 fields:
-  - name: chatIn
+  chatIn:
     input: true
     initial: 今天的天气很好。
-  - name: prompt
-  - name: chatOut
+  prompt: {}
+  chatOut:
     output: true
 steps:
   - type: template

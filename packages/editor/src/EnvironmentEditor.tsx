@@ -101,9 +101,9 @@ export function EnvironmentEditor({
       <p className="environment-description">
         {tr(
           fileId
-            ? "此环境仅用于当前文件的编辑器运行测试；未设置的变量使用全局值。"
+            ? "此环境仅用于当前文件的编辑器运行测试；未设置的环境变量使用全局值。"
             : threadId || draftValues !== undefined
-              ? "当前对话优先使用这里的值；未设置的变量使用全局值。"
+              ? "当前对话优先使用这里的值；未设置的环境变量使用全局值。"
               : "全局环境作为所有对话和编辑器运行的默认值。",
         )}
       </p>
@@ -118,7 +118,7 @@ export function EnvironmentEditor({
                 <div className="parameter-row">
                   <UnstyledButton
                     className="parameter-name variable-label"
-                    aria-label={tr("设置变量 {{name}}", { name })}
+                    aria-label={tr("设置环境变量 {{name}}", { name })}
                     disabled={locked}
                     onClick={() => {
                       setEditing({ original: name, name, entry: { ...entry } });
@@ -150,7 +150,7 @@ export function EnvironmentEditor({
                 </div>
                 <IconButton
                   icon="delete"
-                  label={tr("删除变量 {{name}}", { name })}
+                  label={tr("删除环境变量 {{name}}", { name })}
                   disabled={locked}
                   onClick={() => setDeleting(name)}
                 />
@@ -200,7 +200,7 @@ export function EnvironmentEditor({
                 const name = editing.name.trim();
                 validateEnvironmentName(name);
                 if (name !== editing.original && Object.hasOwn(values!, name))
-                  throw Error(tr("变量名不能为空或重复。"));
+                  throw Error(tr("环境变量名不能为空或重复。"));
                 const next = Object.fromEntries(
                   Object.entries(values!).map(([key, value]) =>
                     key === editing.original ? [name, editing.entry] : [key, value],
@@ -282,7 +282,7 @@ export function EnvironmentEditor({
       </Modal>
       {deleting && (
         <ConfirmDelete
-          title={tr("删除变量 {{name}}", { name: deleting })}
+          title={tr("删除环境变量 {{name}}", { name: deleting })}
           onClose={() => setDeleting(null)}
           onConfirm={async () => {
             const next = { ...values };

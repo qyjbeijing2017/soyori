@@ -106,16 +106,20 @@ test("default tool loop feeds mixed outcomes back to the model until its final r
   assert.equal(saved.length, 8);
   assert.equal(saved.at(-1).content, "done");
   assert.equal(
-    example.fields.some((f) => f.type === "group"),
+    Object.values(example.fields).some((f) => f.type === "group"),
     false,
   );
 });
 
 test("default preset keeps only necessary state and reads calls from the assistant message", () => {
-  assert.deepEqual(
-    example.fields.map((f) => f.name),
-    ["chatIn", "threadId", "chatOut", "memory", "assistantMessage", "toolResults"],
-  );
+  assert.deepEqual(Object.keys(example.fields), [
+    "chatIn",
+    "threadId",
+    "chatOut",
+    "memory",
+    "assistantMessage",
+    "toolResults",
+  ]);
   const first = example.steps.find((s) => s.target === "llm.auto");
   const loop = example.steps.find((s) => s.type === "while");
   assert.deepEqual(first.inputs.tools, ["time.now", "web.search", "web.fetch"]);

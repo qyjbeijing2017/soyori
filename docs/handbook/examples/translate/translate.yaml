@@ -2,11 +2,11 @@ schemaVersion: 1
 name: 单轮翻译助手
 description: 输入一句中文，翻译成英文。每次运行独立，不保存对话记忆。
 fields:
-  - name: chatIn
+  chatIn:
     input: true
     initial: 今天的天气很好。
-  - name: prompt
-  - name: chatOut
+  prompt: {}
+  chatOut:
     output: true
 steps:
   - type: template

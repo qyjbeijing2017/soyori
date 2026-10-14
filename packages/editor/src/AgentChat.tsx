@@ -317,7 +317,7 @@ export function AgentChat({
         size={mobile ? "100%" : "lg"}
       >
         <Switch
-          label={tr("记录变量快照")}
+          label={tr("记录字段快照")}
           checked={snapshots}
           onChange={(event) => setSnapshots(event.currentTarget.checked)}
         />
@@ -420,7 +420,7 @@ export function AgentChat({
       {!canChat(doc.flow) ? (
         <div className="chat-empty">
           <h1>{tr("这个流程还不是对话 Agent")}</h1>
-          <p>{tr("流程的 chatOut 变量开启输出，即可在这里对话。")}</p>
+          <p>{tr("流程的 chatOut 字段开启输出，即可在这里对话。")}</p>
           <Button type="button" onClick={onLibrary}>
             {tr("选择 Agent")}
           </Button>

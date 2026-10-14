@@ -7,6 +7,13 @@ CLI、编辑器等消费者只能导入 `soyori-core` 的公开入口，不依�
 - `LoadedFlow` 包含 definition、imports: ReadonlyMap<string, LoadedFlow> 和可选 source。完整引用、映射、输入及函数注册校验使用 `createRuntime(loadedFlow, inputs?, options?)`，不再提供 options.flows 全局注册表；构造 runtime 不执行节点。
 - `toJsonValue(value: unknown): JsonValue`：返回独立 JSON 数据副本，使用与流程定义一致的 JSON 值语义。调用方可对副本进行 JSON.stringify，避免在检查后重新读取原始对象。
 
+- `fieldEntries(fields)`：将字段映射或兼容列表转换为编辑用的条目树；分组条目用内部 `key` 保存映射标识，`name` 用作显示名称。
+- `keyedFields(fields)`：转换为“名称: 配置”的字段映射，递归保留分组、显示名称、默认值和标记；移除编辑树内部的 `key`，并检查同层键冲突。
+- `fieldDefinitions(fields)`：展开普通字段，供运行及输入输出接口使用，不把分组标识当作字段。
+- `withFieldDefinitions(fields, definitions)`：更新普通字段配置，保留分组标识、说明、折叠和排列；保持传入的映射或兼容列表形式。
+
+`FieldGroupDefinition` 表示文件中以名称为键的分组配置；`FieldGroup` / `FieldEntry` 表示编辑用的条目树。不要将编辑树内部的 `key` 直接写进文件，应通过 `keyedFields` 序列化。
+
 JSON 数据只包括 null、字符串、布尔值、有限数值、稠密数组及普通对象（包括 null 原型对象）。只接受自身可枚举数据属性；拒绝访问器、symbol 键、额外数组属性、不可枚举属性、循环、undefined、bigint 和类实例等。不会调用 getter 或 toJSON。违反条件抛出 `RuntimeError`，code 为 `INVALID_VALUE`。
 
 这是序列化边界约束，不限制运行时字段值；宿主函数、字段赋值和子流程传值仍可使用任意 JavaScript 值及引用。文本模板和对象内容比较复用同一 JSON 数据判定，非 JSON 对象仍按已有引用/显式转换规则处理。

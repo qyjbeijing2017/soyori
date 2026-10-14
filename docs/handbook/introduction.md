@@ -1,10 +1,28 @@
 # 什么是 Soyori
 
-Soyori 致力于让任何人（包括不懂代码的人），在任何设备上（包括移动设备），快速的开发、运行和调试自己的AI Agent。
+Soyori 帮助你把 AI 和工具组合成能完成任务的助手，也就是 AI Agent。你可以在电脑或手机上编辑流程、运行它，并逐步查看哪里出了问题；不懂编程也可以从示例开始。
 
-它也为未来数字生命的探索提供基础：让人和 AI 都能读取行为计划、逐步观察执行，并编辑、纠错和验证修改。当前产品是 Plan 开发与调试工作台。
+你可以自己操作，也可以让内置助手帮你阅读文档、修改文件和测试已保存的流程。
 
 从一个单轮翻译助手开始：[电脑端 Editor 入门](quick-start.md)、[手机端 Editor 入门](quick-start-mobile.md) 或 [YAML + CLI 入门](quick-start-cli.md)。
+
+一份 YAML/JSON 流程文件的完整内容称为**流程（Flow）**，其中 **字段（Fields）**保存数据，**步骤（Steps）**定义按顺序执行的操作。Editor 用同名区域编辑这两部分，文件格式仍使用 `fields` 和 `steps`。
+
+## 手册阅读路线
+
+先完成一个快速入门，再按用途查阅：
+
+| 分类 | 从这里开始 |
+| --- | --- |
+| 流程 | [概览](flows/language.md)，再学习字段、步骤与子流程 |
+| 编辑器 | [对话](editor/chat.md)、[文件库](workspace.md)、[字段](editor/values.md)、[步骤编辑](editor/flow.md)、[调试](debugging/guide.md)和[设置](editor/settings.md) |
+| CLI | [命令参考](cli/guide.md) |
+| 环境变量 | [共同原理](agents/environment.md)，然后选 [CLI](environment/cli.md) 或 [Editor](environment/editor.md) |
+| 内置工具 | [总览](tools/reference.md)，再查看各能力分类的逐个工具说明 |
+| 脚本 | [input/result、模块与调试](scripts/development.md) |
+| Agent 组合示例 | [模型与工具循环](agents/models.md)、[存储与记忆](agents/storage.md) |
+
+流程章节包含 Editor 与 YAML 对照图、完整最小例子和预期输出；编辑器章节说明具体操作。截图中的模型名和环境值为演示配置，不是可用凭证。电脑与手机入口差异先看对应入门页。
 
 ## AI Agent 的基本结构
 
@@ -19,13 +37,13 @@ Soyori 致力于让任何人（包括不懂代码的人），在任何设备上�
 
 这个“思考 → 调用工具 → 查看结果”的循环，就是许多 AI Agent 的基本工作方式。Soyori 帮助你搭建、运行和调试这样的流程。
 
-## AI Plan 是怎么工作的
+## 流程是怎么工作的
 
 以一个查询天气的 Agent 为例。
 
 ### 流程：一轮问答，运行一次
 
-每发送一条消息，就触发一次流程运行；返回回复后，这次运行结束。
+在对话页面，每发送一条消息，就触发一次流程运行；返回回复后，这次运行结束。你也可以在编辑器中直接运行流程，不经过对话。
 
 例如，你问“明天北京会下雨吗？”，流程查询天气并回复。再问“后天北京的天气呢？”，同一个流程会再次运行。
 

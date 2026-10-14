@@ -1,31 +1,34 @@
 # Inline groups and tool interfaces
 
-`schemaVersion: 1` supports inline field groups and step groups. A group carries a nonempty `name`, optional Markdown `description`, and optional boolean `collapsed` (default `false`). This information belongs to the distributed JSON/YAML definition. Expanding a group in an editor is temporary view state; changing its default is a document edit.
+`schemaVersion: 1` supports inline field groups and step groups. A group carries optional Markdown `description` and optional boolean `collapsed` (default `false`). Step groups require a nonempty `name`; keyed field groups may omit `name` to display their mapping key. This information belongs to the distributed JSON/YAML definition. Expanding a group in an editor is temporary view state; changing its default is a document edit.
 
 ## Fields
 
-Use an ordered array to organize fields directly where they are declared:
+Use a name-to-configuration mapping. Only entries with `type: group` are groups; other entries are ordinary field declarations:
 
 ```yaml
 fields:
-  - name: chatIn
+  chatIn:
     input: true
-  - type: group
+  Model settings:
+    type: group
     name: Model settings
     description: Shared configuration
     collapsed: true
     fields:
-      - name: model
+      model:
         initial: example-model
-      - name: apiKey
+      apiKey:
         input: true
-  - name: chatOut
+  chatOut:
     output: true
 ```
 
-Groups can nest. Field names must be globally unique, including across groups. Group names are presentation labels, not variable identifiers; `$model` still accesses the flat field. Flags and defaults retain their existing meanings. References to undeclared fields add declarations at the root of the array. Ungrouped object notation (`fields: { chatIn: { input: true } }`) is still accepted as a shorthand; there is no separate layout table.
+Groups can nest using the same mapping syntax. Field names must be globally unique, including across groups. The group's mapping key is its stable presentation identifier; `name` is its optional label. Renaming the label does not change the key. Groups do not introduce a field scope: `$model` still accesses the flat field. Flags and defaults retain their existing meanings. Undeclared references add ordinary declarations at the root; a root group key cannot be overwritten by an implicit declaration. Sibling keys must be unique.
 
-`parseFlow` and `inspectFlow` preserve inline groups. `fieldEntries` returns the ordered tree, `fieldDefinitions` returns the flat interface/execution view, and `withFieldDefinitions` applies flat definition updates while preserving groups. Helpers expect already validated declarations; `parseFlow` remains the validator.
+Legacy field arrays remain readable, including nested groups. Editor creates and saves mappings, converting old arrays without changing values, flags or grouping. New group keys are derived from their labels, with numeric suffixes on collisions; existing keys are retained. Ordinary-key insertion order is retained for display. Canonical unsigned integer keys follow JavaScript object enumeration order; field order does not affect execution. Step arrays and tool-parameter arrays are unchanged.
+
+`parseFlow` and `inspectFlow` preserve validated declarations in their incoming representation. `fieldEntries` returns a presentation tree; mapped groups carry an internal `key` separate from their display `name`. `keyedFields` converts that tree or a legacy collection to mappings, stripping internal keys. `fieldDefinitions` returns only the flat ordinary-field interface/execution view. `withFieldDefinitions` applies flat updates while preserving group keys, labels, metadata and layout, retaining the incoming map/list representation. Helpers expect validated declarations; `parseFlow` remains the validator. Group `key` is not a property accepted in a serialized group configuration.
 
 ## Steps
 
@@ -64,7 +67,7 @@ const functions = describeTools({ "example.tool": handler }, definitions);
 // functions["example.tool"].definition exposes the same description.
 ```
 
-Inputs and outputs are ordered `ParameterEntry[]` trees with the same inline group shape. Parameters expose `name`, `description`, `valueType`, `required`, `defaultValue`, `initial` and `placeholder`. `defaultValue` documents the handler's runtime fallback and is only displayed as a placeholder. `initial` is a raw operand prefilled by an editor when selecting the tool. Neither property injects values in Core. The handler remains responsible for validation and defaults. `valueType` documents accepted values; it does not restrict `$` references or duplicate the handler's validation.
+Tool inputs and outputs remain ordered `ParameterEntry[]` trees. Their interface groups are independent of flow-field mappings. Parameters expose `name`, `description`, `valueType`, `required`, `defaultValue`, `initial` and `placeholder`. `defaultValue` documents the handler's runtime fallback and is only displayed as a placeholder. `initial` is a raw operand prefilled by an editor when selecting the tool. Neither property injects values in Core. The handler remains responsible for validation and defaults. `valueType` documents accepted values; it does not restrict `$` references or duplicate the handler's validation.
 
 `outputs` describes named return properties. Tools with a dynamic whole return may instead provide `returns: { valueType, description }` and an empty `outputs` list; call `output` captures that result unchanged. `toolParameters` flattens interface groups. Normal functions without metadata remain executable, but cannot supply a generated editor form.
 

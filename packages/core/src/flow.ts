@@ -13,6 +13,7 @@ export interface DescriptionMetadata {
 }
 
 export interface FieldDefinition extends DescriptionMetadata {
+  type?: never;
   /** JSON-only initial data. Defaults to undefined when omitted. */
   initial?: JsonValue;
   /** Accept a same-named input parameter. Defaults to false. */
@@ -29,9 +30,19 @@ export interface FieldGroup extends DescriptionMetadata {
   name: string;
   collapsed?: boolean;
   fields: FieldEntry[];
+  /** Original mapping key, kept by presentation helpers when the label is edited. */
+  key?: string;
 }
 export type FieldEntry = (FieldDefinition & { name: string; type?: never }) | FieldGroup;
-export type FieldCollection = Record<string, FieldDefinition> | FieldEntry[];
+export interface FieldGroupDefinition extends DescriptionMetadata {
+  type: "group";
+  /** Optional display label; defaults to the mapping key. */
+  name?: string;
+  collapsed?: boolean;
+  fields: FieldCollection;
+}
+/** Named declarations; arrays remain readable for existing flows. */
+export type FieldCollection = Record<string, FieldDefinition | FieldGroupDefinition> | FieldEntry[];
 
 export interface GroupStep extends DescriptionMetadata {
   type: "group";

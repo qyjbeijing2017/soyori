@@ -1,0 +1,20 @@
+schemaVersion: 1
+name: 步骤：流程控制
+fields:
+  count:
+    initial: 0
+    output: true
+  continue:
+    initial: true
+steps:
+  - type: while
+    condition: $continue
+    body:
+      - type: add
+        left: $count
+        right: 1
+        output: $count
+      - type: lessThan
+        left: $count
+        right: 3
+        output: $continue

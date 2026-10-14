@@ -1,0 +1,12 @@
+schemaVersion: 1
+name: 步骤：调用
+fields:
+  clean:
+    output: true
+steps:
+  - type: call
+    target: text.trim
+    inputs:
+      text: "  你好  "
+    outputs:
+      result: $clean

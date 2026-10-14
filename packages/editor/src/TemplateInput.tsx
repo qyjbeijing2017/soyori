@@ -75,7 +75,7 @@ export function TemplateInput({
             </Combobox.Option>
           ))}
           {create && (
-            <Combobox.Option value={create} aria-label={tr("新增变量 {{name}}", { name: create })}>
+            <Combobox.Option value={create} aria-label={tr("新增字段 {{name}}", { name: create })}>
               <span style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
                 <span>{create}$</span>
                 <Badge size="xs" variant="light">

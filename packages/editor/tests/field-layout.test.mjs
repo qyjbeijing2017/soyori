@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { fieldDefinitions, parseFlow } from "soyori-core";
+import { fieldDefinitions, fieldEntries, keyedFields, parseFlow } from "soyori-core";
 import { parse, stringify } from "yaml";
 import {
   callParameterEntries,
@@ -123,4 +123,28 @@ test("drag moves fields between lists, reorders siblings, and refuses descendant
     ["b", "c", "a"],
   );
   assert.equal(fields[0].name, "a");
+});
+
+test("keyed field layout survives rename, drag and JSON/YAML save without group key leakage", () => {
+  const fields = {
+    first: { initial: 1 },
+    settings: { type: "group", name: "设置", fields: { second: { initial: 2 } } },
+    third: { output: true },
+  };
+  const renamed = changeFieldList(fields, [], (entries) =>
+    entries.map((entry) => (entry.type === "group" ? { ...entry, name: "新名称" } : entry)),
+  );
+  const moved = keyedFields(moveFieldEntry(renamed, [0], [1], 1));
+  assert.deepEqual(Object.keys(moved), ["settings", "third"]);
+  assert.equal(moved.settings.name, "新名称");
+  assert.deepEqual(Object.keys(moved.settings.fields), ["second", "first"]);
+  const flow = { schemaVersion: 1, name: "Roundtrip", fields: moved, steps: [] };
+  assert.deepEqual(parseFlow(parse(stringify(flow))), flow);
+  assert.deepEqual(keyedFields(fieldEntries(moved)), moved);
+  assert.ok(!JSON.stringify(moved).includes('"key":'));
+  const parameters = callParameterEntries("child", "outputs", flow);
+  assert.deepEqual(
+    parameters.map((entry) => entry.name),
+    ["third"],
+  );
 });

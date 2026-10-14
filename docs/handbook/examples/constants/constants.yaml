@@ -1,0 +1,9 @@
+schemaVersion: 1
+name: 字段：常量
+fields:
+  answer:
+    output: true
+steps:
+  - type: set
+    field: $answer
+    value: 10

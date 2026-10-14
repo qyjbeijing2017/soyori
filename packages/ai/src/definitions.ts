@@ -31,7 +31,7 @@ function llm(name: string, local: boolean): ToolDefinition {
         name: "apiKey",
         valueType: "string",
         description:
-          "省略时读取 OPENAI_API_KEY / ANTHROPIC_API_KEY，再使用宿主连接默认值；支持 $变量引用。",
+          "省略时读取 OPENAI_API_KEY / ANTHROPIC_API_KEY，再使用宿主连接默认值；支持 $字段引用。",
       },
     );
   const advanced: ParameterEntry[] = [];

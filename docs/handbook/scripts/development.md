@@ -2,9 +2,15 @@
 
 使用 `script.run` 执行 JavaScript 模块。它适合解析数据、格式转换和复杂计算；顺序、条件、循环和调用仍可以留在流程中，方便逐步查看。
 
+脚本是一段用 JavaScript 写成的操作说明。普通字段操作、计算和工具调用都可以通过现有步骤完成；需要编写自定义处理时，再使用本章。不熟悉代码时，可以让助手根据输入和预期结果编写、测试脚本。
+
 ## 输入和输出
 
 必填 `code` 是 ES 模块源码；可选 `input` 是 JSON 数据，省略为 `{}`。模块读取全局 input，通过全局 `result(value)` 设置返回值。
+
+可以先从最简单的例子理解：输入 `{count: 2}`，代码写 `result(input.count + 1);`，就会返回数字 `3`。其中 `input.count` 读取传入的 count，`result(...)` 告诉流程要交回什么结果。JavaScript 代码中的字段读取不加 `$`。
+
+下面的步骤片段计算两个商品的总价；它需要放在完整流程的 `steps` 中，并准备 summary 字段保存结果：
 
 ```yaml
 - type: call
@@ -32,7 +38,7 @@ result 不结束执行，按调用时的 JSON 快照保存；多次调用以最�
 schemaVersion: 1
 name: 手册脚本
 fields:
-  - name: chatOut
+  chatOut:
     output: true
 steps:
   - type: call
@@ -76,6 +82,6 @@ export function greet(name) {
 
 ## 编写与调试
 
-先用固定的小输入验证，再引用真实流程变量。源码编辑器提供 JS 语法诊断和导入路径补全，不是类型检查器。导入错误检查文件位置和大小写；null 输出检查 result 是否调用；超时检查顶层 await 和无限循环；后续异常检查完整栈。
+先用固定的小输入验证，再引用真实流程字段。源码编辑器提供 JS 语法诊断和导入路径补全，不是类型检查器。导入错误检查文件位置和大小写；null 输出检查 result 是否调用；超时检查顶层 await 和无限循环；后续异常检查完整栈。
 
 助手修改脚本时先完整读取文件和 revision，保存后检查调用流程，再运行同一组输入并比较预期结果。见 [助手工具](../tools/assistant.md) 和 [调试](../debugging/guide.md)。

@@ -1,0 +1,10 @@
+schemaVersion: 1
+name: 步骤：数学运算
+fields:
+  total:
+    output: true
+steps:
+  - type: multiply
+    left: 3
+    right: 4
+    output: $total
