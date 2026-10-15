@@ -1,0 +1,121 @@
+name: Deploy editor release
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+# Shared by every version, including manual retries.
+concurrency:
+  group: soyori-production
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      sha: ${{ steps.release.outputs.sha }}
+      tag: ${{ steps.release.outputs.tag }}
+    steps:
+      - name: Require verified target and explicit automatic release enablement
+        env:
+          REPOSITORY: ${{ github.repository }}
+          TARGET_VERIFIED: ${{ vars.DEPLOY_TARGET_VERIFIED }}
+          AUTO_ENABLED: ${{ vars.TAG_AUTO_DEPLOY_ENABLED }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          test "$REPOSITORY" = qyjbeijing2017/soyori || { echo 'Wrong repository'; exit 1; }
+          test "$TARGET_VERIFIED" = true || { echo 'DEPLOY_TARGET_VERIFIED must be true; no deployment occurred'; exit 1; }
+          if [ "$EVENT_NAME" = push ] && [ "$AUTO_ENABLED" != true ]; then
+            echo 'Automatic tag deployment is disabled; dispatch this version tag for the first validation'
+            exit 1
+          fi
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - name: Validate exact stable tag and main ancestry
+        id: release
+        env:
+          RELEASE_REF: ${{ github.ref }}
+          RELEASE_SHA: ${{ github.sha }}
+        run: node scripts/release-ref.mjs
+
+  verify:
+    needs: release
+    uses: ./.github/workflows/ci.yml
+    with:
+      release_sha: ${{ needs.release.outputs.sha }}
+
+  build:
+    needs: [release, verify]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.release.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - uses: pnpm/action-setup@d9184bf108216479bc5a137cc391f4d7b14c870b # v6.1.0
+        with:
+          cache: true
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter soyori-editor... build
+      - name: Validate deployment plan without AWS credentials
+        run: node scripts/deploy-editor.mjs --dry-run
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: editor-${{ needs.release.outputs.sha }}
+          path: packages/editor/dist/
+          if-no-files-found: error
+          retention-days: 7
+
+  deploy:
+    needs: [release, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.release.outputs.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - name: Recheck tag before requesting AWS credentials
+        env:
+          RELEASE_REF: ${{ github.ref }}
+          RELEASE_SHA: ${{ needs.release.outputs.sha }}
+          TARGET_VERIFIED: ${{ vars.DEPLOY_TARGET_VERIFIED }}
+        run: |
+          test "$TARGET_VERIFIED" = true || { echo 'Target verification gate is closed'; exit 1; }
+          node scripts/release-ref.mjs
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          name: editor-${{ needs.release.outputs.sha }}
+          path: packages/editor/dist/
+      - uses: aws-actions/configure-aws-credentials@8df5847569e6427dd6c4fb1cf565c83acfa8afa7 # v6.0.0
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ap-southeast-1
+          allowed-account-ids: '961808228151'
+          role-duration-seconds: 3600
+          role-session-name: soyori-${{ github.run_id }}
+          unset-current-credentials: true
+      - name: Publish assets, then entry point, then invalidate CloudFront
+        run: node scripts/deploy-editor.mjs

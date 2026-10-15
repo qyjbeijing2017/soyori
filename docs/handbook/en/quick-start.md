@@ -1,5 +1,7 @@
 # Quick start: Editor
 
+Open the [official website / online Editor](https://soyori.joycows.com) in your browser; no installation is required.
+
 Build a **single-turn translation assistant**: enter Chinese text → assemble a prompt → call a model → receive English text.
 
 Using a phone? Follow the [mobile guide](quick-start-mobile.md) for the same lesson.

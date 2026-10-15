@@ -2,6 +2,8 @@
 
 React + TypeScript + Vite 的响应式编辑器，复用 Core、AI 与存储包。
 
+直接使用[官网 / 在线编辑器](https://soyori.joycows.com)，或打开[在线手册](https://soyori.joycows.com/#document/introduction)。Bug 请通过 [GitHub Issues](https://github.com/qyjbeijing2017/soyori/issues) 提交，建议附上复现步骤、预期与实际结果、浏览器版本和脱敏截图。其他联系请发邮件给作者 Jacson：[qyjbeijing@gmail.com](mailto:qyjbeijing@gmail.com)。
+
 空白对话显示开始指引：品牌文案和三张教程入口卡片按顺序淡入，快速开始按屏幕大小打开电脑或手机教程，另外两项连接记忆与工具教程。仅在没有消息且当前对话未运行时显示，不创建对话或发送消息；输入框仍可直接使用。文案提供中英文，遵循系统“减少动态效果”设置。
 
 设置上方的 **Document** 打开[正式手册](../../docs/handbook/introduction.md)，包含快速入门、完整流程语法、脚本、工具、CLI 和调试。目录、阅读器、正文和搜索索引分开加载；助手 `project.docs` 使用同一套内容。示例只导入文件，不自动执行。

@@ -4,6 +4,8 @@ Soyori helps you combine AI and tools into an assistant that can complete tasks:
 
 Work directly, or ask the built-in assistant to read the handbook, edit files, and test saved flows.
 
+Open the [official website / online Editor](https://soyori.joycows.com) to get started. The [online handbook](https://soyori.joycows.com/#document/introduction) uses the same chapters; choose English or Chinese in Settings.
+
 Start with a translation assistant: [desktop Editor](quick-start.md), [mobile Editor](quick-start-mobile.md), or [YAML + CLI](quick-start-cli.md). Continue with [lesson 2: memory](quick-start-memory.md) and [lesson 3: tools](quick-start-tools.md). Both include Editor instructions, complete YAML, and CLI commands.
 
 A **Flow** is the whole definition in one YAML or JSON file. **Fields** hold data; **Steps** describe actions to perform in order. The Editor uses the same names, and files use `fields` and `steps`.
@@ -61,3 +63,5 @@ Select steps and change their order in the Editor to build your own flow.
 | `llm.openai` | Understanding the question and composing the answer with an OpenAI-compatible model, such as DeepSeek |
 | `time.now` | Getting the current date and time |
 | `web.fetch` | Calling a weather API; you need a service that provides forecast data |
+
+**Contact and feedback:** Report bugs through [GitHub Issues](https://github.com/qyjbeijing2017/soyori/issues). Include steps to reproduce, expected and actual results, your browser version, and screenshots with sensitive information removed. For other inquiries, email author Jacson at [qyjbeijing@gmail.com](mailto:qyjbeijing@gmail.com).

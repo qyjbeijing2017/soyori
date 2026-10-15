@@ -6,6 +6,8 @@ Read the same handbook used by the Editor's Document page and built-in assistant
 
 Start with a desktop, mobile, or CLI quick start, then continue with memory and tools. Use the Examples links to read complete files. On a GitHub file page, use Raw or Download raw file to save a copy; keep the relative paths of multi-file examples. In the Editor, the chapter's Import example button copies these files into Library.
 
+[Official website / Online Editor](https://soyori.joycows.com) · [Online handbook](https://soyori.joycows.com/#document/introduction). Choose English or Chinese in Settings. Report bugs through [GitHub Issues](https://github.com/qyjbeijing2017/soyori/issues); for other contact details, see the [introduction](en/introduction.md).
+
 <!-- Generated from index.json and en/index.json by scripts/handbook-index.mjs. -->
 
 ## Getting started

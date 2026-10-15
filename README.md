@@ -4,6 +4,8 @@
 
 [v0.1.0 — First launch](docs/releases/v0.1.0.md)
 
+**[Official website / Online Editor](https://soyori.joycows.com)** · **[Online handbook](https://soyori.joycows.com/#document/introduction)**
+
 Turn your ideas into an AI assistant. Soyori helps people and AI build, run, and debug Agents through editable flows. Combine models and tools, inspect each step, and fix problems on a computer or phone. You can start with examples even if you have never written code.
 
 This repository contains all seven packages in a single pnpm workspace. Core and CLI are ordinary package directories, with no Git submodules.
@@ -133,3 +135,9 @@ All source, documentation, and cross-package changes belong to this Git reposito
 The two GitHub handbook contents pages are generated from the existing language catalogs. After changing a catalog, run `node scripts/handbook-index.mjs`; verify they are current with `node scripts/handbook-index.mjs --check`. Maintain both README languages together.
 
 Further developer notes: [assistant and browser execution](docs/editor-assistant.md), [basic tools](docs/basic-tools.md), [memory tools](docs/memory-tools.md), [model tool calling](docs/tool-calling.md), and [storage and tokens](docs/storage-and-tokens.md).
+
+## Contact and feedback
+
+Report bugs through [GitHub Issues](https://github.com/qyjbeijing2017/soyori/issues). Include steps to reproduce, expected and actual results, your browser version, and screenshots with sensitive information removed.
+
+Author: Jacson. For other inquiries, email [qyjbeijing@gmail.com](mailto:qyjbeijing@gmail.com).

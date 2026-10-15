@@ -1,0 +1,17 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "UploadSiteFilesAtOriginRoot",
+      "Effect": "Allow",
+      "Action": ["s3:PutObject", "s3:AbortMultipartUpload"],
+      "Resource": "arn:aws:s3:::soyori-web-prod-961808228151-ap-southeast-1-an/*"
+    },
+    {
+      "Sid": "InvalidateOnlySoyoriDistribution",
+      "Effect": "Allow",
+      "Action": ["cloudfront:CreateInvalidation", "cloudfront:GetInvalidation"],
+      "Resource": "arn:aws:cloudfront::961808228151:distribution/EX63P0WN21EXX"
+    }
+  ]
+}

@@ -6,6 +6,8 @@
 
 先选择电脑、手机或 CLI 入门，再学习记忆和工具。示例列可以直接打开完整文件；在 GitHub 文件页使用 Raw 或 Download raw file 保存，多文件示例需保留相对路径。Editor 内的章节还提供“导入示例”按钮，将同一组文件复制到文件库。
 
+[官网 / 在线编辑器](https://soyori.joycows.com) · [在线手册](https://soyori.joycows.com/#document/introduction)，可在设置中切换中文或 English。Bug 请通过 [GitHub Issues](https://github.com/qyjbeijing2017/soyori/issues) 提交，其他联系方式见[产品简介](introduction.md)。
+
 <!-- Generated from index.json and en/index.json by scripts/handbook-index.mjs. -->
 
 ## 开始使用

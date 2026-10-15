@@ -35,6 +35,10 @@ for (const english of [true, false]) {
       ? "Start with a desktop, mobile, or CLI quick start, then continue with memory and tools. Use the Examples links to read complete files. On a GitHub file page, use Raw or Download raw file to save a copy; keep the relative paths of multi-file examples. In the Editor, the chapter's Import example button copies these files into Library."
       : "先选择电脑、手机或 CLI 入门，再学习记忆和工具。示例列可以直接打开完整文件；在 GitHub 文件页使用 Raw 或 Download raw file 保存，多文件示例需保留相对路径。Editor 内的章节还提供“导入示例”按钮，将同一组文件复制到文件库。",
     "",
+    english
+      ? "[Official website / Online Editor](https://soyori.joycows.com) · [Online handbook](https://soyori.joycows.com/#document/introduction). Choose English or Chinese in Settings. Report bugs through [GitHub Issues](https://github.com/qyjbeijing2017/soyori/issues); for other contact details, see the [introduction](en/introduction.md)."
+      : "[官网 / 在线编辑器](https://soyori.joycows.com) · [在线手册](https://soyori.joycows.com/#document/introduction)，可在设置中切换中文或 English。Bug 请通过 [GitHub Issues](https://github.com/qyjbeijing2017/soyori/issues) 提交，其他联系方式见[产品简介](introduction.md)。",
+    "",
     "<!-- Generated from index.json and en/index.json by scripts/handbook-index.mjs. -->",
   ];
   for (const group of new Set(catalog.chapters.map((chapter) => chapter.group))) {

@@ -4,6 +4,8 @@
 
 [v0.1.0 — 首个上线版本](docs/releases/v0.1.0.zh-CN.md)
 
+**[官网 / 在线编辑器](https://soyori.joycows.com)** · **[在线手册](https://soyori.joycows.com/#document/introduction)**
+
 Soyori 的统一源码仓库。七个包位于 packages/*，通过 pnpm workspace 联合开发；Core 和 CLI 是普通包目录，不再使用 Git 子模块。
 
 Soyori 面向人与 AI 共同开发、运行和调试行为计划，长期为类似人的数字生命建立基础。当前工作聚焦可理解、可编辑、可验证的 Plan 系统。
@@ -132,3 +134,9 @@ GitHub Actions 在 Windows 和 Linux 上检出同一主仓库，执行安装、p
 开发说明：[助手与浏览器运行](docs/editor-assistant.md)、[基础工具](docs/basic-tools.md)、[记忆工具](docs/memory-tools.md)、[模型工具调用](docs/tool-calling.md)。
 
 GitHub 手册的中英文完整目录由现有语言目录生成。修改目录后执行 `node scripts/handbook-index.mjs`，使用 `node scripts/handbook-index.mjs --check` 检查是否同步。根目录两个 README 的内容也需一起维护。
+
+## 联系与反馈
+
+Bug 请通过 [GitHub Issues](https://github.com/qyjbeijing2017/soyori/issues) 提交，建议附上复现步骤、预期与实际结果、浏览器版本和脱敏截图。
+
+作者：Jacson。其他联系请发邮件至 [qyjbeijing@gmail.com](mailto:qyjbeijing@gmail.com)。

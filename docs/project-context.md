@@ -4,6 +4,8 @@
 
 当前助手、模板、连接设置、下载和初始化生命周期见 [助手与浏览器运行](editor-assistant.md)。文末按日期保留决策历史，冲突时以最新决策和当前源码为准。
 
+2026-10-15 界面语言：有效的已保存 en / zh-CN 选择优先，继续兼容 agent-plan.language；没有有效选择时按浏览器首选语言初始化，所有 zh 语言变体使用简体中文，其余语言及无浏览器信息时使用英文。自动检测不保存为手动偏好；手动切换持久保存，Document 继续跟随编辑器语言。HTML 默认 lang 为 en，编辑器在首次渲染前同步实际初始化语言。
+
 2026-10-15 开始指引：用户希望空白对话增加动画文案与入门入口。首版使用一次性淡入，连接现有快速开始、记忆和工具教程；快速开始根据屏幕大小进入电脑或手机章节，仍允许直接输入对话。中英文同步，减少动态效果时关闭动画；不自动创建 thread、导入流程或发起模型请求。
 
 2026-10-15 GitHub 文档入口：用户要求根 README 拆为中英文，README.md 默认英文，README.zh-CN.md 为中文，互相链接。Document 继续共用 docs/handbook 中现有的中英文章节、截图和示例；新增 README.md / README.zh-CN.md 完整目录，由 scripts/handbook-index.mjs 从两个语言目录生成，可在 GitHub 直接浏览及下载示例。为带标点的小节补兼容锚点，保留 Editor 原有路由和章节 ID；不引入第二套正文或独立站点。
@@ -384,3 +386,5 @@ Editor 的 LLM/tools.execute 的 tools 参数使用专用智能选择器：同�
 2026-10-11：新增共享 memory.init/save，init 按 prefix/threadId 读取消息数组、按需替换 system 和追加 prompt，save 保存完整消息数组；默认前缀 memory，与原始 threads/<threadId> 记录分开。默认流程简化为五个外层步骤，保留显式工具循环及底层消息组装工具，不覆盖或迁移已有用户流程。此决策替代默认流程中模板生成 key、storage.read/setSystem/addUser 和 storage.write 的组合；详见 [记忆工具](memory-tools.md)。
 
 2026-10-11：内置对话入口改为 Soyori 助手，使用独立 assistant.json，与新建流程 example.json 分开。设置保存 OpenAI/Anthropic 的 API Key、Base URL、模型 ID 及模型来源；自动模式优先 OpenAI，其次 Anthropic，无 Key 则本地，也可显式选本地。远程失败不静默回退。凭据由宿主注入调用，不写入助手流程或记忆；已有内置会话 ID 保留。远程助手可调用基础工具库，本地保留时间、搜索和 HTTP 工具以控制上下文开销。
+
+2026-10-15 CI/CD：PR/main 仅做 Windows/Linux 验证和 Editor 构建；正式稳定版本 tag 经严格 SemVer、存在性、固定 SHA 与 main 历史归属验证后发布新加坡私有 S3 并刷新指定 CloudFront。首次在含新工作流的版本 tag 上 workflow_dispatch 手动验证，之后再启用 tag 自动发布；不允许 main 直接部署，不移动旧 v0.1.0。OIDC trust 限本仓库 immutable subject 的 refs/tags/v*，IAM 变更须当次批准，不自动提交推送。细节见 [部署说明](deployment/README.md)。

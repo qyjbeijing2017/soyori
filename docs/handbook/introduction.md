@@ -4,6 +4,8 @@ Soyori 帮助你把 AI 和工具组合成能完成任务的助手，也就是 AI
 
 你可以自己操作，也可以让内置助手帮你阅读文档、修改文件和测试已保存的流程。
 
+打开[官网 / 在线编辑器](https://soyori.joycows.com)即可开始；[在线手册](https://soyori.joycows.com/#document/introduction)与这里使用同一套正文，可在设置中切换中文或 English。
+
 从一个单轮翻译助手开始：[电脑端 Editor 入门](quick-start.md)、[手机端 Editor 入门](quick-start-mobile.md) 或 [YAML + CLI 入门](quick-start-cli.md)。
 
 完成第一课后，继续[快速入门 2：使用记忆](quick-start-memory.md)，再学习[快速入门 3：使用工具](quick-start-tools.md)。两课都包含 Editor 操作、完整 YAML 和 CLI 命令。
@@ -67,3 +69,5 @@ Soyori 帮助你把 AI 和工具组合成能完成任务的助手，也就是 AI
 | `llm.openai` | 理解问题、给回复：调用 DeepSeek 等兼容模型 |
 | `time.now` | 看时间：获取当前日期和时间 |
 | `web.fetch` | 查天气：请求天气接口，需要接入提供天气数据的服务 |
+
+**联系与反馈**：Bug 请通过 [GitHub Issues](https://github.com/qyjbeijing2017/soyori/issues) 提交，建议附上复现步骤、预期与实际结果、浏览器版本和脱敏截图。其他联系请发邮件给作者 Jacson：[qyjbeijing@gmail.com](mailto:qyjbeijing@gmail.com)。
