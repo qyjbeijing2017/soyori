@@ -2,23 +2,30 @@ import type { TextGenerationPipeline } from "@huggingface/transformers";
 import { LOCAL_REVISION } from "./definitions.js";
 import { type GenerateInput, type GenerateResult, LOCAL_MODEL } from "./index.js";
 import { localMessages, localResult, localTemplateOptions } from "./local-tools.js";
-import { prepareExternalWeights } from "./onnx-external.js";
+import { type BrowserModelFileCache, prepareExternalWeights } from "./onnx-external.js";
 import { createPreview, type ModelEvent } from "./stream.js";
 
 /** Browser hosts prepare complete model files before inference; no hidden downloads. */
 export async function configureBrowserModelCache(
-  cacheName: string,
+  source: string | BrowserModelFileCache,
   runtimePaths?: { wasm: string; mjs: string },
 ) {
   const { env } = await import("@huggingface/transformers");
-  const cache = await caches.open(cacheName);
+  const sourceCache = typeof source === "string" ? await caches.open(source) : source;
   const pinnedPrefix = `https://huggingface.co/${LOCAL_MODEL}/resolve/${LOCAL_REVISION}/`;
-  await prepareExternalWeights(cache, `${pinnedPrefix}onnx/model_q4f16.onnx`);
+  const modelURL = `${pinnedPrefix}onnx/model_q4f16.onnx`;
+  let prepared: Promise<BrowserModelFileCache> | undefined;
   // Pipeline file discovery in Transformers 4.3 uses main even with a revision.
   // Resolve that alias to our pinned files without storing or fetching main.
   const mainPrefix = `https://huggingface.co/${LOCAL_MODEL}/resolve/main/`;
-  const match = (url: string) =>
-    cache.match(url.startsWith(mainPrefix) ? pinnedPrefix + url.slice(mainPrefix.length) : url);
+  const match = async (url: string) => {
+    const key = url.startsWith(mainPrefix) ? pinnedPrefix + url.slice(mainPrefix.length) : url;
+    if (key === modelURL || key === `${modelURL}_data`) {
+      prepared ??= prepareExternalWeights(sourceCache, modelURL);
+      return (await prepared).match(key);
+    }
+    return sourceCache.match(key);
+  };
   env.allowLocalModels = false;
   // Transformers requires one source enabled even when all files come from cache.
   // Its fetch hook stays cache-only, including optional files absent from the manifest.

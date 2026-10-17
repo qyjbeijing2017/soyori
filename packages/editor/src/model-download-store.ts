@@ -7,15 +7,15 @@ export interface FileProgress {
   offset: number;
 }
 
-// Promotion keeps resumable chunks until Cache.put commits the complete file.
-// Budget for both copies; estimates are advisory and may be unavailable.
+// Complete files stay in the resumable chunk store; no second full-file copy.
+// Estimates are advisory and may be unavailable.
 async function checkStorageSpace(size: number, offset: number) {
   const storage = globalThis.navigator?.storage;
   const estimate = await storage?.estimate?.().catch(() => undefined);
   if (estimate?.quota === undefined || estimate.usage === undefined) return;
-  if (estimate.quota - estimate.usage < size - offset + size)
+  if (estimate.quota - estimate.usage < size - offset)
     throw new DOMException(
-      "Insufficient storage for download and complete-file cache.",
+      "Insufficient storage for remaining model download.",
       "QuotaExceededError",
     );
 }
@@ -73,30 +73,58 @@ export class ModelDownloadStore {
     tx.objectStore("chunks").delete(IDBKeyRange.bound([url, 0], [url, Number.MAX_SAFE_INTEGER]));
     await done;
   }
-  async promote(file: FileProgress, cache: Cache, signal: AbortSignal) {
-    let offset = 0;
-    const stream = new ReadableStream<Uint8Array>({
-      pull: async (controller) => {
-        try {
-          signal.throwIfAborted();
-          if (offset === file.size) return controller.close();
-          const bytes = await this.chunk(file.url, offset);
-          if (!bytes?.length || offset + bytes.length > file.size)
-            throw Error("Download chunks are incomplete.");
-          offset += bytes.length;
-          controller.enqueue(bytes);
-        } catch (cause) {
-          controller.error(cause);
-        }
+  async response(
+    url: string,
+    size: number,
+    ranges: { offset: number; length: number }[] = [{ offset: 0, length: size }],
+  ): Promise<Response | undefined> {
+    const saved = await this.progress(url);
+    if (!saved || saved.size !== size || saved.offset !== size) return;
+    for (const range of ranges) {
+      if (
+        !Number.isSafeInteger(range.offset) ||
+        !Number.isSafeInteger(range.length) ||
+        range.offset < 0 ||
+        range.length < 0 ||
+        range.offset + range.length > size
+      )
+        throw Error("Invalid model byte range.");
+    }
+    let index = 0;
+    let consumed = 0;
+    let chunkOffset = -1;
+    let chunk: Uint8Array | undefined;
+    const stream = new ReadableStream<Uint8Array>(
+      {
+        pull: async (controller) => {
+          try {
+            while (index < ranges.length && consumed === ranges[index].length) {
+              index++;
+              consumed = 0;
+            }
+            if (index === ranges.length) return controller.close();
+            const range = ranges[index];
+            const position = range.offset + consumed;
+            const base = Math.floor(position / DOWNLOAD_CHUNK_BYTES) * DOWNLOAD_CHUNK_BYTES;
+            if (chunkOffset !== base) {
+              chunk = await this.chunk(url, base);
+              chunkOffset = base;
+            }
+            const start = position - base;
+            const length = Math.min(range.length - consumed, (chunk?.length ?? 0) - start);
+            if (!chunk || length <= 0) throw Error("Download chunks are incomplete.");
+            controller.enqueue(chunk.slice(start, start + length));
+            consumed += length;
+          } catch (cause) {
+            controller.error(cause);
+          }
+        },
       },
-    });
-    await cache.put(
-      file.url,
-      new Response(stream, {
-        headers: { "content-length": String(file.size) },
-      }),
+      { highWaterMark: 0 },
     );
-    await this.clear(file.url);
+    return new Response(stream, {
+      headers: { "content-length": String(ranges.reduce((n, r) => n + r.length, 0)) },
+    });
   }
 }
 
@@ -104,7 +132,7 @@ export class ModelDownloadStore {
 export async function downloadFile(
   file: { url: string; size: number },
   store: ModelDownloadStore,
-  cache: Cache,
+  cache: Pick<Cache, "match">,
   signal: AbortSignal,
   fetcher: typeof fetch,
   onProgress: (offset: number) => void,
@@ -117,6 +145,8 @@ export async function downloadFile(
   }
   let offset = saved?.offset ?? 0;
   onProgress(offset);
+  signal.throwIfAborted();
+  if (offset === file.size) return;
   await checkStorageSpace(file.size, offset);
   while (offset < file.size) {
     signal.throwIfAborted();
@@ -160,5 +190,6 @@ export async function downloadFile(
     }
   }
   signal.throwIfAborted();
-  await store.promote({ ...file, offset }, cache, signal);
+  // append commits the final chunk and progress atomically. Readers stream the chunks.
+  onProgress(offset);
 }

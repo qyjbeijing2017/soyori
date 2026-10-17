@@ -7,12 +7,18 @@ import {
   downloadFile,
   ModelDownloadStore,
 } from "../src/model-download-store.ts";
-import { MODEL_FILES, modelFileURL, TOKENIZER_FILES } from "../src/model-files.ts";
+import {
+  MODEL_FILES,
+  modelFileURL,
+  openManagedModelCache,
+  TOKENIZER_FILES,
+} from "../src/model-files.ts";
 
 function memoryCache() {
   const values = new Map();
   return {
     match: async (url) => values.get(url)?.clone(),
+    delete: async (url) => values.delete(url),
     put: async (url, response) => {
       const bytes = await response.arrayBuffer();
       values.set(url, new Response(bytes, { headers: response.headers }));
@@ -56,8 +62,11 @@ test("interrupted downloads resume persisted chunks in a new store and reuse com
     () => {},
   );
   assert.equal(ranges.at(-1), `bytes=${DOWNLOAD_CHUNK_BYTES}-${bytes.length - 1}`);
-  assert.deepEqual(new Uint8Array(await (await cache.match(file.url)).arrayBuffer()), bytes);
-  assert.equal(await store.progress(file.url), undefined);
+  assert.deepEqual(
+    new Uint8Array(await (await store.response(file.url, file.size)).arrayBuffer()),
+    bytes,
+  );
+  assert.equal((await store.progress(file.url)).offset, file.size);
   await downloadFile(
     file,
     store,
@@ -119,35 +128,17 @@ test("incorrect ranges, ignored resume and incomplete chunks cannot become compl
   );
 });
 
-test("quota failure at 100% preserves chunks and retries cache publication without network", async () => {
+test("completed legacy chunks need no cache write or network to become usable", async () => {
   const file = { url: "https://test.invalid/quota", size: 123 };
   const bytes = new Uint8Array(file.size).fill(42);
   const store = new ModelDownloadStore();
-  const cache = memoryCache();
-  const failedCache = {
-    match: cache.match,
-    put: async (_url, response) => {
-      await response.arrayBuffer();
+  await store.append({ ...file, offset: 0 }, bytes);
+  const cache = {
+    match: async () => undefined,
+    put: async () => {
       throw new DOMException("Quota exceeded.", "QuotaExceededError");
     },
   };
-  let progress;
-  await assert.rejects(
-    downloadFile(
-      file,
-      store,
-      failedCache,
-      new AbortController().signal,
-      async () => new Response(bytes),
-      (offset) => {
-        progress = offset;
-      },
-    ),
-    { name: "QuotaExceededError" },
-  );
-  assert.equal(progress, file.size);
-  assert.equal((await store.progress(file.url)).offset, file.size);
-  assert.equal(await cache.match(file.url), undefined);
   await downloadFile(
     file,
     new ModelDownloadStore(),
@@ -158,8 +149,11 @@ test("quota failure at 100% preserves chunks and retries cache publication witho
     },
     () => {},
   );
-  assert.deepEqual(new Uint8Array(await (await cache.match(file.url)).arrayBuffer()), bytes);
-  assert.equal(await store.progress(file.url), undefined);
+  assert.deepEqual(
+    new Uint8Array(await (await store.response(file.url, file.size)).arrayBuffer()),
+    bytes,
+  );
+  await store.clear(file.url);
 });
 
 test("storage estimates stop downloads before network and quota failures are actionable", async () => {
@@ -183,13 +177,17 @@ test("storage estimates stop downloads before network and quota failures are act
     assert.equal(calls, 0);
     assert.equal(manager.getSnapshot().status, "error");
     assert.equal(manager.getSnapshot().errorKind, "storage-quota");
-    // Even with all bytes persisted, publishing a cache entry needs more space.
+    // Complete chunks remain usable even when there is no room for another copy.
     const store = new ModelDownloadStore();
     const file = { url: "https://test.invalid/full-quota", size: 2 };
     await store.append({ ...file, offset: 0 }, new Uint8Array(2));
-    await assert.rejects(
-      downloadFile(file, store, cache, new AbortController().signal, globalThis.fetch, () => {}),
-      { name: "QuotaExceededError" },
+    await downloadFile(
+      file,
+      store,
+      cache,
+      new AbortController().signal,
+      globalThis.fetch,
+      () => {},
     );
     assert.equal((await store.progress(file.url)).offset, 2);
     assert.equal(calls, 0);
@@ -202,7 +200,7 @@ test("storage estimates stop downloads before network and quota failures are act
   }
 });
 
-test("restoring all downloaded bytes requires complete cache entries before ready", async () => {
+test("restoring completed chunks is ready without promoting them to Cache API", async () => {
   const originalCaches = globalThis.caches;
   const cache = memoryCache();
   globalThis.caches = { open: async () => cache };
@@ -217,7 +215,7 @@ test("restoring all downloaded bytes requires complete cache entries before read
     const manager = new ModelDownloadManager();
     await manager.restore();
     assert.equal(manager.getSnapshot().loaded, manager.getSnapshot().total);
-    assert.equal(manager.getSnapshot().status, "paused");
+    assert.equal(manager.getSnapshot().status, "ready");
     await cache.put(url, new Response("cached"));
     await manager.restore();
     assert.equal(manager.getSnapshot().status, "ready");
@@ -289,5 +287,157 @@ test("settings and automatic downloads share pause/resume/stop and restore byte 
   } finally {
     globalThis.fetch = originalFetch;
     globalThis.caches = originalCaches;
+  }
+});
+
+test("chunked cache streams disjoint weight ranges across chunk boundaries without copies on disk", async () => {
+  const originalCaches = globalThis.caches;
+  globalThis.caches = { open: async () => memoryCache() };
+  const store = new ModelDownloadStore();
+  const file = TOKENIZER_FILES.find((f) => f.size > DOWNLOAD_CHUNK_BYTES);
+  const url = modelFileURL(file.path);
+  const bytes = Uint8Array.from({ length: file.size }, (_, i) => i % 251);
+  try {
+    for (let offset = 0; offset < bytes.length; offset += DOWNLOAD_CHUNK_BYTES)
+      await store.append(
+        { url, size: file.size, offset },
+        bytes.slice(offset, offset + DOWNLOAD_CHUNK_BYTES),
+      );
+    const cache = await openManagedModelCache();
+    const ranges = [
+      { offset: DOWNLOAD_CHUNK_BYTES - 3, length: 11 },
+      { offset: file.size - 4, length: 4 },
+      { offset: 0, length: 2 },
+    ];
+    const expected = Buffer.concat(
+      ranges.map(({ offset, length }) => Buffer.from(bytes.slice(offset, offset + length))),
+    );
+    for (let i = 0; i < 2; i++)
+      assert.deepEqual(
+        Buffer.from(await (await cache.readRanges(url, ranges)).arrayBuffer()),
+        expected,
+      );
+    assert.deepEqual(new Uint8Array(await (await cache.match(url)).arrayBuffer()), bytes);
+    await assert.rejects(
+      store.response(url, file.size, [{ offset: file.size, length: 1 }]),
+      /Invalid/,
+    );
+    await store.clear(url);
+    assert.equal(await cache.match(url), undefined);
+  } finally {
+    await store.clear(url);
+    globalThis.caches = originalCaches;
+  }
+});
+
+test("cancel dismisses errors and clear removes only model downloads, then allows a fresh download", async () => {
+  const storageDescriptor = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
+  const preferences = new Map();
+  Object.defineProperty(globalThis, "localStorage", {
+    configurable: true,
+    value: {
+      getItem: (key) => preferences.get(key),
+      setItem: (key, value) => preferences.set(key, value),
+      removeItem: (key) => preferences.delete(key),
+    },
+  });
+  const originalCaches = globalThis.caches;
+  const originalFetch = globalThis.fetch;
+  const cache = memoryCache();
+  globalThis.caches = { open: async () => cache };
+  const store = new ModelDownloadStore();
+  const unrelated = "https://test.invalid/unrelated-user-file";
+  const first = TOKENIZER_FILES[0];
+  const url = modelFileURL(first.path);
+  let requested;
+  globalThis.fetch = async (_url, { signal }) => {
+    requested?.();
+    await new Promise((_resolve, reject) =>
+      signal.addEventListener("abort", () => reject(signal.reason), { once: true }),
+    );
+  };
+  try {
+    await cache.put(unrelated, new Response("keep me"));
+    await cache.put(`${modelFileURL(MODEL_FILES.at(-1).path)}_data`, new Response("old weights"));
+    await store.append({ url, size: first.size, offset: 0 }, new Uint8Array(first.size));
+    const manager = new ModelDownloadManager();
+    const pending = new Promise((resolve) => {
+      requested = resolve;
+    });
+    const downloading = manager.ensure("model");
+    const rejected = assert.rejects(downloading);
+    await pending;
+    await manager.clear();
+    await rejected;
+    assert.equal(manager.getSnapshot().status, "idle");
+    assert.equal(manager.getSnapshot().loaded, 0);
+    assert.equal(await store.progress(url), undefined);
+    assert.equal(await cache.match(`${modelFileURL(MODEL_FILES.at(-1).path)}_data`), undefined);
+    assert.equal(await (await cache.match(unrelated)).text(), "keep me");
+    globalThis.fetch = async () => {
+      throw new DOMException("quota", "QuotaExceededError");
+    };
+    await assert.rejects(manager.ensure("model"));
+    assert.equal(manager.getSnapshot().status, "error");
+    manager.stop();
+    assert.equal(manager.getSnapshot().status, "stopped");
+    assert.equal(manager.getSnapshot().error, "");
+    await store.append({ url, size: first.size, offset: 0 }, new Uint8Array(first.size));
+    const restored = new ModelDownloadManager();
+    await restored.restore();
+    assert.equal(restored.getSnapshot().status, "stopped");
+    globalThis.fetch = async (address, { headers }) => {
+      const file = TOKENIZER_FILES.find((f) => modelFileURL(f.path) === address);
+      const [, start, end] = /bytes=(\d+)-(\d+)/.exec(headers.Range).map(Number);
+      return rangeResponse(new Uint8Array(file.size), start, end);
+    };
+    await manager.ensure("tokenizer");
+    assert.equal(manager.getSnapshot().status, "ready");
+    await manager.clear();
+  } finally {
+    if (storageDescriptor) Object.defineProperty(globalThis, "localStorage", storageDescriptor);
+    else delete globalThis.localStorage;
+    globalThis.caches = originalCaches;
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("clearing during asynchronous cache checks cannot restart a cancelled download", async () => {
+  const originalCaches = globalThis.caches;
+  const originalFetch = globalThis.fetch;
+  let requested;
+  let unblock;
+  const waiting = new Promise((resolve) => {
+    requested = resolve;
+  });
+  const gate = new Promise((resolve) => {
+    unblock = resolve;
+  });
+  globalThis.caches = {
+    open: async () => ({
+      match: async () => {
+        requested();
+        await gate;
+        return undefined;
+      },
+      delete: async () => true,
+    }),
+  };
+  globalThis.fetch = async () => {
+    throw Error("cancelled download must not fetch");
+  };
+  try {
+    const manager = new ModelDownloadManager();
+    const starting = manager.ensure("model");
+    const rejected = assert.rejects(starting, { name: "AbortError" });
+    await waiting;
+    await manager.clear();
+    unblock();
+    await rejected;
+    assert.equal(manager.getSnapshot().status, "idle");
+  } finally {
+    unblock();
+    globalThis.caches = originalCaches;
+    globalThis.fetch = originalFetch;
   }
 });

@@ -56,14 +56,14 @@ function fields(b: Uint8Array) {
   }
   return list;
 }
-export function externalizeOnnx(original: ArrayBuffer, location: string) {
+function indexExternalOnnx(original: ArrayBuffer, location: string) {
   const bytes = new Uint8Array(original),
     root = fields(bytes),
     graphField = root.find((f) => f.n === 7);
   if (!graphField) throw Error("AI_MODEL_FORMAT: Missing ONNX graph.");
   const graph = bytes.subarray(graphField.from, graphField.to);
   const parts: Uint8Array[] = [],
-    weights: Uint8Array<ArrayBuffer>[] = [];
+    ranges: { offset: number; length: number }[] = [];
   let offset = 0;
   const enc = new TextEncoder();
   const entry = (key: string, value: string) =>
@@ -83,7 +83,7 @@ export function externalizeOnnx(original: ArrayBuffer, location: string) {
     if (tf.some((t) => t.n === 13 || t.n === 14))
       throw Error("AI_MODEL_FORMAT: Already external tensor.");
     const length = raw.to - raw.from;
-    weights.push(tensor.subarray(raw.from, raw.to));
+    ranges.push({ offset: graphField.from + f.from + raw.from, length });
     const small = tf.filter((t) => t.n !== 9).map((t) => tensor.subarray(t.start, t.end));
     small.push(
       entry("location", location),
@@ -99,24 +99,59 @@ export function externalizeOnnx(original: ArrayBuffer, location: string) {
   const newGraph = field(7, concat(parts));
   return {
     graph: concat(root.map((f) => (f.n === 7 ? newGraph : bytes.subarray(f.start, f.end)))),
-    weights: new Blob(weights),
+    ranges,
   };
 }
-export async function prepareExternalWeights(cache: Cache, url: string) {
+export function externalizeOnnx(original: ArrayBuffer, location: string) {
+  const { graph, ranges } = indexExternalOnnx(original, location);
+  return {
+    graph,
+    weights: new Blob(ranges.map(({ offset, length }) => original.slice(offset, offset + length))),
+  };
+}
+
+export interface BrowserModelFileCache {
+  match(url: string): Promise<Response | undefined>;
+  readRanges?(
+    url: string,
+    ranges: { offset: number; length: number }[],
+  ): Promise<Response | undefined>;
+}
+
+/** Virtual external weights reference the original file; never persist a second copy. */
+export async function prepareExternalWeights(
+  cache: BrowserModelFileCache,
+  url: string,
+): Promise<BrowserModelFileCache> {
   const response = await cache.match(url);
-  if (!response) return; // tokenizer-only downloads do not include a graph
+  if (!response) return cache; // tokenizer-only downloads do not include a graph
   const dataURL = `${url}_data`;
   if (response.headers.get(MARKER) === "1") {
     if (!(await cache.match(dataURL)))
       throw Error(
         "AI_MODEL_CACHE: External weights are missing; clear the incomplete model cache and download again.",
       );
-    return;
+    return cache;
   }
   const location = new URL(dataURL).pathname.split("/").at(-1);
   if (!location) throw Error("AI_MODEL_FORMAT: Invalid model URL.");
-  const result = externalizeOnnx(await response.arrayBuffer(), location);
-  // Publish data first, graph last: interruption leaves the original graph usable.
-  await cache.put(dataURL, new Response(result.weights));
-  await cache.put(url, new Response(result.graph, { headers: { [MARKER]: "1" } }));
+  const original = await response.arrayBuffer();
+  const { graph, ranges } = indexExternalOnnx(original, location);
+  // Hosts with ranged storage only retain the small graph and offsets. The legacy
+  // cache-name API uses a Blob in memory, without modifying its persistent cache.
+  const fallback = cache.readRanges
+    ? undefined
+    : new Blob(ranges.map(({ offset, length }) => new Uint8Array(original, offset, length)));
+  const readRanges = cache.readRanges?.bind(cache);
+  return {
+    async match(key) {
+      if (key === url) return new Response(graph, { headers: { [MARKER]: "1" } });
+      if (key === dataURL) {
+        const weights = readRanges ? await readRanges(url, ranges) : new Response(fallback);
+        if (!weights) throw Error("AI_MODEL_CACHE: Original model weights are missing.");
+        return weights;
+      }
+      return cache.match(key);
+    },
+  };
 }

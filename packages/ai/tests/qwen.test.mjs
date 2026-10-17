@@ -31,24 +31,41 @@ test("external ONNX preserves weight bytes, metadata and rejects malformed proto
   assert.deepEqual(Array.from(converted.graph.slice(0, 2)), [8, 9]);
   assert.throws(() => externalizeOnnx(buffer(original.subarray(0, 20)), "weights"), /Truncated/);
 });
-test("prepare publishes weights before graph, is reusable and catches incomplete cache", async () => {
-  const url = "https://test.invalid/model_q4f16.onnx",
-    map = new Map([[url, new Response(original)]]),
-    writes = [];
+test("virtual external weights preserve bytes without writing a second persistent copy", async () => {
+  const url = "https://test.invalid/model_q4f16.onnx";
   const cache = {
-    match: async (k) => map.get(k)?.clone(),
-    put: async (k, r) => {
-      writes.push(k);
-      map.set(k, r);
+    match: async (key) => (key === url ? new Response(original) : undefined),
+    put: async () => {
+      throw Error("must not persist converted weights");
     },
   };
-  await prepareExternalWeights(cache, url);
-  assert.deepEqual(writes, [`${url}_data`, url]);
-  await prepareExternalWeights(cache, url);
-  assert.equal(writes.length, 2);
-  map.delete(`${url}_data`);
-  await assert.rejects(prepareExternalWeights(cache, url), /External weights are missing/);
+  const prepared = await prepareExternalWeights(cache, url);
+  for (let i = 0; i < 2; i++) {
+    assert.deepEqual(
+      Buffer.from(await (await prepared.match(`${url}_data`)).arrayBuffer()),
+      weights,
+    );
+    const graph = await prepared.match(url);
+    assert.equal(graph.headers.get("x-agent-plan-external-data"), "1");
+    assert.ok((await graph.arrayBuffer()).byteLength < original.byteLength);
+  }
+  assert.deepEqual(Buffer.from(await (await cache.match(url)).arrayBuffer()), original);
+  await assert.rejects(
+    prepareExternalWeights(
+      {
+        match: async (key) =>
+          key === url
+            ? new Response("graph", {
+                headers: { "x-agent-plan-external-data": "1" },
+              })
+            : undefined,
+      },
+      url,
+    ),
+    /External weights are missing/,
+  );
 });
+
 test("Qwen template receives tool schemas with thinking disabled", () => {
   const o = localTemplateOptions({
     messages: [],

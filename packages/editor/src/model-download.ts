@@ -1,9 +1,31 @@
 import { downloadFile, isStorageQuotaError, ModelDownloadStore } from "./model-download-store.ts";
-import { MODEL_CACHE, MODEL_FILES, modelFileURL, TOKENIZER_FILES } from "./model-files.ts";
+import {
+  MODEL_CACHE,
+  MODEL_FILES,
+  modelFileURL,
+  openManagedModelCache,
+  TOKENIZER_FILES,
+} from "./model-files.ts";
 
 export type DownloadScope = "tokenizer" | "model";
+const dismissedKey = "agent-plan-model-download-dismissed";
+function downloadDismissed() {
+  try {
+    return localStorage.getItem(dismissedKey) === "true";
+  } catch {
+    return false;
+  }
+}
+function setDownloadDismissed(dismissed: boolean) {
+  try {
+    if (dismissed) localStorage.setItem(dismissedKey, "true");
+    else localStorage.removeItem(dismissedKey);
+  } catch {
+    /* The current page still supports cancellation without localStorage. */
+  }
+}
 export interface DownloadState {
-  status: "idle" | "downloading" | "paused" | "stopped" | "ready" | "error";
+  status: "idle" | "downloading" | "paused" | "stopped" | "ready" | "error" | "clearing";
   scope: DownloadScope;
   file: string;
   loaded: number;
@@ -24,6 +46,8 @@ export class ModelDownloadManager {
   private listeners = new Set<() => void>();
   private store = new ModelDownloadStore();
   private task?: Promise<void>;
+  private clearing?: Promise<void>;
+  private generation = 0;
   private controller?: AbortController;
   private requestController?: AbortController;
   private wake?: () => void;
@@ -38,7 +62,7 @@ export class ModelDownloadManager {
     for (const listener of this.listeners) listener();
   }
   async restore() {
-    const cache = await caches.open(MODEL_CACHE);
+    const cache = await openManagedModelCache();
     const loaded = await Promise.all(
       MODEL_FILES.map(async (file) => {
         const url = modelFileURL(file.path);
@@ -49,13 +73,19 @@ export class ModelDownloadManager {
         };
       }),
     );
-    if (this.task) return;
+    if (this.task || this.clearing) return;
     const total = MODEL_FILES.reduce((n, f) => n + f.size, 0);
     const sum = loaded.reduce((n, x) => n + x.bytes, 0);
     this.update({
       loaded: sum,
       total,
-      status: loaded.every((file) => file.cached) ? "ready" : sum ? "paused" : "idle",
+      status: loaded.every((file) => file.cached)
+        ? "ready"
+        : sum
+          ? downloadDismissed()
+            ? "stopped"
+            : "paused"
+          : "idle",
     });
   }
   pause() {
@@ -72,8 +102,12 @@ export class ModelDownloadManager {
     } else void this.ensure(this.state.scope).catch(() => {});
   }
   stop() {
+    this.generation++;
+    if (["downloading", "paused", "error"].includes(this.state.status)) {
+      setDownloadDismissed(true);
+      this.update({ status: "stopped", error: "", errorKind: "" });
+    }
     if (!this.task) {
-      if (this.state.status === "paused") this.update({ status: "stopped" });
       return;
     }
     this.update({ status: "stopped" });
@@ -81,23 +115,64 @@ export class ModelDownloadManager {
     this.requestController?.abort();
     this.wake?.();
   }
+  async clear() {
+    if (this.clearing) return this.clearing;
+    const task = (async () => {
+      this.stop();
+      await this.task?.catch(() => {});
+      this.update({ status: "clearing", error: "", errorKind: "" });
+      const cache = await caches.open(MODEL_CACHE);
+      for (const file of MODEL_FILES) {
+        const url = modelFileURL(file.path);
+        await this.store.clear(url);
+        await cache.delete(url);
+        await cache.delete(`${url}_data`);
+      }
+      setDownloadDismissed(false);
+      this.update({
+        status: "idle",
+        scope: "model",
+        loaded: 0,
+        total: MODEL_FILES.reduce((n, file) => n + file.size, 0),
+        file: "",
+      });
+    })();
+    this.clearing = task;
+    try {
+      await task;
+    } catch (cause) {
+      this.update({ status: "error", error: String(cause), errorKind: "" });
+      throw cause;
+    } finally {
+      this.clearing = undefined;
+    }
+  }
   async ensure(scope: DownloadScope, signal?: AbortSignal): Promise<void> {
-    signal?.throwIfAborted();
+    await this.clearing;
+    const generation = this.generation;
+    const checkCancelled = () => {
+      signal?.throwIfAborted();
+      if (generation !== this.generation)
+        throw new DOMException("Download cancelled.", "AbortError");
+    };
+    checkCancelled();
     const stop = () => this.stop();
     signal?.addEventListener("abort", stop, { once: true });
     try {
       if (this.task) await this.task;
-      signal?.throwIfAborted();
-      const cache = await caches.open(MODEL_CACHE);
+      checkCancelled();
+      const cache = await openManagedModelCache();
       const files = scope === "model" ? MODEL_FILES : TOKENIZER_FILES;
       const available = await Promise.all(files.map((f) => cache.match(modelFileURL(f.path))));
+      checkCancelled();
       if (available.every(Boolean)) return;
       // Recheck after awaits so concurrent callers share one writer.
       if (this.task) {
         await this.task;
+        checkCancelled();
         return this.ensure(scope, signal);
       }
-      signal?.throwIfAborted();
+      checkCancelled();
       const controller = new AbortController();
       this.controller = controller;
       this.task = this.run(scope, controller.signal);
@@ -108,7 +183,7 @@ export class ModelDownloadManager {
         this.controller = undefined;
       }
     } catch (cause) {
-      if (this.state.status !== "stopped")
+      if (this.state.status !== "stopped" && generation === this.generation)
         this.update({
           status: signal?.aborted ? "stopped" : "error",
           error: signal?.aborted ? "" : String(cause),
@@ -122,9 +197,10 @@ export class ModelDownloadManager {
   private async run(scope: DownloadScope, signal: AbortSignal) {
     const files = scope === "model" ? MODEL_FILES : TOKENIZER_FILES;
     const total = files.reduce((n, f) => n + f.size, 0);
+    setDownloadDismissed(false);
     this.update({ status: "downloading", scope, total, loaded: 0, error: "", errorKind: "" });
     try {
-      const cache = await caches.open(MODEL_CACHE);
+      const cache = await openManagedModelCache();
       let completed = 0;
       for (const file of files) {
         this.update({ file: file.path });

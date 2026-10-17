@@ -22,6 +22,7 @@ export function AiSettings({
   host: BrowserAiHost;
 }) {
   const model = useSyncExternalStore(host.subscribe, host.getSnapshot);
+  const download = useSyncExternalStore(downloads.subscribe, downloads.getSnapshot);
   return (
     <div className="settings-models">
       <fieldset>
@@ -157,6 +158,25 @@ export function AiSettings({
               </Text>
             )}
             <ModelDownloadProgress manager={downloads} settings />
+            <Text size="sm" c="dimmed" mb="md">
+              {tr("访客或无痕窗口关闭后会清除网站数据，建议使用普通窗口保存模型、流程和对话。")}
+            </Text>
+            <Group mb="md">
+              <Button
+                variant="light"
+                loading={download.status === "clearing"}
+                onClick={() => {
+                  onChange({ ...value, backgroundInitialization: false });
+                  onRelease();
+                  void downloads.clear().catch(() => {});
+                }}
+              >
+                {tr("清除模型下载")}
+              </Button>
+              <Text size="sm" c="dimmed">
+                {tr("停止本地模型并删除模型下载文件，可重新下载；保留流程、对话和连接设置。")}
+              </Text>
+            </Group>
           </div>
         </section>
       </fieldset>

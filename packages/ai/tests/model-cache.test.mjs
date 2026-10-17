@@ -40,6 +40,24 @@ test("managed model cache loads through Transformers and never fetches missing f
       /Could not locate file/i,
     );
     assert.equal(networkRequests, 0);
+    // A host can supply chunk-backed reads; tokenizer use must not parse the graph.
+    let graphReads = 0;
+    await configureBrowserModelCache({
+      match: async (key) => {
+        if (key.endsWith(".onnx")) {
+          graphReads++;
+          throw Error("test graph unavailable");
+        }
+        return files.has(key) ? new Response(files.get(key)) : undefined;
+      },
+    });
+    assert.equal((await AutoConfig.from_pretrained(LOCAL_MODEL)).hidden_size, 42);
+    assert.equal(graphReads, 0);
+    await assert.rejects(
+      env.customCache.match(url.replace("config.json", "onnx/model_q4f16.onnx")),
+      /test graph unavailable/,
+    );
+    assert.equal(graphReads, 1);
   } finally {
     globalThis.caches = originalCaches;
     globalThis.fetch = originalFetch;

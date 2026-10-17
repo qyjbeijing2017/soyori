@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { externalizeOnnx, prepareExternalWeights } from "../dist/onnx-external.js";
 
-test("failed external-data publication leaves the original graph intact", async () => {
+test("ranged virtual external data works even when persistent writes would exceed quota", async () => {
   const field = (n, bytes) => {
     const len = bytes.length;
     return Uint8Array.from([
@@ -19,11 +19,21 @@ test("failed external-data publication leaves the original graph intact", async 
   const original = new Response(bytes);
   const cache = {
     match: async (key) => (key === url ? original.clone() : undefined),
+    readRanges: async (key, ranges) => {
+      assert.equal(key, url);
+      return new Response(
+        new Blob(ranges.map(({ offset, length }) => bytes.slice(offset, offset + length))),
+      );
+    },
     put: async () => {
       throw Error("quota");
     },
   };
-  await assert.rejects(prepareExternalWeights(cache, url), /quota/);
+  const prepared = await prepareExternalWeights(cache, url);
+  assert.deepEqual(
+    new Uint8Array(await (await prepared.match(`${url}_data`)).arrayBuffer()),
+    new Uint8Array(1024).fill(4),
+  );
   assert.deepEqual(new Uint8Array(await original.arrayBuffer()), bytes);
   assert.ok(externalizeOnnx(bytes.buffer, "weights").graph.length < bytes.length);
 });

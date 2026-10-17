@@ -111,7 +111,7 @@ Editor 的 LLM 参数将必填项放在外层：本地仅 input；远程为 inpu
 
 createMemoryTools(storage) 注册 memory.init/save 以及 memory.setSystem/addUser/addAssistant/addTools；init/save 按 prefix/threadId 使用注入的通用存储后端，其余工具统一以 memory 输入和输出整份记忆，message 仅表示单条模型回复，results 表示工具执行结果，并校验调用 ID；详见 [消息组装](../../docs/memory-tools.md)。
 
-浏览器宿主可使用 soyori-ai/local 的 configureBrowserModelCache(cacheName) 接入预下载完整文件缓存；此模式禁止模型文件的隐式远程加载，缺失必需文件会报错。模型与 tokens.count 使用共享固定 LOCAL_REVISION，防止分块跨版本混用。Editor 的下载管理与 CLI 普通下载缓存互相独立。Editor 将版本匹配的 ORT WASM/mjs 随应用打包，从同源加载，避免会话初始化依赖外部 CDN。
+浏览器宿主可使用 soyori-ai/local 的 configureBrowserModelCache(source, runtimePaths?) 接入预下载文件；source 兼容 Cache API 缓存名称，也接受提供 match(url) 的只读缓存对象，可选 readRanges(url, [{offset, length}]) 按顺序返回原文件字节范围。Editor 使用 IndexedDB 分块实现这两个读取方法，模型文件只保存一份，ONNX 外部权重按范围提供，不再写入转换后的完整副本；未提供范围读取的旧缓存名称接口在内存中构造权重 Blob。模型图仅在首次请求模型时准备，tokenizer 查询不会触发图解析。此模式禁止模型文件的隐式远程加载，缺失必需文件会报错。模型与 tokens.count 使用共享固定 LOCAL_REVISION，防止分块跨版本混用。Editor 的下载管理与 CLI 普通下载缓存互相独立。Editor 将版本匹配的 ORT WASM/mjs 随应用打包，从同源加载，避免会话初始化依赖外部 CDN。
 
 缓存模式通过 Transformers 的 `env.fetch` 接口只读取缓存；库所需的远程来源开关保持开启以通过初始化校验，不会触发网络下载。Transformers 4.3 的 pipeline 文件发现会使用 `main`，缓存适配器将当前内置模型的该别名映射到固定版本文件，其他版本和模型不作映射。
 
