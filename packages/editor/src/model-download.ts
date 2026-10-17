@@ -1,4 +1,4 @@
-import { downloadFile, ModelDownloadStore } from "./model-download-store.ts";
+import { downloadFile, isStorageQuotaError, ModelDownloadStore } from "./model-download-store.ts";
 import { MODEL_CACHE, MODEL_FILES, modelFileURL, TOKENIZER_FILES } from "./model-files.ts";
 
 export type DownloadScope = "tokenizer" | "model";
@@ -9,6 +9,7 @@ export interface DownloadState {
   loaded: number;
   total: number;
   error: string;
+  errorKind: "" | "storage-quota";
 }
 export class ModelDownloadManager {
   private state: DownloadState = {
@@ -18,6 +19,7 @@ export class ModelDownloadManager {
     loaded: 0,
     total: MODEL_FILES.reduce((sum, f) => sum + f.size, 0),
     error: "",
+    errorKind: "",
   };
   private listeners = new Set<() => void>();
   private store = new ModelDownloadStore();
@@ -40,15 +42,21 @@ export class ModelDownloadManager {
     const loaded = await Promise.all(
       MODEL_FILES.map(async (file) => {
         const url = modelFileURL(file.path);
-        return (await cache.match(url))
-          ? file.size
-          : ((await this.store.progress(url))?.offset ?? 0);
+        const cached = !!(await cache.match(url));
+        return {
+          cached,
+          bytes: cached ? file.size : ((await this.store.progress(url))?.offset ?? 0),
+        };
       }),
     );
     if (this.task) return;
     const total = MODEL_FILES.reduce((n, f) => n + f.size, 0);
-    const sum = loaded.reduce((n, x) => n + x, 0);
-    this.update({ loaded: sum, total, status: sum === total ? "ready" : sum ? "paused" : "idle" });
+    const sum = loaded.reduce((n, x) => n + x.bytes, 0);
+    this.update({
+      loaded: sum,
+      total,
+      status: loaded.every((file) => file.cached) ? "ready" : sum ? "paused" : "idle",
+    });
   }
   pause() {
     if (this.state.status !== "downloading") return;
@@ -104,6 +112,7 @@ export class ModelDownloadManager {
         this.update({
           status: signal?.aborted ? "stopped" : "error",
           error: signal?.aborted ? "" : String(cause),
+          errorKind: !signal?.aborted && isStorageQuotaError(cause) ? "storage-quota" : "",
         });
       throw cause;
     } finally {
@@ -113,7 +122,7 @@ export class ModelDownloadManager {
   private async run(scope: DownloadScope, signal: AbortSignal) {
     const files = scope === "model" ? MODEL_FILES : TOKENIZER_FILES;
     const total = files.reduce((n, f) => n + f.size, 0);
-    this.update({ status: "downloading", scope, total, loaded: 0, error: "" });
+    this.update({ status: "downloading", scope, total, loaded: 0, error: "", errorKind: "" });
     try {
       const cache = await caches.open(MODEL_CACHE);
       let completed = 0;
@@ -159,6 +168,7 @@ export class ModelDownloadManager {
       this.update({
         status: signal.aborted ? "stopped" : "error",
         error: signal.aborted ? "" : String(cause),
+        errorKind: !signal.aborted && isStorageQuotaError(cause) ? "storage-quota" : "",
       });
       throw cause;
     }

@@ -432,6 +432,7 @@
   "下载已停止": "Download stopped",
   "下载已完成": "Download complete",
   "下载失败": "Download failed",
+  "浏览器存储空间不足，无法保存模型缓存。已保存的下载分块会保留。请释放设备空间或其他网站的存储后继续；请勿清除此网站数据，以免丢失流程和对话。": "Browser storage is full; the model cache could not be saved. Saved download chunks are kept. Free device space or storage used by other sites, then resume. Do not clear this site's data: it contains your flows and conversations.",
   "分词器": "Tokenizer",
   "下载进度": "Download progress",
   "暂停下载": "Pause download",

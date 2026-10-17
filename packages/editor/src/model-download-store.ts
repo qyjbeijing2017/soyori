@@ -6,6 +6,23 @@ export interface FileProgress {
   size: number;
   offset: number;
 }
+
+// Promotion keeps resumable chunks until Cache.put commits the complete file.
+// Budget for both copies; estimates are advisory and may be unavailable.
+async function checkStorageSpace(size: number, offset: number) {
+  const storage = globalThis.navigator?.storage;
+  const estimate = await storage?.estimate?.().catch(() => undefined);
+  if (estimate?.quota === undefined || estimate.usage === undefined) return;
+  if (estimate.quota - estimate.usage < size - offset + size)
+    throw new DOMException(
+      "Insufficient storage for download and complete-file cache.",
+      "QuotaExceededError",
+    );
+}
+
+export function isStorageQuotaError(cause: unknown): boolean {
+  return cause instanceof Error && cause.name === "QuotaExceededError";
+}
 function request<T>(value: IDBRequest<T>) {
   return new Promise<T>((resolve, reject) => {
     value.onsuccess = () => resolve(value.result);
@@ -100,6 +117,7 @@ export async function downloadFile(
   }
   let offset = saved?.offset ?? 0;
   onProgress(offset);
+  await checkStorageSpace(file.size, offset);
   while (offset < file.size) {
     signal.throwIfAborted();
     const end = Math.min(offset + DOWNLOAD_CHUNK_BYTES, file.size) - 1;

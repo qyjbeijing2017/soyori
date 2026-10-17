@@ -72,7 +72,11 @@ export function ModelDownloadProgress({
       )}
       {state.error && (
         <Text size="sm" c="red" role="alert">
-          {state.error}
+          {state.errorKind === "storage-quota"
+            ? tr(
+                "浏览器存储空间不足，无法保存模型缓存。已保存的下载分块会保留。请释放设备空间或其他网站的存储后继续；请勿清除此网站数据，以免丢失流程和对话。",
+              )
+            : state.error}
         </Text>
       )}
       {settings && <Group gap="xs">{controls}</Group>}
