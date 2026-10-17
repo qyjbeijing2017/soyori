@@ -36,23 +36,31 @@ function fields(b: Uint8Array) {
     }
     throw Error("AI_MODEL_FORMAT: Invalid protobuf integer.");
   }
-  const list: { n: number; start: number; end: number; from: number; to: number }[] = [];
+  const list: {
+    n: number;
+    start: number;
+    end: number;
+    from: number;
+    to: number;
+    value?: number;
+  }[] = [];
   while (p < b.length) {
     const start = p,
       tag = read(),
       wire = tag & 7;
     let from = p;
+    let value: number | undefined;
     if (!tag) throw Error("AI_MODEL_FORMAT: Invalid protobuf field.");
     if (wire === 2) {
       const length = read();
       from = p;
       p += length;
-    } else if (wire === 0) read();
+    } else if (wire === 0) value = read();
     else if (wire === 1) p += 8;
     else if (wire === 5) p += 4;
     else throw Error("AI_MODEL_FORMAT: Unsupported protobuf field.");
     if (p > b.length) throw Error("AI_MODEL_FORMAT: Truncated protobuf field.");
-    list.push({ n: Math.floor(tag / 8), start, end: p, from, to: p });
+    list.push({ n: Math.floor(tag / 8), start, end: p, from, to: p, value });
   }
   return list;
 }
@@ -80,11 +88,17 @@ function indexExternalOnnx(original: ArrayBuffer, location: string) {
       parts.push(graph.subarray(f.start, f.end));
       continue;
     }
-    if (tf.some((t) => t.n === 13 || t.n === 14))
+    // Exporters may explicitly serialize DEFAULT (0); presence is not EXTERNAL (1).
+    const dataLocation = tf.filter((t) => t.n === 14).at(-1);
+    if (dataLocation && dataLocation.value !== 0 && dataLocation.value !== 1)
+      throw Error("AI_MODEL_FORMAT: Invalid tensor data location.");
+    if (tf.some((t) => t.n === 13) || dataLocation?.value === 1)
       throw Error("AI_MODEL_FORMAT: Already external tensor.");
     const length = raw.to - raw.from;
     ranges.push({ offset: graphField.from + f.from + raw.from, length });
-    const small = tf.filter((t) => t.n !== 9).map((t) => tensor.subarray(t.start, t.end));
+    const small = tf
+      .filter((t) => t.n !== 9 && t.n !== 14)
+      .map((t) => tensor.subarray(t.start, t.end));
     small.push(
       entry("location", location),
       entry("offset", String(offset)),

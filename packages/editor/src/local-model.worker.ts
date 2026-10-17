@@ -4,6 +4,13 @@ import type { GenerateInput } from "soyori-ai";
 import { createLocalModel } from "soyori-ai/local";
 import { configureManagedModelCache } from "./model-files";
 
+const errorMessage = (error: unknown) => (error instanceof Error ? error.message : String(error));
+// Some model-loader background promises reject outside the request await chain.
+self.addEventListener("unhandledrejection", (event) => {
+  event.preventDefault();
+  self.postMessage({ type: "error", message: errorMessage(event.reason) });
+});
+
 const local = createLocalModel({
   device: "webgpu",
   stream: (event) => self.postMessage({ type: "stream", event }),
@@ -32,7 +39,7 @@ self.onmessage = async (event: MessageEvent<GenerateInput | { type: "initialize"
   } catch (error) {
     self.postMessage({
       type: "error",
-      message: error instanceof Error ? error.message : String(error),
+      message: errorMessage(error),
     });
   }
 };

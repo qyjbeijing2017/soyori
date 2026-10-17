@@ -31,6 +31,44 @@ test("external ONNX preserves weight bytes, metadata and rejects malformed proto
   assert.deepEqual(Array.from(converted.graph.slice(0, 2)), [8, 9]);
   assert.throws(() => externalizeOnnx(buffer(original.subarray(0, 20)), "weights"), /Truncated/);
 });
+
+test("explicit DEFAULT tensor location in the pinned Qwen format is embedded, not external", async () => {
+  const withLocation = (value) =>
+    buffer(
+      f(
+        7,
+        f(
+          5,
+          Buffer.concat([
+            f(8, Buffer.from("model.embed_tokens.weight")),
+            f(9, weights),
+            v(14 * 8),
+            v(value),
+          ]),
+        ),
+      ),
+    );
+  const converted = externalizeOnnx(withLocation(0), "weights");
+  assert.deepEqual(Buffer.from(await converted.weights.arrayBuffer()), weights);
+  // Remove the old DEFAULT field rather than publishing contradictory locations.
+  assert.equal(Buffer.from(converted.graph).includes(Buffer.from([14 * 8, 0])), false);
+  assert.equal(Buffer.from(converted.graph).includes(Buffer.from([14 * 8, 1])), true);
+  assert.throws(() => externalizeOnnx(withLocation(1), "weights"), /Already external tensor/);
+  assert.throws(() => externalizeOnnx(withLocation(2), "weights"), /Invalid tensor data location/);
+  const url = "https://test.invalid/default-location.onnx";
+  const original = withLocation(0);
+  const cache = await prepareExternalWeights(
+    {
+      match: async (key) => (key === url ? new Response(original) : undefined),
+      readRanges: async (_key, ranges) =>
+        new Response(
+          new Blob(ranges.map(({ offset, length }) => original.slice(offset, offset + length))),
+        ),
+    },
+    url,
+  );
+  assert.deepEqual(Buffer.from(await (await cache.match(`${url}_data`)).arrayBuffer()), weights);
+});
 test("virtual external weights preserve bytes without writing a second persistent copy", async () => {
   const url = "https://test.invalid/model_q4f16.onnx";
   const cache = {
